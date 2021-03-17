@@ -1,0 +1,38 @@
+version: '3'
+
+services:
+  api:
+    restart: always
+    build: ./
+    expose:
+      - "8000"
+    links:
+      - postgres:postgres
+    env_file:
+      - .env
+    volumes:
+        - ./:/usr/src/app/
+    command: /usr/local/bin/gunicorn -w 1 -b :8000 'gatovid.app:app'
+
+  nginx:
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    links:
+      - api:api
+    depends_on:
+        - api
+
+  postgres:
+    restart: always
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  db-data:

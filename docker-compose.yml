@@ -1,0 +1,64 @@
+version: '3'
+
+services:
+  api:
+    restart: always
+    build: ./
+    expose:
+      - "8000"
+    links:
+      - postgres:postgres
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - FLASK_DEBUG=1
+    volumes:
+        - ./:/usr/src/app/
+    command: /usr/local/bin/gunicorn -w 1 -b :8000 'gatovid.app:app' --reload
+
+  nginx:
+    restart: always
+    build: ./nginx
+    ports:
+      - "80:80"
+    links:
+      - api:api
+    depends_on:
+        - api
+
+  data:
+    image: postgres:latest
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    command: "true"
+
+  postgres:
+    restart: always
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    links:
+      - postgres
+    depends_on:
+      - postgres
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@admin.com
+      - PGADMIN_DEFAULT_PASSWORD=pwdpwd
+      - PGADMIN_LISTEN_PORT=5050
+    volumes:
+      - pgadmin:/root/.pgadmin
+    ports:
+      - "5050:5050"
+
+volumes:
+  db-data:
+  pgadmin:

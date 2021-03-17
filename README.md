@@ -7,7 +7,7 @@ Posiblemente necesite `sudo`:
 ```sh
 $ docker-compose build
 $ docker-compose up -d
-$ docker-compose run web /usr/local/bin/python -m gatovid --create-db
+$ docker-compose run api /usr/local/bin/python -m gatovid --create-db
 ```
 
 Para ver en qué dirección está corriendo el servidor (mirar el de `ngnix`):
@@ -66,5 +66,5 @@ $ curl -X POST "localhost/data/test" -d 'var=val'
 Y para los tests automáticos:
 
 ```sh
-$ docker-compose run web /usr/local/bin/python -m unittest
+$ docker-compose run api /usr/local/bin/python -m unittest
 ```

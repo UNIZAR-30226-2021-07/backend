@@ -19,6 +19,4 @@ def test():
     TODO
     """
 
-    return {
-        "payload": request.form
-    }
+    return {"payload": request.form}

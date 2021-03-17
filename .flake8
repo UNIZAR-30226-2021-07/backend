@@ -5,7 +5,7 @@
 # rather than using the flake8 default of 79:
 max-line-length = 88
 exclude = .git,.venv,env,__pycache__,build,dist
+per-file-ignores = __init__.py:F401
 extend-ignore =
     # See https://github.com/PyCQA/pycodestyle/issues/373
     E203,
-

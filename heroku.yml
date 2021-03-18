@@ -4,7 +4,7 @@ build:
         postgres: Dockerfile.postgres
 release:
     command:
-        - /usr/bin/env python3 -m gatovid --create-db
+        - /usr/local/bin/python3 -m gatovid --create-db
     image: api
 run:
     api: /usr/local/bin/gunicorn -w 1 -b :8000 'gatovid.app:app'

@@ -8,7 +8,7 @@ import os
 
 class BaseConfig:
     SECRET_KEY = os.environ["SECRET_KEY"]
-    DEBUG = os.environ["DEBUG"] or False
+    DEBUG = os.environ["DEBUG"]
     DB_NAME = os.environ["DB_NAME"]
     DB_USER = os.environ["DB_USER"]
     DB_PASS = os.environ["DB_PASS"]

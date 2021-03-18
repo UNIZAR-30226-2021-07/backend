@@ -1,7 +1,7 @@
 build:
     docker:
         api: Dockerfile
-        postgres: postgres:latest
+        postgres: Dockerfile.postgres
 release:
     command:
         - /usr/bin/env python3 -m gatovid --create-db

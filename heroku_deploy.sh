@@ -1,5 +1,11 @@
 #!/usr/bin/env
 
+echo ---
+pwd
+echo ---
+ls /usr/src/app
+echo ---
+
 echo ">> Creating database"
 python -m gatovid --create-db
 

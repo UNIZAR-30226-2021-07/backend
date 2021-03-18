@@ -1,11 +1,13 @@
 name: Continuous Integration
 
+# Solo se ejecuta el CI con commits en master o en pull requests.
 on:
   pull_request:
   push:
     branches: master
 
 jobs:
+  # Tests con el procedimiento estándar
   python-tests:
     name: Python tests
     runs-on: ubuntu-20.04
@@ -18,6 +20,7 @@ jobs:
       - name: Run tests
             docker-compose run api /usr/local/bin/python -m unittest
 
+  # Linter con flake8
   python-linter:
       name: Python linter
       runs-on: ubuntu-20.04
@@ -32,6 +35,7 @@ jobs:
         - name: Run linter
           run: python -m flake8 .
 
+  # Formatter con black e isort
   python-fmt:
       name: Python formatting
       runs-on: ubuntu-20.04

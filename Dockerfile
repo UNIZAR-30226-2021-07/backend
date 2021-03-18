@@ -13,4 +13,4 @@ RUN python -m pip install --upgrade pip
 WORKDIR /usr/src/app
 
 COPY README.md setup.py ./
-RUN pip install -e .
+RUN pip install .

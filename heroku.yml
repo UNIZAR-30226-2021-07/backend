@@ -5,7 +5,7 @@ build:
 release:
     command:
         - echo ">> Creating database"
-        - /usr/local/bin/python3 -m gatovid --create-db
+        - python -m gatovid --create-db
     image: api
 run:
-    api: '/usr/local/bin/gunicorn -w 1 -b :8000 gatovid.app:app'
+    api: gunicorn -w 1 -b :8000 gatovid.app:app

@@ -5,6 +5,6 @@ build:
 release:
     command:
         - /usr/bin/env python3 -m gatovid --create-db
-    image: postgres
+    image: api
 run:
     api: /usr/local/bin/gunicorn -w 1 -b :8000 'gatovid.app:app'

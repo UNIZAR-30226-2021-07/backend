@@ -2,10 +2,9 @@ build:
     docker:
         api: Dockerfile
         postgres: Dockerfile.postgres
-release:
-    command:
+run:
+    api:
         - echo ">> Creating database"
         - python -m gatovid --create-db
-    image: api
-run:
-    api: gunicorn -w 1 -b :8000 gatovid.app:app
+        - echo ">> Launching app"
+        - gunicorn -w 1 -b :8000 gatovid.app:app

@@ -3,12 +3,12 @@ setup:
         DEBUG: False
 build:
     docker:
-        api: Dockerfile
+        web: Dockerfile
         # postgres: Dockerfile.postgres
 release:
-    image: api
+    image: web
     command:
         - echo ">> Creating database"
         - python -m gatovid --create-db
 run:
-    api: gunicorn -w 1 --bind 0.0.0.0:$PORT gatovid.app:app
+    web: gunicorn -w 1 --bind 0.0.0.0:$PORT gatovid.app:app

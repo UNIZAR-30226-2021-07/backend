@@ -50,11 +50,8 @@ $ # Salir del virtualenv
 $ deactivate
 ```
 
-Sino, manualmente con las siguientes herramientas:
-
-* Auto formatting con `python -m black .`
-* Imports ordenados con `python -m isort .`
-* Linter con `python -m flake8 .`
+Se automatiza el proceso en `./format.sh`. Referirse a ese script para más
+información.
 
 ## Tests
 
@@ -77,7 +74,7 @@ $ docker-compose run api /usr/local/bin/python -m unittest
 ## Deployment
 
 Se incluyen archivos de configuración para el deployment en
-[Heroku](heroku.com/). Los pasos seguidos son los siguientes:
+[Heroku](https://www.heroku.com/). Los pasos seguidos son los siguientes:
 
 1. Añadir un addon como [Heroku Posgres](https://www.heroku.com/postgres) con
    una base de datos de tipo postgres. Asegurarse de que exporte la variable

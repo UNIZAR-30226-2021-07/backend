@@ -10,7 +10,6 @@ build:
 release:
     image: web
     command:
-        - env
         - echo ">> Setting up database"
         - python -m gatovid --create-db
 run:

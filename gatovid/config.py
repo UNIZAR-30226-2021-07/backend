@@ -14,16 +14,17 @@ def get_db_uri():
     DB_{NAME,USER,PASS,SERVICE}.
     """
 
-    if url := os.environ.get("DATABASE_URL") is not None:
-        return url
+    url = os.environ.get("DATABASE_URL")
 
-    DB_NAME = os.environ["DB_NAME"]
-    DB_USER = os.environ["DB_USER"]
-    DB_PASS = os.environ["DB_PASS"]
-    DB_SERVICE = os.environ["DB_SERVICE"]
-    DB_PORT = os.environ["DB_PORT"]
+    if url is None:
+        DB_NAME = os.environ["DB_NAME"]
+        DB_USER = os.environ["DB_USER"]
+        DB_PASS = os.environ["DB_PASS"]
+        DB_SERVICE = os.environ["DB_SERVICE"]
+        DB_PORT = os.environ["DB_PORT"]
+        url = f"postgresql://{DB_USER}:{DB_PASS}@{DB_SERVICE}:{DB_PORT}/{DB_NAME}"
 
-    return f"postgresql://{DB_USER}:{DB_PASS}@{DB_SERVICE}:{DB_PORT}/{DB_NAME}"
+    return url
 
 
 class BaseConfig:

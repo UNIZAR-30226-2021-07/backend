@@ -10,7 +10,8 @@ build:
 release:
     image: web
     command:
-        - echo ">> Creating database"
+        - env
+        - echo ">> Setting up database"
         - python -m gatovid --create-db
 run:
     web: gunicorn -w 1 --bind 0.0.0.0:$PORT gatovid.app:app

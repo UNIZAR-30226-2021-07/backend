@@ -4,7 +4,7 @@ setup:
 build:
     docker:
         api: Dockerfile
-        postgres: Dockerfile.postgres
+        # postgres: Dockerfile.postgres
 release:
     image: api
     command:

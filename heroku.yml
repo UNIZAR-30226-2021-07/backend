@@ -1,10 +1,12 @@
 setup:
+    addons:
+        - plan: heroku-postgresql
+          as: DATABASE
     config:
         DEBUG: False
 build:
     docker:
         web: Dockerfile
-        postgres: Dockerfile.postgres
 release:
     image: web
     command:

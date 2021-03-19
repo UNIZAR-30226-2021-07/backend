@@ -11,4 +11,4 @@ release:
         - echo ">> Creating database"
         - python -m gatovid --create-db
 run:
-    api: gunicorn -w 1 -b :8000 gatovid.app:app
+    api: gunicorn -w 1 --bind 0.0.0.0:$PORT gatovid.app:app

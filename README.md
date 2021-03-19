@@ -76,7 +76,7 @@ $ docker-compose run api /usr/local/bin/python -m unittest
 Se incluyen archivos de configuración para el deployment en
 [Heroku](https://www.heroku.com/). Los pasos seguidos son los siguientes:
 
-1. Añadir un addon como [Heroku Posgres](https://www.heroku.com/postgres) con
+1. Añadir un addon como [Heroku Postgres](https://www.heroku.com/postgres) con
    una base de datos de tipo postgres. Asegurarse de que exporte la variable
    `DATABASE_URL` (la mayoría lo hacen por defecto, y estará en el apartado de
    "Secrets").

@@ -15,6 +15,9 @@ jobs:
       - uses: actions/checkout@v2
       - name: Set up backend
         run: |
+            # Se carga el fichero .env como un secreto en GitHub para evitar
+            # leaks.
+            echo "${ENV_SECRETS}" > .env
             docker-compose build
             docker-compose up -d
       - name: Run tests

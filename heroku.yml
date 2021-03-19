@@ -1,6 +1,6 @@
 setup:
     config:
-        - DEBUG: False
+        DEBUG: False
 build:
     docker:
         api: Dockerfile

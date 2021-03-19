@@ -81,9 +81,8 @@ Se incluyen archivos de configuración para el deployment en
    `DATABASE_URL` (la mayoría lo hacen por defecto, y estará en el apartado de
    "Secrets").
 2. Adicionalmente, se tendrán que incluir los siguientes secretos:
-    1. `DEBUG`, preferiblemente a `False`
-    2. `SECRET_KEY` para encriptar con Flask. Usar una cadena larga con
-       caracteres de todos los tipos.
+    * `SECRET_KEY` para encriptar con Flask. Usar una cadena larga con
+      caracteres de todos los tipos.
 
 El proyecto actualmente reside en https://gatovid.herokuapp.com/. Se ha
 configurado con Continuous Deployment para que cada commit a la rama `master`

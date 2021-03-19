@@ -16,7 +16,9 @@ def get_db_uri():
 
     url = os.environ.get("DATABASE_URL")
 
-    if url is None:
+    if url is not None:
+        url = url.replace("postgres://", "postgresql://")
+    else:
         DB_NAME = os.environ["DB_NAME"]
         DB_USER = os.environ["DB_USER"]
         DB_PASS = os.environ["DB_PASS"]

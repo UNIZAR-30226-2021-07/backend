@@ -4,7 +4,7 @@ setup:
 build:
     docker:
         web: Dockerfile
-        # postgres: Dockerfile.postgres
+        postgres: Dockerfile.postgres
 release:
     image: web
     command:

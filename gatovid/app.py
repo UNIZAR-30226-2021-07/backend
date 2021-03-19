@@ -42,4 +42,9 @@ app.register_blueprint(api.data.mod)
 app.register_blueprint(api.game.mod)
 
 
+@app.route("/")
+def index():
+    return "This site is meant to be used as an API, not a web interface"
+
+
 logger = app.logger

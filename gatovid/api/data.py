@@ -3,6 +3,9 @@
 
 from flask import Blueprint, request
 
+from gatovid.exts import db
+from gatovid.models import User
+
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
 
@@ -19,4 +22,10 @@ def test():
     TODO
     """
 
-    return {"payload": request.form}
+    user = db.session.query(User.id).first()
+
+    return {
+        "POST Payload": request.form,
+        "GET Payload": request.args,
+        "First user in database": user.id,
+    }

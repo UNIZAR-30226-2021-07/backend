@@ -1,5 +1,7 @@
 FROM python:3.8-slim
 
+WORKDIR /usr/src/app
+
 # Configuración del locale a español
 ENV DEBIAN_FRONTEND noninteractive
 COPY setlocale.sh ./
@@ -10,7 +12,5 @@ ENV LC_ALL es_ES
 
 RUN python -m pip install --upgrade pip
 
-WORKDIR /usr/src/app
-
-COPY README.md setup.py ./
-RUN pip install -e .
+COPY . .
+RUN pip install .

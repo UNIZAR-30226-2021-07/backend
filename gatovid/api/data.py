@@ -22,10 +22,10 @@ def test():
     TODO
     """
 
-    user = db.session.query(User.id).first()
+    user = db.session.query(User.email).first()
 
     return {
         "POST Payload": request.form,
         "GET Payload": request.args,
-        "First user in database": user.id,
+        "First user in database": user.email,
     }

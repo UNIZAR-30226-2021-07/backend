@@ -28,19 +28,13 @@ def db_test_data():
 
     with app.app_context():
         users = [
-            User(id="test_user1", password="whatever1"),
-            User(id="test_user2", password="whatever2"),
-            User(id="test_user3", password="whatever3"),
+            User(email="test_user1@gmail.com", name="test_user1", password="whatever1"),
+            User(email="test_user2@gmail.com", name="test_user2", password="whatever2"),
+            User(email="test_user3@gmail.com", name="test_user3", password="whatever3"),
         ]
         for user in users:
             db.session.add(user)
         db.session.commit()
-
-        users = [
-            User(id="test_user1", password="whatever1"),
-            User(id="test_user2", password="whatever2"),
-            User(id="test_user3", password="whatever3"),
-        ]
 
 
 def db_init():

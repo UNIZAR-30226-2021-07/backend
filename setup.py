@@ -3,6 +3,7 @@ from setuptools import find_packages, setup
 install_requires = [
     "Flask-SQLAlchemy==2.4.4",
     "Flask==1.1.2",
+    "Flask-Bcrypt==0.7.1",
     "gunicorn==20.0.4",
     "psycopg2-binary==2.8.6",
 ]

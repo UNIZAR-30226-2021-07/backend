@@ -16,6 +16,8 @@ def db_reset():
 
     print("Cleaning database... ", end="")
     with app.app_context():
+        db.session.commit()
+        db.session.remove()
         db.drop_all()
         db.create_all()
     print("done")

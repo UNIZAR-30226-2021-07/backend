@@ -18,7 +18,7 @@ def index():
 
 @mod.route("/test", methods=["GET", "POST"])
 def test():
-    user = db.session.query(User.email).first()
+    user = db.session.query(User).first()
 
     return {
         "POST Payload": request.form,
@@ -28,7 +28,7 @@ def test():
             "name": user.name,
             "password (hashed)": user.password,
             "coins": user.coins,
-            "purchases": user.purchases,
-            "stats": user.stats,
+            "purchases": str(user.purchases),
+            "stats": str(user.stats),
         },
     }

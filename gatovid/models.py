@@ -50,6 +50,12 @@ class User(db.Model):
     # Relación "One to Many" (1:N)
     purchases = db.relationship("Purchase", back_populates="user")
 
+    def __str__(self) -> str:
+        return f"(User {self.email})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
     @property
     def password(self) -> str:
         return self._password
@@ -74,6 +80,12 @@ class Stats(db.Model):
     losses = db.Column(db.Integer, default=0)
     wins = db.Column(db.Integer, default=0)
     playtime_mins = db.Column(db.Integer, default=0)
+
+    def __str__(self) -> str:
+        return f"(Stats for {self.user_id})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
     @property
     def games(self):
@@ -107,6 +119,12 @@ class Purchase(db.Model):
         db.String, db.ForeignKey("user.email", ondelete="CASCADE"), primary_key=True
     )
     user = db.relationship("User", back_populates="purchases")
+
+    def __str__(self) -> str:
+        return f"(Pruchase for {self.user_id})"
+
+    def __repr__(self) -> str:
+        return self.__str__()
 
 
 class GameManager:

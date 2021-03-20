@@ -8,6 +8,7 @@ Posiblemente necesite `sudo`:
 $ docker-compose build
 $ docker-compose up -d
 $ # Inicializar la base de datos
+$ docker-compose run api /usr/local/bin/python -m gatovid --reset-db
 $ docker-compose run api /usr/local/bin/python -m gatovid --create-db
 ```
 

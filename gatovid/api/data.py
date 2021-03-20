@@ -18,10 +18,6 @@ def index():
 
 @mod.route("/test", methods=["GET", "POST"])
 def test():
-    """
-    TODO
-    """
-
     user = db.session.query(User.email).first()
 
     return {

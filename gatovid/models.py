@@ -40,7 +40,7 @@ class User(db.Model):
     # modificación requiere encriptarla previamente.
     _password = db.Column(db.String, nullable=False)
 
-    coins = db.Column(db.String, default=0)
+    coins = db.Column(db.Integer, default=0)
 
     picture = db.Column(db.Integer, default=0)
     board = db.Column(db.Integer, default=0)
@@ -99,13 +99,12 @@ class Purchase(db.Model):
     Una compra realizada por un usuario en la tienda.
     """
 
-    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-
+    item_id = db.Column(db.Integer, primary_key=True)
     type = db.Column(db.Enum(PurchasableType), nullable=False)
 
-    # Relación "Many to One" (1:1)
+    # Relación "Many to One" (N:1)
     user_id = db.Column(
-        db.String, db.ForeignKey("user.email", ondelete="CASCADE"), nullable=False
+        db.String, db.ForeignKey("user.email", ondelete="CASCADE"), primary_key=True
     )
     user = db.relationship("User", back_populates="purchases")
 

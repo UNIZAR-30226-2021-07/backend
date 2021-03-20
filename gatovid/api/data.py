@@ -27,5 +27,12 @@ def test():
     return {
         "POST Payload": request.form,
         "GET Payload": request.args,
-        "First user in database": user.email,
+        "First user in database": {
+            "email": user.email,
+            "name": user.name,
+            "password (hashed)": user.password,
+            "coins": user.coins,
+            "purchases": user.purchases,
+            "stats": user.stats,
+        },
     }

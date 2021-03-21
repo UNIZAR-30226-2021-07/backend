@@ -2,12 +2,14 @@
 
 ## Instalación
 
-Posiblemente necesite `sudo`:
+Posiblemente necesite `sudo`. Para más información sobre las variables de
+entorno a configurar, consultar la sección de [Despliegue](#despliegue).
 
 ```sh
 $ docker-compose build
 $ docker-compose up -d
 $ # Inicializar la base de datos
+$ docker-compose run api /usr/local/bin/python -m gatovid --reset-db
 $ docker-compose run api /usr/local/bin/python -m gatovid --create-db
 ```
 
@@ -71,7 +73,7 @@ Y para los tests automáticos:
 $ docker-compose run api /usr/local/bin/python -m unittest
 ```
 
-## Deployment
+## Despliegue
 
 Se incluyen archivos de configuración para el deployment en
 [Heroku](https://www.heroku.com/). Los pasos seguidos son los siguientes:
@@ -88,3 +90,8 @@ El proyecto actualmente reside en https://gatovid.herokuapp.com/. Se ha
 configurado con Continuous Deployment para que cada commit a la rama `master`
 suba una actualización, después de que se hayan pasado todos los tests
 correctamente.
+
+Para realizar pruebas localmente se recomienda usar el fichero .env [de
+ejemplo incluido en este repositorio](.env.example). Únicamente es necesario
+cambiarle el nombre a `.env` y seguir los pasos de `docker-compose` en la
+sección de [instalación](#instalación).

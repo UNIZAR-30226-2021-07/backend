@@ -1,0 +1,3 @@
+[submodule "assets"]
+	path = gatovid/assets
+	url = https://github.com/UNIZAR-30226-2021-07/assets.git

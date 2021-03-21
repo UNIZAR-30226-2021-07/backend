@@ -18,14 +18,17 @@ def index():
 
 @mod.route("/test", methods=["GET", "POST"])
 def test():
-    """
-    TODO
-    """
-
-    user = db.session.query(User.id).first()
+    user = db.session.query(User).first()
 
     return {
         "POST Payload": request.form,
         "GET Payload": request.args,
-        "First user in database": user.id,
+        "First user in database": {
+            "email": user.email,
+            "name": user.name,
+            "password (hashed)": user.password,
+            "coins": user.coins,
+            "purchases": str(user.purchases),
+            "stats": str(user.stats),
+        },
     }

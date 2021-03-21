@@ -12,13 +12,15 @@ directorio en vez de un único fichero.
 """
 
 import json
+import os
 from enum import Enum
 
 from gatovid.exts import bcrypt, db
 
-PROFILE_PICS_PATH = "./gatovid/assets/profile_pics.json"
-CARDS_PATH = "./gatovid/assets/cards.json"
-BOARDS_PATH = "./gatovid/assets/boards.json"
+CUR_DIR = os.path.dirname(os.path.realpath(__file__))
+PROFILE_PICS_PATH = os.path.join(CUR_DIR, "assets", "profile_pics.json")
+CARDS_PATH = os.path.join(CUR_DIR, "assets", "cards.json")
+BOARDS_PATH = os.path.join(CUR_DIR, "assets", "boards.json")
 
 PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())

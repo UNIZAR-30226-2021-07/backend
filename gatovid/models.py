@@ -16,13 +16,13 @@ from enum import Enum
 
 from gatovid.exts import bcrypt, db
 
-PROFILE_PICS_PATH = "assets/profile_pics.json"
-CARDS_PATH = "assets/cards.json"
-BOARDS_PATH = "assets/boards.json"
+PROFILE_PICS_PATH = "./gatovid/assets/profile_pics.json"
+CARDS_PATH = "./gatovid/assets/cards.json"
+BOARDS_PATH = "./gatovid/assets/boards.json"
 
-# PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
-# CARDS = json.loads(open(CARDS_PATH, "r").read())
-# BOARDS = json.loads(open(BOARDS_PATH, "r").read())
+PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
+CARDS = json.loads(open(CARDS_PATH, "r").read())
+BOARDS = json.loads(open(BOARDS_PATH, "r").read())
 
 
 class User(db.Model):

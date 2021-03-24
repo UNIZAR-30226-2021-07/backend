@@ -10,6 +10,9 @@ build:
 release:
     image: web
     command:
+        - echo ">> Cloning dependencies"
+        - git submodule init
+        - git submodule update
         - echo ">> Setting up database"
         - python -m gatovid --create-db
 run:

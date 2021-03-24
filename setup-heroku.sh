@@ -5,6 +5,8 @@
 echo ">> Cloning dependencies"
 git init
 ./setup-submodules.sh
+ls /usr/src/app/gatovid
+ls /usr/src/app/gatovid/assets
 
 # Also gatovid-specific processes
 echo ">> Setting up database"

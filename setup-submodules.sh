@@ -8,4 +8,3 @@ git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | while read -r p
     rm -rf "$where"
     git submodule add "$url" "$where"
 done
-

@@ -4,6 +4,8 @@
 echo ">> TEST"
 ls /usr/src/app/gatovid
 ls /usr/src/app/gatovid/assets
+apt-get update
+apt-get install git
 git status
 ls -a
 
@@ -11,6 +13,8 @@ ls -a
 echo ">> Cloning dependencies"
 git submodule init
 git submodule update
+ls /usr/src/app/gatovid
+ls /usr/src/app/gatovid/assets
 
 # Also gatovid-specific processes
 echo ">> Setting up database"

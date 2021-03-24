@@ -4,8 +4,6 @@
 echo ">> TEST"
 ls /usr/src/app/gatovid
 ls /usr/src/app/gatovid/assets
-sudo apt-get -y update
-sudo apt-get -y install git
 git status
 ls -a
 pwd

@@ -10,6 +10,10 @@ ENV LANG es_ES
 ENV LANGUAGE es_ES
 ENV LC_ALL es_ES
 
+# External dependencies installation
+RUN apt-get -y update
+RUN apt-get -y install git
+
 # Python dependencies installation
 RUN python -m pip install --upgrade pip
 COPY . .

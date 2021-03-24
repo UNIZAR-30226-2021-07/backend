@@ -10,6 +10,7 @@ pwd
 
 # heroku.yml doesn't support submodules, apparently
 echo ">> Cloning dependencies"
+git init
 git submodule init
 git submodule update
 ls /usr/src/app/gatovid

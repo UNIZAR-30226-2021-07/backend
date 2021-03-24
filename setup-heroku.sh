@@ -8,6 +8,7 @@ apt-get -y update
 apt-get -y install git
 git status
 ls -a
+pwd
 
 # heroku.yml doesn't support submodules, apparently
 echo ">> Cloning dependencies"

@@ -4,13 +4,13 @@ WORKDIR /usr/src/app
 
 # Configuración del locale a español
 ENV DEBIAN_FRONTEND noninteractive
-COPY setlocale.sh ./
-RUN ./setlocale.sh "es_ES.UTF-8 UTF-8"
+COPY setup-locale.sh ./
+RUN ./setup-locale.sh "es_ES.UTF-8 UTF-8"
 ENV LANG es_ES
 ENV LANGUAGE es_ES
 ENV LC_ALL es_ES
 
+# Python dependencies installation
 RUN python -m pip install --upgrade pip
-
 COPY . .
 RUN pip install .

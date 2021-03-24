@@ -12,7 +12,7 @@ ENV LC_ALL es_ES
 
 # External dependencies installation
 RUN apt-get -y update
-RUN apt-get -y install git
+RUN apt-get -y install git curl
 
 # Python dependencies installation
 RUN python -m pip install --upgrade pip

@@ -5,6 +5,7 @@
 git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | while read -r path_key where; do
     url_key=$(echo "$path_key" | sed 's/\.path/.url/')
     url=$(git config -f .gitmodules --get "$url_key")
+    rm -rf "$where"
     git submodule add "$url" "$where"
 done
 

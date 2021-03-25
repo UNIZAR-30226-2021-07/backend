@@ -4,13 +4,15 @@ setup:
           as: DATABASE
     config:
         DEBUG: False
+
 build:
     docker:
         web: Dockerfile
+
 release:
     image: web
     command:
-        - echo ">> Setting up database"
-        - python -m gatovid --create-db
+        - ./setup-heroku.sh
+
 run:
     web: gunicorn -w 1 --bind 0.0.0.0:$PORT gatovid.app:app

@@ -123,7 +123,7 @@ class Purchase(db.Model):
     user = db.relationship("User", back_populates="purchases")
 
     def __str__(self) -> str:
-        return f"(Pruchase for {self.user_id})"
+        return f"(Purchase for {self.user_id})"
 
     def __repr__(self) -> str:
         return self.__str__()

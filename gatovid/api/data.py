@@ -36,9 +36,9 @@ def test():
 
 @mod.route("/signup", methods=["GET", "POST"])
 def signup():
-    username = request.args.get('username')
-    email = request.args.get('email')
-    password = request.args.get('password')
+    username = request.args.get("username")
+    email = request.args.get("email")
+    password = request.args.get("password")
 
     if None in (username, email, password):
         return {
@@ -53,7 +53,7 @@ def signup():
             "Usuario": {
                 "name": user.name,
                 "email": user.email,
-            }
+            },
         }
     # Comprobamos si existe una cuenta con ese email
     user = User.query.get(email)

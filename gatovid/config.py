@@ -33,3 +33,4 @@ class BaseConfig:
     SECRET_KEY = os.environ["SECRET_KEY"]
     DEBUG = os.environ.get("DEBUG", False)
     SQLALCHEMY_DATABASE_URI = get_db_uri()
+    JSON_AS_ASCII = False  # Para poder devolver JSON con UTF-8

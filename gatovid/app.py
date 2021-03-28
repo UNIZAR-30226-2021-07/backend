@@ -6,6 +6,8 @@ import locale
 
 from flask import Flask
 
+from flask_jwt_extended import JWTManager
+
 from gatovid import api
 from gatovid.config import BaseConfig
 from gatovid.exts import db
@@ -35,9 +37,12 @@ def create_app() -> Flask:
 # de fechas.
 locale.setlocale(locale.LC_ALL, "es_ES.utf8")
 
+app = create_app()
+# Configuramos el Manager de sesiones con JWT
+jwt = JWTManager(app)
+
 # Los "blueprint" sirven para que los endpoints de la página web sean más
 # modulares.
-app = create_app()
 app.register_blueprint(api.data.mod)
 app.register_blueprint(api.game.mod)
 

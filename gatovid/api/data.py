@@ -42,8 +42,10 @@ def test():
 
 @mod.route("/login", methods=["GET", "POST"])
 def login():
-    email = request.args.get("email")
-    password = request.args.get("password")
+    data = request.args if request.method == "GET" else request.form
+
+    email = data.get("email")
+    password = data.get("password")
 
     if None in (email, password):
         return {

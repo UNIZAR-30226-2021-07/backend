@@ -5,7 +5,6 @@ Módulo principal de ejecución, donde se configuran las APIs.
 import locale
 
 from flask import Flask
-
 from flask_jwt_extended import JWTManager
 
 from gatovid import api
@@ -43,14 +42,34 @@ app = create_app()
 jwt = JWTManager(app)
 
 
+# Configuración para la revocación de tokens. Se comprueba en la
+# base de datos si un token ha sido revocado antes de aceptarlo.
 @jwt.token_in_blocklist_loader
 def check_if_token_is_revoked(jwt_header, jwt_payload):
-    """
-    Configuración para la revocación de tokens. Se comprueba en la
-    base de datos si un token ha sido revocado antes de aceptarlo.
-    """
     jti = jwt_payload["jti"]
     return TokenBlacklist.check_blacklist(jti)
+
+
+# Configuración de mensajes de error personalizados
+@jwt.expired_token_loader
+def expired_token_callback(jwt_header, jwt_payload):
+    return {
+        "error": "Token de sesión expirado",
+    }
+
+
+@jwt.invalid_token_loader
+def invalid_token_callback(reason):
+    return {
+        "error": "Token de sesión inválido",
+    }
+
+
+@jwt.revoked_token_loader
+def revoked_token_callback(jwt_header, jwt_payload):
+    return {
+        "error": "Token de sesión revocado",
+    }
 
 
 # Los "blueprint" sirven para que los endpoints de la página web sean más

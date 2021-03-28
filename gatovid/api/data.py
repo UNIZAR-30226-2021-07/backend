@@ -72,12 +72,8 @@ def signup():
     db.session.commit()
 
     return {
-        "User stored": {
+        "user": {
             "email": user.email,
             "name": user.name,
-            "password (hashed)": user.password,
-            "coins": user.coins,
-            "purchases": str(user.purchases),
-            "stats": str(user.stats),
         },
     }

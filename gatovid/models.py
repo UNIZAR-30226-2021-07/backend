@@ -90,10 +90,7 @@ class TokenBlacklist(db.Model):
     @staticmethod
     def check_blacklist(auth_token):
         res = TokenBlacklist.query.filter_by(token=str(auth_token)).first()
-        if res:
-            return True
-        else:
-            return False
+        return res is not None
 
 
 class Stats(db.Model):

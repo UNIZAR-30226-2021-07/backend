@@ -85,9 +85,9 @@ def logout():
         return {"error": "No se pudo cerrar sesión"}
 
 
-@mod.route("/protected", methods=["GET", "POST"])
+@mod.route("/protected_test", methods=["GET", "POST"])
 @jwt_required()
 def protected():
     return {
-        "user": get_jwt_identity(),
+        "email": get_jwt_identity(),
     }

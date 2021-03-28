@@ -13,6 +13,7 @@ directorio en vez de un único fichero.
 
 import json
 import os
+import datetime
 from enum import Enum
 
 from gatovid.exts import bcrypt, db
@@ -64,10 +65,37 @@ class User(db.Model):
 
     @password.setter
     def password(self, password: str) -> None:
-        self._password = bcrypt.generate_password_hash(password).decode("utf-8")
+        self._password = bcrypt.generate_password_hash(
+            password).decode("utf-8")
 
     def check_password(self, plaintext: str) -> bool:
         return bcrypt.check_password_hash(self.password, plaintext)
+
+
+class TokenBlacklist(db.Model):
+    """
+    Modelo para almacenar los tokens revocados.
+    """
+    __tablename__ = 'token_blacklist'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    token = db.Column(db.String(500), unique=True, nullable=False)
+    blacklisted_on = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, token):
+        self.token = token
+        self.blacklisted_on = datetime.datetime.now()
+
+    def __repr__(self):
+        return '<id: token: {}'.format(self.token)
+
+    @staticmethod
+    def check_blacklist(auth_token):
+        res = TokenBlacklist.query.filter_by(token=str(auth_token)).first()
+        if res:
+            return True
+        else:
+            return False
 
 
 class Stats(db.Model):
@@ -76,7 +104,8 @@ class Stats(db.Model):
     """
 
     # Relación "One to One" (1:1)
-    user_id = db.Column(db.String, db.ForeignKey("user.email"), primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey(
+        "user.email"), primary_key=True)
     user = db.relationship("User", back_populates="stats")
 
     losses = db.Column(db.Integer, default=0)

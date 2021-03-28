@@ -11,6 +11,7 @@ from flask_jwt_extended import JWTManager
 from gatovid import api
 from gatovid.config import BaseConfig
 from gatovid.exts import db
+from gatovid.models import TokenBlacklist
 
 
 def register_extensions(app: Flask) -> None:
@@ -40,6 +41,17 @@ locale.setlocale(locale.LC_ALL, "es_ES.utf8")
 app = create_app()
 # Configuramos el Manager de sesiones con JWT
 jwt = JWTManager(app)
+
+
+@jwt.token_in_blocklist_loader
+def check_if_token_is_revoked(jwt_header, jwt_payload):
+    """
+    Configuración para la revocación de tokens. Se comprueba en la
+    base de datos si un token ha sido revocado antes de aceptarlo.
+    """
+    jti = jwt_payload["jti"]
+    return TokenBlacklist.check_blacklist(jti)
+
 
 # Los "blueprint" sirven para que los endpoints de la página web sean más
 # modulares.

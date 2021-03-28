@@ -5,10 +5,11 @@ from flask import Blueprint, request, jsonify
 
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import get_jwt
 from flask_jwt_extended import jwt_required
 
 from gatovid.exts import db
-from gatovid.models import User
+from gatovid.models import User, TokenBlacklist
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
@@ -63,3 +64,29 @@ def login():
 
     access_token = create_access_token(identity=email)
     return jsonify(access_Token=access_token)
+
+
+@mod.route("/logout", methods=["GET", "POST"])
+@jwt_required()
+def logout():
+    jti = get_jwt()["jti"]
+    blacklist_token = TokenBlacklist(token=jti)
+    try:
+        # insert the token
+        db.session.add(blacklist_token)
+        db.session.commit()
+        return {
+            'message': 'Sesión cerrada con éxito'
+        }
+    except Exception:
+        return {
+            'error': 'No se pudo cerrar sesión'
+        }
+
+
+@mod.route("/protected", methods=["GET", "POST"])
+@jwt_required()
+def protected():
+    return {
+        "user": get_jwt_identity(),
+    }

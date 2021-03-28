@@ -6,7 +6,7 @@ install_requires = [
     "Flask-Bcrypt==0.7.1",
     "gunicorn==20.0.4",
     "psycopg2-binary==2.8.6",
-    "flask-jwt-extended==4.1.0"
+    "flask-jwt-extended==4.1.0",
 ]
 
 setup(

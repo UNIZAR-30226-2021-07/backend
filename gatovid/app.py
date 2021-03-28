@@ -8,7 +8,8 @@ from flask import Flask
 
 from gatovid import api
 from gatovid.config import BaseConfig
-from gatovid.exts import db
+from gatovid.exts import db, jwt
+from gatovid.models import TokenBlacklist
 
 
 def register_extensions(app: Flask) -> None:
@@ -17,6 +18,34 @@ def register_extensions(app: Flask) -> None:
     """
 
     db.init_app(app)
+    jwt.init_app(app)
+
+    # Configuración para la revocación de tokens. Se comprueba en la
+    # base de datos si un token ha sido revocado antes de aceptarlo.
+    @jwt.token_in_blocklist_loader
+    def check_if_token_is_revoked(jwt_header, jwt_payload):
+        jti = jwt_payload["jti"]
+        return TokenBlacklist.check_blacklist(jti)
+
+    # Configuración de mensajes de error personalizados
+
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return {
+            "error": "Token de sesión expirado",
+        }
+
+    @jwt.invalid_token_loader
+    def invalid_token_callback(reason):
+        return {
+            "error": "Token de sesión inválido",
+        }
+
+    @jwt.revoked_token_loader
+    def revoked_token_callback(jwt_header, jwt_payload):
+        return {
+            "error": "Token de sesión revocado",
+        }
 
 
 def create_app() -> Flask:
@@ -35,9 +64,10 @@ def create_app() -> Flask:
 # de fechas.
 locale.setlocale(locale.LC_ALL, "es_ES.utf8")
 
+app = create_app()
+
 # Los "blueprint" sirven para que los endpoints de la página web sean más
 # modulares.
-app = create_app()
 app.register_blueprint(api.data.mod)
 app.register_blueprint(api.game.mod)
 

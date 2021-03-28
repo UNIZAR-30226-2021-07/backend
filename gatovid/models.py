@@ -76,8 +76,6 @@ class TokenBlacklist(db.Model):
     Modelo para almacenar los tokens revocados.
     """
 
-    __tablename__ = "token_blacklist"
-
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     token = db.Column(db.String(500), unique=True, nullable=False)
     blacklisted_on = db.Column(db.DateTime, nullable=False)
@@ -87,7 +85,7 @@ class TokenBlacklist(db.Model):
         self.blacklisted_on = datetime.datetime.now()
 
     def __repr__(self):
-        return "<id: token: {}".format(self.token)
+        return f"<id: token: {self.token}>"
 
     @staticmethod
     def check_blacklist(auth_token):

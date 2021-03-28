@@ -1,7 +1,7 @@
 """
 """
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request
 from flask_jwt_extended import (
     create_access_token,
     get_jwt,
@@ -52,19 +52,21 @@ def login():
 
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
-    if not user:
+    if user is None:
         return {
             "error": "El usuario no existe",
         }
 
     # Comprobamos si los hashes coinciden
-    if user.check_password(password) is False:
+    if not user.check_password(password):
         return {
             "error": "Contraseña incorrecta",
         }
 
     access_token = create_access_token(identity=email)
-    return jsonify(access_Token=access_token)
+    return {
+        "access_token": access_token,
+    }
 
 
 @mod.route("/logout", methods=["GET", "POST"])

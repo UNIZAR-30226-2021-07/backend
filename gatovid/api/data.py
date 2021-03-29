@@ -1,4 +1,6 @@
 """
+Módulo con el REST API para la gestión de los datos de la base de datos, como
+los usuarios, las estadísticas...
 """
 
 from flask import Blueprint, request

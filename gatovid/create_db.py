@@ -1,5 +1,6 @@
 """
-Inicializa algunos datos de prueba en la BBDD.
+Módulo para la inicialización de la base de datos, y la inserción de datos de
+prueba.
 """
 
 from sqlalchemy.exc import IntegrityError

@@ -74,7 +74,7 @@ class GatovidTestClient(BaseTestCase):
         return self.request("/data/protected_test", headers=self.auth_headers(token))
 
     def request_signup(self, data: Dict[str, str]) -> Dict[str, str]:
-        return self.request("/data/signup", data=data, method="POST")
+        return self.request("/data/signup", data=data)
 
     def request_remove(self, token: str, data: Dict[str, str]) -> Dict[str, str]:
         return self.request(

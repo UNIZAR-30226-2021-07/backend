@@ -66,23 +66,17 @@ def signup():
     password = data.get("password")
 
     if None in (name, email, password):
-        return {
-            "error": "Parámetro vacío",
-        }
+        return {"error": "Parámetro vacío"}
 
     # Comprobamos si existe ese nombre de usuario en la base de datos
     user = User.query.filter_by(name=name).first()
     if user is not None:
-        return {
-            "error": "El usuario ya existe",
-        }
+        return {"error": "El usuario ya existe"}
 
     # Comprobamos si existe una cuenta con ese email
     user = User.query.get(email)
     if user is not None:
-        return {
-            "error": "El email ya está en uso",
-        }
+        return {"error": "El email ya está en uso"}
 
     user = User(
         email=email,
@@ -118,9 +112,7 @@ def remove_account():
     db.session.delete(user)
     db.session.commit()
 
-    return {
-        "message": "Usuario eliminado con éxito",
-    }
+    return {"message": "Usuario eliminado con éxito"}
 
 
 @mod.route("/login", methods=["GET", "POST"])
@@ -131,27 +123,19 @@ def login():
     password = data.get("password")
 
     if None in (email, password):
-        return {
-            "error": "Parámetro vacío",
-        }
+        return {"error": "Parámetro vacío"}
 
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
     if user is None:
-        return {
-            "error": "El usuario no existe",
-        }
+        return {"error": "El usuario no existe"}
 
     # Comprobamos si los hashes coinciden
     if not user.check_password(password):
-        return {
-            "error": "Contraseña incorrecta",
-        }
+        return {"error": "Contraseña incorrecta"}
 
     access_token = create_access_token(identity=email)
-    return {
-        "access_token": access_token,
-    }
+    return {"access_token": access_token}
 
 
 @mod.route("/logout", methods=["GET", "POST"])
@@ -166,6 +150,4 @@ def logout():
 @mod.route("/protected_test", methods=["GET", "POST"])
 @jwt_required()
 def protected():
-    return {
-        "email": get_jwt_identity(),
-    }
+    return {"email": get_jwt_identity()}

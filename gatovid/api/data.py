@@ -2,9 +2,15 @@
 """
 
 from flask import Blueprint, request
+from flask_jwt_extended import (
+    create_access_token,
+    get_jwt,
+    get_jwt_identity,
+    jwt_required,
+)
 
 from gatovid.exts import db
-from gatovid.models import User
+from gatovid.models import TokenBlacklist, User
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
@@ -76,4 +82,57 @@ def signup():
             "email": user.email,
             "name": user.name,
         },
+    }
+
+
+@mod.route("/login", methods=["GET", "POST"])
+def login():
+    data = request.args if request.method == "GET" else request.form
+
+    email = data.get("email")
+    password = data.get("password")
+
+    if None in (email, password):
+        return {
+            "error": "Parámetro vacío",
+        }
+
+    # Comprobamos si existe un usuario con ese email
+    user = User.query.get(email)
+    if user is None:
+        return {
+            "error": "El usuario no existe",
+        }
+
+    # Comprobamos si los hashes coinciden
+    if not user.check_password(password):
+        return {
+            "error": "Contraseña incorrecta",
+        }
+
+    access_token = create_access_token(identity=email)
+    return {
+        "access_token": access_token,
+    }
+
+
+@mod.route("/logout", methods=["GET", "POST"])
+@jwt_required()
+def logout():
+    jti = get_jwt()["jti"]
+    blacklist_token = TokenBlacklist(token=jti)
+    try:
+        # insert the token
+        db.session.add(blacklist_token)
+        db.session.commit()
+        return {"message": "Sesión cerrada con éxito"}
+    except Exception:
+        return {"error": "No se pudo cerrar sesión"}
+
+
+@mod.route("/protected_test", methods=["GET", "POST"])
+@jwt_required()
+def protected():
+    return {
+        "email": get_jwt_identity(),
     }

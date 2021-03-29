@@ -2,17 +2,10 @@
 Tests para la creación de usuarios y su gestión.
 """
 
-import json
-
-from .base import BaseTestCase
+from .base import GatovidTestClient
 
 
-def request_signup(client, data):
-    response = client.post("/data/signup", data=data)
-    return json.loads(response.data.decode())
-
-
-class UserTest(BaseTestCase):
+class UserTest(GatovidTestClient):
     existing_user = {
         "email": "test_user1@gmail.com",
         "name": "test_user1",
@@ -23,7 +16,7 @@ class UserTest(BaseTestCase):
         user = {
             "username": "someone",
         }
-        data = request_signup(self.client, user)
+        data = self.request_signup(user)
         self.assertTrue("error" in data)
 
     def test_signup_existing_user(self):
@@ -32,7 +25,7 @@ class UserTest(BaseTestCase):
             "email": self.existing_user["email"],
             "password": "12345678",
         }
-        data = request_signup(self.client, user)
+        data = self.request_signup(user)
         self.assertTrue("error" in data)
 
     def test_signup_existing_email(self):
@@ -41,14 +34,23 @@ class UserTest(BaseTestCase):
             "email": "someone@gmail.com",
             "password": "12345678",
         }
-        data = request_signup(self.client, user)
+        data = self.request_signup(user)
         self.assertTrue("error" in data)
 
-    def test_working(self):
+    def test_signup(self):
         user = {
             "username": "someone",
             "email": "someone@gmail.com",
             "password": "12345678",
         }
-        data = request_signup(self.client, user)
+        data = self.request_signup(user)
+        self.assertFalse("error" in data)
+
+    def test_remove(self):
+        user = {
+            "username": "someone",
+            "email": "someone@gmail.com",
+            "password": "12345678",
+        }
+        data = self.request_signup(user)
         self.assertFalse("error" in data)

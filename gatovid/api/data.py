@@ -84,6 +84,13 @@ def signup():
     }
 
 
+@mod.route("/remove_user", methods=["GET", "POST"])
+@jwt_required()
+def remove_account():
+    user = get_jwt_identity()
+    user.delete()
+
+
 @mod.route("/login", methods=["GET", "POST"])
 def login():
     data = request.args if request.method == "GET" else request.form

@@ -44,9 +44,6 @@ def test():
 def signup():
     data = request.args if request.method == "GET" else request.form
 
-    print(request.args)
-    print(request.form)
-
     username = data.get("username")
     email = data.get("email")
     password = data.get("password")

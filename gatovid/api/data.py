@@ -72,7 +72,7 @@ def signup():
         return {"error": "Email incorrecto"}
 
     # Comprobamos que el nombre cumple con los requisitos
-    if not NAME_REGEX.fullmatch(password):
+    if not NAME_REGEX.fullmatch(name):
         return {"error": "El nombre no cumple con los requisitos"}
 
     if len(password) < 6:

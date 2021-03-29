@@ -1,6 +1,5 @@
 """
 """
-import re
 
 from flask import Blueprint, request
 from flask_jwt_extended import (
@@ -16,9 +15,6 @@ from gatovid.exts import db
 from gatovid.models import TokenBlacklist, User
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
-
-EMAIL_REGEX = re.compile(r"[^@]+@[^@]+\.[^@]+")
-NAME_REGEX = re.compile(r"[a-zA-Z0-9_]{4,12}")
 
 
 def revoke_token() -> bool:
@@ -68,17 +64,17 @@ def signup():
         return {"error": "Parámetro vacío"}
 
     # Comprobamos que el email introducido es correcto
-    if not EMAIL_REGEX.fullmatch(email):
+    if not User.EMAIL_REGEX.fullmatch(email):
         return {"error": "Email incorrecto"}
 
     # Comprobamos que el nombre cumple con los requisitos
-    if not NAME_REGEX.fullmatch(name):
+    if not User.NAME_REGEX.fullmatch(name):
         return {"error": "El nombre no cumple con los requisitos"}
 
-    if len(password) < 6:
+    if len(password) < User.MIN_PASSWORD_LENGTH:
         return {"error": "Contraseña demasiado corta"}
 
-    if len(password) > 30:
+    if len(password) > User.MAX_PASSWORD_LENGTH:
         return {"error": "Contraseña demasiado larga"}
 
     user = User(

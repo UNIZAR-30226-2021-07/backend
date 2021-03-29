@@ -14,6 +14,7 @@ directorio en vez de un único fichero.
 import datetime
 import json
 import os
+import re
 from enum import Enum
 
 from gatovid.exts import bcrypt, db
@@ -33,6 +34,16 @@ class User(db.Model):
     Información de un usuario sobre su registro y perfil. También incluye
     relaciones con sus estadísticas y compras.
     """
+
+    # Para la validación de campos
+    MIN_PASSWORD_LENGTH = 6
+    MAX_PASSWORD_LENGTH = 30
+    MIN_NAME_LENGTH = 4
+    MAX_NAME_LENGTH = 12
+    EMAIL_REGEX = re.compile(r"[^@\s]+@[^@\s.]+(\.[^@\s.]+)+")
+    NAME_REGEX = re.compile(
+        r"[a-zA-Z0-9_]{" + str(MIN_NAME_LENGTH) + "," + str(MAX_NAME_LENGTH) + "}"
+    )
 
     # Se usa su correo electrónico como clave primaria, de forma que se pueda
     # cambiar el email.

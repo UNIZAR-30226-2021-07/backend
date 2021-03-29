@@ -21,7 +21,7 @@ jobs:
           docker-compose build
           docker-compose up -d
       - name: Run tests
-        run: docker-compose run api /usr/local/bin/python -m unittest
+        run: docker-compose run api /usr/local/bin/python -m unittest -v
 
   # Linter con flake8
   python-linter:

@@ -1,5 +1,8 @@
+"""
+Tests para la administración de tokens JWT y sus sesiones.
+"""
+
 import json
-import unittest
 
 from .base import BaseTestCase
 
@@ -61,7 +64,3 @@ class SessionsTest(BaseTestCase):
 
         data = token_use(self.client, data["access_token"])
         self.assertTrue("error" in data)
-
-
-if __name__ == "__main__":
-    unittest.main()

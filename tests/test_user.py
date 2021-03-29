@@ -25,7 +25,7 @@ class UserTest(GatovidTestClient):
 
     def test_signup_empty(self):
         """
-        Test both empty values and no values at all
+        Test para valores tanto vacíos como no incluidos en los datos.
         """
 
         for field in ("name", "email", "password"):
@@ -40,6 +40,10 @@ class UserTest(GatovidTestClient):
             self.assertIn("error", data)
 
     def test_signup_existing_user(self):
+        """
+        Los nombres de usuario son únicos.
+        """
+
         user = {
             "name": self.new_user["name"],
             "email": self.existing_user["email"],
@@ -49,6 +53,10 @@ class UserTest(GatovidTestClient):
         self.assertIn("error", data)
 
     def test_signup_existing_email(self):
+        """
+        Los email también son únicos.
+        """
+
         user = {
             "name": self.existing_user["name"],
             "email": self.new_user["email"],
@@ -70,6 +78,11 @@ class UserTest(GatovidTestClient):
         self.assertIn("error", data)
 
     def test_signup_length(self):
+        """
+        Tests de caja negra de valores límite para la longitud de campos como la
+        contraseña o el nombre.
+        """
+
         tests = {
             "password": (User.MIN_PASSWORD_LENGTH, User.MAX_PASSWORD_LENGTH),
             "name": (User.MIN_NAME_LENGTH, User.MAX_NAME_LENGTH),
@@ -80,6 +93,7 @@ class UserTest(GatovidTestClient):
             min_val, max_val = values
             values = [
                 ("", False),
+                ("x", False),
                 ("x" * (min_val - 1), False),
                 ("x" * min_val, True),
                 ("x" * (min_val + 1), True),
@@ -105,6 +119,11 @@ class UserTest(GatovidTestClient):
                 unique_id += 1
 
     def test_signup_regex(self):
+        """
+        Tests de caja negra de particiones de equivalencia para casos especiales
+        de las expresiones regulares para el email y nombre.
+        """
+
         tests = {
             "email": [
                 ("test@gmail.com", True),

@@ -12,6 +12,10 @@ class SessionsTest(GatovidTestClient):
     }
 
     def test_create_token(self):
+        """
+        Test básico para la creación de un token.
+        """
+
         data = self.request_token(self.user_data)
 
         self.assertNotIn("error", data)
@@ -20,6 +24,10 @@ class SessionsTest(GatovidTestClient):
         self.token = data["access_token"]
 
     def test_authorized(self):
+        """
+        Test a un endpoint protegido con un token válido.
+        """
+
         data = self.request_token(self.user_data)
         self.assertIn("access_token", data)
 
@@ -30,10 +38,18 @@ class SessionsTest(GatovidTestClient):
         self.assertEqual(data["email"], self.user_data["email"])
 
     def test_unauthorized(self):
+        """
+        Test a un endpoint protegido con un token inválido.
+        """
+
         data = self.token_use("a9sd8f7as9d8f")
         self.assertIn("error", data)
 
     def test_revoked(self):
+        """
+        Test a un endpoint protegido con un token revocado.
+        """
+
         data = self.request_token(self.user_data)
         self.assertIn("access_token", data)
 

@@ -58,11 +58,8 @@ def signup():
     if user is not None:
         return {
             "error": "El usuario ya existe",
-            "Usuario": {
-                "name": user.name,
-                "email": user.email,
-            },
         }
+
     # Comprobamos si existe una cuenta con ese email
     user = User.query.get(email)
     if user is not None:

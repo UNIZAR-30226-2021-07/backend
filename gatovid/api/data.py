@@ -42,9 +42,14 @@ def test():
 
 @mod.route("/signup", methods=["GET", "POST"])
 def signup():
-    username = request.args.get("username")
-    email = request.args.get("email")
-    password = request.args.get("password")
+    data = request.args if request.method == "GET" else request.form
+
+    print(request.args)
+    print(request.form)
+
+    username = data.get("username")
+    email = data.get("email")
+    password = data.get("password")
 
     if None in (username, email, password):
         return {

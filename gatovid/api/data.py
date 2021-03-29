@@ -8,6 +8,8 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
+from sqlalchemy.exc import IntegrityError
+from psycopg2.errors import UniqueViolation
 
 from gatovid.exts import db
 from gatovid.models import TokenBlacklist, User
@@ -68,24 +70,21 @@ def signup():
     if None in (name, email, password):
         return {"error": "Parámetro vacío"}
 
-    # Comprobamos si existe ese nombre de usuario en la base de datos
-    user = User.query.filter_by(name=name).first()
-    if user is not None:
-        return {"error": "El usuario ya existe"}
-
-    # Comprobamos si existe una cuenta con ese email
-    user = User.query.get(email)
-    if user is not None:
-        return {"error": "El email ya está en uso"}
-
     user = User(
         email=email,
         name=name,
         password=password,
     )
 
-    db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except IntegrityError as e:
+        if isinstance(e.orig, UniqueViolation):
+            db.session.rollback()
+            return {"error": "Email o nombre ya en uso"}
+        else:
+            raise
 
     return {
         "user": {

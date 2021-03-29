@@ -26,7 +26,7 @@ class UserTest(GatovidTestClient):
     def test_signup_empty(self):
         user = {"name": self.new_user["name"]}
         data = self.request_signup(user)
-        self.assertTrue("error" in data)
+        self.assertIn("error", data)
 
     def test_signup_existing_user(self):
         user = {
@@ -35,7 +35,7 @@ class UserTest(GatovidTestClient):
             "password": self.new_user["password"],
         }
         data = self.request_signup(user)
-        self.assertTrue("error" in data)
+        self.assertIn("error", data)
 
     def test_signup_existing_email(self):
         user = {
@@ -44,7 +44,7 @@ class UserTest(GatovidTestClient):
             "password": self.new_user["password"],
         }
         data = self.request_signup(user)
-        self.assertTrue("error" in data)
+        self.assertIn("error", data)
 
     def test_signup(self):
         """
@@ -52,11 +52,11 @@ class UserTest(GatovidTestClient):
         """
 
         data = self.request_signup(self.new_user)
-        self.assertFalse("error" in data)
+        self.assertNotIn("error", data)
 
         # Un segundo intento fallará
         data = self.request_signup(self.new_user)
-        self.assertTrue("error" in data)
+        self.assertIn("error", data)
 
     def test_unique(self):
         """
@@ -104,21 +104,21 @@ class UserTest(GatovidTestClient):
         """
 
         signup_data = self.request_signup(self.new_user)
-        self.assertFalse("error" in signup_data)
+        self.assertNotIn("error", signup_data)
 
         token_data = self.request_token(self.new_user)
-        self.assertFalse("error" in token_data)
+        self.assertNotIn("error", token_data)
 
         # Un inicio de sesión ahora fallará porque ya existe el usuario
         signup_data = self.request_signup(self.new_user)
-        self.assertTrue("error" in signup_data)
+        self.assertIn("error", signup_data)
 
         remove_data = self.request_remove(token_data["access_token"], self.new_user)
-        self.assertFalse("error" in remove_data)
+        self.assertNotIn("error", remove_data)
 
         # Un registro ahora funcionará tras eliminar el usuario
         signup_data = self.request_signup(self.new_user)
-        self.assertFalse("error" in signup_data)
+        self.assertNotIn("error", signup_data)
 
     def test_repeated_remove(self):
         """
@@ -127,15 +127,15 @@ class UserTest(GatovidTestClient):
         """
 
         token_data = self.request_token(self.existing_user)
-        self.assertFalse("error" in token_data)
+        self.assertNotIn("error", token_data)
 
         # Primer intento
         remove_data = self.request_remove(token_data["access_token"], self.new_user)
-        self.assertFalse("error" in remove_data)
+        self.assertNotIn("error", remove_data)
 
         # Segundo intento
         remove_data = self.request_remove(token_data["access_token"], self.new_user)
-        self.assertTrue("error" in remove_data)
+        self.assertIn("error", remove_data)
 
     def test_remove_cascade(self):
         """
@@ -153,13 +153,13 @@ class UserTest(GatovidTestClient):
 
         # Inicio de sessión
         token_data = self.request_token(self.existing_user)
-        self.assertFalse("error" in token_data)
+        self.assertNotIn("error", token_data)
 
         # Y eliminación del usuario
         remove_data = self.request_remove(
             token_data["access_token"], self.existing_user
         )
-        self.assertFalse("error" in remove_data)
+        self.assertNotIn("error", remove_data)
 
         # Ahora no existen
         stats = Stats.query.filter_by(user_id=user_id).first()

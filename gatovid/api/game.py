@@ -19,7 +19,6 @@ def connect():
         # lanzará una excepción.
         verify_jwt_in_request()
     except Exception:
-        print("user not connected")
         emit("invalid token")
         return False
 
@@ -28,14 +27,11 @@ def connect():
 
     session["user"] = User.query.get(email)
 
-    print("user connected")
     return True
 
 
 @socket.on("join")
 def on_join(data):
-    print("user joined: ", session["user"])
-
     game = data["game"]
     # Guardamos la partida actual en la sesión
     session["game"] = game
@@ -53,5 +49,4 @@ def on_leave(data):
 
 @socket.on("chat")
 def chat(msg):
-    print(session["game"])
     emit("chat", {"msg": msg, "owner": session["user"].name}, room=session["game"])

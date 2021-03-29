@@ -8,7 +8,7 @@ from flask import Flask
 
 from gatovid import api
 from gatovid.config import BaseConfig
-from gatovid.exts import db, jwt, socket, sess
+from gatovid.exts import db, jwt, sess, socket
 from gatovid.models import TokenBlacklist
 
 

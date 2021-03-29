@@ -8,6 +8,8 @@ install_requires = [
     "psycopg2-binary==2.8.6",
     "flask-jwt-extended==4.1.0",
     "flask-testing==0.8.0",
+    "flask-socketio==5.0.1",
+    "eventlet==0.30.2",
 ]
 
 setup(

@@ -1,13 +1,11 @@
 """
 """
 
-from flask import Blueprint
+from flask_socketio import emit
 
-mod = Blueprint("api_game", __name__, url_prefix="/game")
+from gatovid.exts import socket
 
 
-@mod.route("/", methods=["GET", "POST"])
-def index():
-    """
-    TODO
-    """
+@socket.on("chat")
+def chat(msg):
+    emit("chat", msg)

@@ -5,6 +5,7 @@ administrar correctamente las dependencias circulares.
 
 from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
+from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
 # Base de datos
@@ -13,3 +14,5 @@ db = SQLAlchemy()
 bcrypt = Bcrypt()
 # Manager de sesiones con JWT
 jwt = JWTManager()
+# Manager de conexiones websocket
+socket = SocketIO(cors_allowed_origins="*")

@@ -44,17 +44,17 @@ def test():
 def signup():
     data = request.args if request.method == "GET" else request.form
 
-    username = data.get("username")
+    name = data.get("name")
     email = data.get("email")
     password = data.get("password")
 
-    if None in (username, email, password):
+    if None in (name, email, password):
         return {
             "error": "Parámetro vacío",
         }
 
     # Comprobamos si existe ese nombre de usuario en la base de datos
-    user = User.query.filter_by(name=username).first()
+    user = User.query.filter_by(name=name).first()
     if user is not None:
         return {
             "error": "El usuario ya existe",
@@ -69,7 +69,7 @@ def signup():
 
     user = User(
         email=email,
-        name=username,
+        name=name,
         password=password,
     )
 
@@ -87,8 +87,14 @@ def signup():
 @mod.route("/remove_user", methods=["GET", "POST"])
 @jwt_required()
 def remove_account():
-    user = get_jwt_identity()
-    user.delete()
+    email = get_jwt_identity()
+
+    User.query.filter_by(email=email).delete()
+    db.session.commit()
+
+    return {
+        "message": "Usuario eliminado con éxito",
+    }
 
 
 @mod.route("/login", methods=["GET", "POST"])

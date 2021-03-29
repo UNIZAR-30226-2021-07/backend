@@ -2,8 +2,6 @@
 Tests para la creación de usuarios y su gestión.
 """
 
-from typing import List
-
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
@@ -94,7 +92,7 @@ class UserTest(GatovidTestClient):
                 test_user = {
                     "name": f"edge_case{unique_id}",
                     "email": f"edge_case{unique_id}@gmail.com",
-                    "password": "whatever"
+                    "password": "whatever",
                 }
                 test_user[field] = test_value
 
@@ -137,7 +135,7 @@ class UserTest(GatovidTestClient):
                 test_user = {
                     "name": f"edge_case{unique_id}",
                     "email": f"edge_case{unique_id}@gmail.com",
-                    "password": "whatever"
+                    "password": "whatever",
                 }
                 test_user[field] = value
 

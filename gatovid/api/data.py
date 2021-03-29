@@ -8,8 +8,8 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
-from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
 from gatovid.models import TokenBlacklist, User

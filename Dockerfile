@@ -10,11 +10,11 @@ ENV LANG es_ES
 ENV LANGUAGE es_ES
 ENV LC_ALL es_ES
 
-COPY . .
-
 # External dependencies installation
 RUN apt-get -y update
 RUN apt-get -y install git curl
+
+COPY . .
 
 # External dependencies
 RUN git init

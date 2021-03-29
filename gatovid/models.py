@@ -37,7 +37,7 @@ class User(db.Model):
     # Se usa su correo electrónico como clave primaria, de forma que se pueda
     # cambiar el email.
     email = db.Column(db.String, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
 
     # La contraseña es un campo privado porque su acceso es más complejo. Su
     # modificación requiere encriptarla previamente.
@@ -49,9 +49,11 @@ class User(db.Model):
     board = db.Column(db.Integer, default=0)
 
     # Relación "One to One" (1:1)
-    stats = db.relationship("Stats", uselist=False, back_populates="user")
+    stats = db.relationship(
+        "Stats", uselist=False, back_populates="user", cascade="all,delete"
+    )
     # Relación "One to Many" (1:N)
-    purchases = db.relationship("Purchase", back_populates="user")
+    purchases = db.relationship("Purchase", back_populates="user", cascade="all,delete")
 
     def __str__(self) -> str:
         return f"(User {self.email})"

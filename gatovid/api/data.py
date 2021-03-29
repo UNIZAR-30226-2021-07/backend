@@ -8,6 +8,8 @@ from flask_jwt_extended import (
     get_jwt_identity,
     jwt_required,
 )
+from psycopg2.errors import UniqueViolation
+from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
 from gatovid.models import TokenBlacklist, User
@@ -15,11 +17,21 @@ from gatovid.models import TokenBlacklist, User
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
 
-@mod.route("/", methods=["GET", "POST"])
-def index():
+def revoke_token() -> bool:
     """
-    TODO
+    Revoca un token, devolviendo verdadero en caso de que haya sido una
+    operación exitosa, o falso en caso contrario.
     """
+
+    jti = get_jwt()["jti"]
+    blacklist_token = TokenBlacklist(token=jti)
+    try:
+        # Insertar el token baneado para el futuro
+        db.session.add(blacklist_token)
+        db.session.commit()
+        return True
+    except Exception:
+        return False
 
 
 @mod.route("/test", methods=["GET", "POST"])
@@ -44,37 +56,28 @@ def test():
 def signup():
     data = request.args if request.method == "GET" else request.form
 
-    username = data.get("username")
+    name = data.get("name")
     email = data.get("email")
     password = data.get("password")
 
-    if None in (username, email, password):
-        return {
-            "error": "Parámetro vacío",
-        }
-
-    # Comprobamos si existe ese nombre de usuario en la base de datos
-    user = User.query.filter_by(name=username).first()
-    if user is not None:
-        return {
-            "error": "El usuario ya existe",
-        }
-
-    # Comprobamos si existe una cuenta con ese email
-    user = User.query.get(email)
-    if user is not None:
-        return {
-            "error": "El email ya está en uso",
-        }
+    if None in (name, email, password):
+        return {"error": "Parámetro vacío"}
 
     user = User(
         email=email,
-        name=username,
+        name=name,
         password=password,
     )
 
-    db.session.add(user)
-    db.session.commit()
+    try:
+        db.session.add(user)
+        db.session.commit()
+    except IntegrityError as e:
+        if isinstance(e.orig, UniqueViolation):
+            db.session.rollback()
+            return {"error": "Email o nombre ya en uso"}
+        else:
+            raise
 
     return {
         "user": {
@@ -82,6 +85,26 @@ def signup():
             "name": user.name,
         },
     }
+
+
+@mod.route("/remove_user", methods=["GET", "POST"])
+@jwt_required()
+def remove_account():
+    """
+    Al borrar una cuenta se cierra también la sesión, garantizando que solo se
+    podrá borrar una vez.
+    """
+
+    email = get_jwt_identity()
+    user = User.query.get(email)
+
+    if not revoke_token():
+        return {"error": "No se pudo cerrar sesión"}
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return {"message": "Usuario eliminado con éxito"}
 
 
 @mod.route("/login", methods=["GET", "POST"])
@@ -92,46 +115,31 @@ def login():
     password = data.get("password")
 
     if None in (email, password):
-        return {
-            "error": "Parámetro vacío",
-        }
+        return {"error": "Parámetro vacío"}
 
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
     if user is None:
-        return {
-            "error": "El usuario no existe",
-        }
+        return {"error": "El usuario no existe"}
 
     # Comprobamos si los hashes coinciden
     if not user.check_password(password):
-        return {
-            "error": "Contraseña incorrecta",
-        }
+        return {"error": "Contraseña incorrecta"}
 
     access_token = create_access_token(identity=email)
-    return {
-        "access_token": access_token,
-    }
+    return {"access_token": access_token}
 
 
 @mod.route("/logout", methods=["GET", "POST"])
 @jwt_required()
 def logout():
-    jti = get_jwt()["jti"]
-    blacklist_token = TokenBlacklist(token=jti)
-    try:
-        # insert the token
-        db.session.add(blacklist_token)
-        db.session.commit()
+    if revoke_token():
         return {"message": "Sesión cerrada con éxito"}
-    except Exception:
+    else:
         return {"error": "No se pudo cerrar sesión"}
 
 
 @mod.route("/protected_test", methods=["GET", "POST"])
 @jwt_required()
 def protected():
-    return {
-        "email": get_jwt_identity(),
-    }
+    return {"email": get_jwt_identity()}

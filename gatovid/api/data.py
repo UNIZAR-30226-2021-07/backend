@@ -34,13 +34,6 @@ def revoke_token() -> bool:
         return False
 
 
-@mod.route("/", methods=["GET", "POST"])
-def index():
-    """
-    TODO
-    """
-
-
 @mod.route("/test", methods=["GET", "POST"])
 def test():
     user = db.session.query(User).first()

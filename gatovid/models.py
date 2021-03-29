@@ -49,9 +49,11 @@ class User(db.Model):
     board = db.Column(db.Integer, default=0)
 
     # Relación "One to One" (1:1)
-    stats = db.relationship("Stats", uselist=False, back_populates="user")
+    stats = db.relationship(
+        "Stats", uselist=False, back_populates="user", cascade="all,delete"
+    )
     # Relación "One to Many" (1:N)
-    purchases = db.relationship("Purchase", back_populates="user")
+    purchases = db.relationship("Purchase", back_populates="user", cascade="all,delete")
 
     def __str__(self) -> str:
         return f"(User {self.email})"

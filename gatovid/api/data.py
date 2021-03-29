@@ -88,8 +88,9 @@ def signup():
 @jwt_required()
 def remove_account():
     email = get_jwt_identity()
+    user = User.query.filter_by(email=email).one()
 
-    User.query.filter_by(email=email).delete()
+    db.session.delete(user)
     db.session.commit()
 
     return {

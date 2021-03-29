@@ -1,5 +1,6 @@
 import json
 from typing import Dict
+from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from flask_testing import TestCase
 
@@ -33,13 +34,31 @@ class GatovidTestClient(BaseTestCase):
     """
 
     def request(
-        self, url: str, data: Dict[str, str] = None, headers: Dict[str, str] = None
+        self,
+        url: str,
+        data: Dict[str, str] = None,
+        headers: Dict[str, str] = None,
+        method: str = "GET",
     ) -> Dict[str, str]:
         """
-        Petición genérica
+        Petición genérica al API de Gatovid
         """
 
-        response = self.client.post(url, data=data, headers=headers)
+        if method == "GET":
+            # Se añaden los parámetros de `data` a los de la URL
+            if data is not None:
+                url_parts = list(urlparse(url))
+                query = dict(parse_qsl(url_parts[4]))
+                query.update(data)
+                url_parts[4] = urlencode(query)
+                url = urlunparse(url_parts)
+
+            response = self.client.get(url, headers=headers)
+        elif method == "POST":
+            response = self.client.post(url, data=data, headers=headers)
+        else:
+            raise Exception("not supported")
+
         return json.loads(response.data.decode())
 
     def auth_headers(self, token: str) -> Dict[str, str]:
@@ -55,7 +74,7 @@ class GatovidTestClient(BaseTestCase):
         return self.request("/data/protected_test", headers=self.auth_headers(token))
 
     def request_signup(self, data: Dict[str, str]) -> Dict[str, str]:
-        return self.request("/data/signup", data=data)
+        return self.request("/data/signup", data=data, method="POST")
 
     def request_remove(self, token: str, data: Dict[str, str]) -> Dict[str, str]:
         return self.request(

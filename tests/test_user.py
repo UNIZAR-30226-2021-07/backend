@@ -116,9 +116,26 @@ class UserTest(GatovidTestClient):
         remove_data = self.request_remove(token_data["access_token"], self.new_user)
         self.assertFalse("error" in remove_data)
 
-        # Un inicio de sesión ahora funcionará tras eliminar el usuario
+        # Un registro ahora funcionará tras eliminar el usuario
         signup_data = self.request_signup(self.new_user)
         self.assertFalse("error" in signup_data)
+
+    def test_repeated_remove(self):
+        """
+        Probando si reusando el mismo token se puede borrar dos veces el mismo
+        usuario, y si causa problemas en ese caso.
+        """
+
+        token_data = self.request_token(self.existing_user)
+        self.assertFalse("error" in token_data)
+
+        # Primer intento
+        remove_data = self.request_remove(token_data["access_token"], self.new_user)
+        self.assertFalse("error" in remove_data)
+
+        # Segundo intento
+        remove_data = self.request_remove(token_data["access_token"], self.new_user)
+        self.assertTrue("error" in remove_data)
 
     def test_remove_cascade(self):
         """

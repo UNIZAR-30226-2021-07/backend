@@ -15,6 +15,23 @@ from gatovid.models import TokenBlacklist, User
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
 
+def revoke_token() -> bool:
+    """
+    Revoca un token, devolviendo verdadero en caso de que haya sido una
+    operación exitosa, o falso en caso contrario.
+    """
+
+    jti = get_jwt()["jti"]
+    blacklist_token = TokenBlacklist(token=jti)
+    try:
+        # Insertar el token baneado para el futuro
+        db.session.add(blacklist_token)
+        db.session.commit()
+        return True
+    except Exception:
+        return False
+
+
 @mod.route("/", methods=["GET", "POST"])
 def index():
     """
@@ -87,8 +104,16 @@ def signup():
 @mod.route("/remove_user", methods=["GET", "POST"])
 @jwt_required()
 def remove_account():
+    """
+    Al borrar una cuenta se cierra también la sesión, garantizando que solo se
+    podrá borrar una vez.
+    """
+
     email = get_jwt_identity()
     user = User.query.get(email)
+
+    if not revoke_token():
+        return {"error": "No se pudo cerrar sesión"}
 
     db.session.delete(user)
     db.session.commit()
@@ -132,14 +157,9 @@ def login():
 @mod.route("/logout", methods=["GET", "POST"])
 @jwt_required()
 def logout():
-    jti = get_jwt()["jti"]
-    blacklist_token = TokenBlacklist(token=jti)
-    try:
-        # insert the token
-        db.session.add(blacklist_token)
-        db.session.commit()
+    if revoke_token():
         return {"message": "Sesión cerrada con éxito"}
-    except Exception:
+    else:
         return {"error": "No se pudo cerrar sesión"}
 
 

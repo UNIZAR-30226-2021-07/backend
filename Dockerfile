@@ -22,5 +22,4 @@ RUN ./setup-submodules.sh
 
 # Python dependencies installation
 RUN python -m pip install --upgrade pip
-RUN pip install eventlet
 RUN pip install .

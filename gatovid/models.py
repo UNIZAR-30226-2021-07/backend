@@ -37,7 +37,7 @@ class User(db.Model):
     # Se usa su correo electrónico como clave primaria, de forma que se pueda
     # cambiar el email.
     email = db.Column(db.String, primary_key=True)
-    name = db.Column(db.String, nullable=False)
+    name = db.Column(db.String, nullable=False, unique=True)
 
     # La contraseña es un campo privado porque su acceso es más complejo. Su
     # modificación requiere encriptarla previamente.

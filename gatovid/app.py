@@ -33,21 +33,15 @@ def register_extensions(app: Flask) -> None:
 
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
-        return {
-            "error": "Token de sesión expirado",
-        }
+        return {"error": "Token de sesión expirado"}
 
     @jwt.invalid_token_loader
     def invalid_token_callback(reason):
-        return {
-            "error": "Token de sesión inválido",
-        }
+        return {"error": "Token de sesión inválido"}
 
     @jwt.revoked_token_loader
     def revoked_token_callback(jwt_header, jwt_payload):
-        return {
-            "error": "Token de sesión revocado",
-        }
+        return {"error": "Token de sesión revocado"}
 
 
 def create_app() -> Flask:

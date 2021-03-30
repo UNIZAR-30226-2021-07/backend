@@ -1,3 +1,7 @@
+"""
+Punto de entrada para cuando se ejecuta `gatovid` con `python -m gatovid`.
+"""
+
 import sys
 
 from gatovid.app import app, logger

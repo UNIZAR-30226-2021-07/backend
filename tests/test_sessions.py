@@ -1,67 +1,59 @@
-import json
-import unittest
+"""
+Tests para la administración de tokens JWT y sus sesiones.
+"""
 
-from .base import BaseTestCase
-
-
-def request_token(client, data):
-    response = client.post("/data/login", data=data)
-    return json.loads(response.data.decode())
+from .base import GatovidTestClient
 
 
-def revoke_token(client, token):
-    response = client.post(
-        "/data/logout",
-        headers={"Authorization": "Bearer " + token},
-    )
-    return json.loads(response.data.decode())
-
-
-def token_use(client, token):
-    response = client.post(
-        "/data/protected_test",
-        headers={"Authorization": "Bearer " + token},
-    )
-    return json.loads(response.data.decode())
-
-
-class SessionsTest(BaseTestCase):
+class SessionsTest(GatovidTestClient):
     user_data = {
         "email": "test_user1@gmail.com",
         "password": "whatever1",
     }
 
     def test_create_token(self):
-        data = request_token(self.client, self.user_data)
+        """
+        Test básico para la creación de un token.
+        """
 
-        self.assertFalse("error" in data)
-        self.assertTrue("access_token" in data)
+        data = self.request_token(self.user_data)
+
+        self.assertNotIn("error", data)
+        self.assertIn("access_token", data)
 
         self.token = data["access_token"]
 
     def test_authorized(self):
-        data = request_token(self.client, self.user_data)
-        self.assertTrue("access_token" in data)
+        """
+        Test a un endpoint protegido con un token válido.
+        """
 
-        data = token_use(self.client, data["access_token"])
+        data = self.request_token(self.user_data)
+        self.assertIn("access_token", data)
 
-        self.assertFalse("error" in data)
-        self.assertTrue("email" in data)
+        data = self.token_use(data["access_token"])
+
+        self.assertNotIn("error", data)
+        self.assertIn("email", data)
         self.assertEqual(data["email"], self.user_data["email"])
 
     def test_unauthorized(self):
-        data = token_use(self.client, "a9sd8f7as9d8f")
-        self.assertTrue("error" in data)
+        """
+        Test a un endpoint protegido con un token inválido.
+        """
+
+        data = self.token_use("a9sd8f7as9d8f")
+        self.assertIn("error", data)
 
     def test_revoked(self):
-        data = request_token(self.client, self.user_data)
-        self.assertTrue("access_token" in data)
+        """
+        Test a un endpoint protegido con un token revocado.
+        """
 
-        revoke_token(self.client, data["access_token"])
+        data = self.request_token(self.user_data)
+        self.assertIn("access_token", data)
 
-        data = token_use(self.client, data["access_token"])
-        self.assertTrue("error" in data)
+        self.revoke_token(data["access_token"])
 
-
-if __name__ == "__main__":
-    unittest.main()
+        data = self.token_use(data["access_token"])
+        self.assertIn("error", data)

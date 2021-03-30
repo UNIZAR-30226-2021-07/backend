@@ -1,4 +1,6 @@
 """
+Módulo con el API de websockets para la comunicación en tiempo real con los
+clientes, como el juego mismo o el chat de la partida.
 """
 
 from flask import session

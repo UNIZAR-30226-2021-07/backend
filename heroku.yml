@@ -16,4 +16,4 @@ release:
         - ./setup-heroku.sh
 
 run:
-    web: gunicorn -w 1 --bind 0.0.0.0:$PORT gatovid.app:app
+    web: ./run.sh

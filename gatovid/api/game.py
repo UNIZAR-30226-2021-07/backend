@@ -40,15 +40,36 @@ def on_join(data):
 
     join_room(game)
 
-    emit(session["user"].name + " has entered the room", room=game)
+    emit(
+        "chat",
+        {
+            "msg": session["user"].name + " has entered the room",
+            "owner": None,
+        },
+        room=game,
+    )
 
 
 @socket.on("leave")
 def on_leave(data):
     leave_room(session["game"])
-    emit(session["user"].name + " has left the room", room=session["user"].game)
+    emit(
+        "chat",
+        {
+            "msg": session["user"].name + " has left the room",
+            "owner": None,
+        },
+        room=session["game"],
+    )
 
 
 @socket.on("chat")
 def chat(msg):
-    emit("chat", {"msg": msg, "owner": session["user"].name}, room=session["game"])
+    emit(
+        "chat",
+        {
+            "msg": msg,
+            "owner": session["user"].name,
+        },
+        room=session["game"],
+    )

@@ -8,7 +8,7 @@ setup:
 build:
     docker:
         web: Dockerfile
-        nginx: Dockerfile
+        nginx: ./nginx/Dockerfile
 
 release:
     image: web

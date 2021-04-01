@@ -83,5 +83,10 @@ class GatovidTestClient(BaseTestCase):
 
     def request_stats(self, name: str) -> Dict[str, str]:
         return self.request(
-            "/data/user_stats", data={"name": name},
+            "/data/user_stats", data={"name": name}
+        )
+
+    def request_data(self, token: str) -> Dict[str, str]:
+        return self.request(
+            "/data/user_data", headers=self.auth_headers(token)
         )

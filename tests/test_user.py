@@ -23,6 +23,40 @@ class UserTest(GatovidTestClient):
         "password": "12345678",
     }
 
+    def test_data(self):
+        """
+        Test para el endpoint de los datos del usuario.
+        """
+
+        expected = {
+            "board": 0,
+            "coins": 133,
+            "email": "test_user1@gmail.com",
+            "name": "test_user1",
+            "picture": 0,
+            "purchases": [
+                {
+                    "item_id": 1,
+                    "type": "board",
+                },
+                {
+                    "item_id": 2,
+                    "type": "profile_pic",
+                },
+            ],
+        }
+
+        token_data = self.request_token(self.existing_user)
+        self.assertNotIn("error", token_data)
+
+        token = token_data["access_token"]
+
+        got = self.request_data(token)
+        print(got)
+        print(expected)
+
+        self.assertDictEqual(got, expected)
+
     def test_stats(self):
         """
         Test para el endpoint de las estadísticas.

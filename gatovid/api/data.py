@@ -161,6 +161,22 @@ def protected():
     return {"email": get_jwt_identity()}
 
 
+@mod.route("/user_data", methods=["GET", "POST"])
+@jwt_required()
+def user_data():
+
+    email = get_jwt_identity()
+    user = User.query.get(email)
+
+    return {
+        "email": email,
+        "name": user.name,
+        "coins": user.coins,
+        "picture": user.picture,
+        "board": user.board,
+        "purchases": [purchase.as_dict() for purchase in user.purchases],
+    }
+
 @mod.route("/user_stats", methods=["GET", "POST"])
 def user_stats():
     data = request.args if request.method == "GET" else request.form

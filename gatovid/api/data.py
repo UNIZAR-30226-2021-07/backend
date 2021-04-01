@@ -159,3 +159,25 @@ def logout():
 @jwt_required()
 def protected():
     return {"email": get_jwt_identity()}
+
+
+@mod.route("/user_stats", methods=["GET", "POST"])
+def user_stats():
+    data = request.args if request.method == "GET" else request.form
+
+    name = data.get("name")
+    if name is None:
+        return {"error": "Parámetro vacío"}
+    
+    user = User.query.filter_by(name=name).first()
+    if user is None:
+        return {"error": "El usuario no existe"}
+    
+    stats = user.stats
+
+    return {
+        "games": stats.games,
+        "losses": stats.losses,
+        "wins": stats.wins,
+        "playtime_mins": stats.playtime_mins,
+    }

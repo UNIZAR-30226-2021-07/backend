@@ -15,8 +15,8 @@ import datetime
 import json
 import os
 import re
-from typing import Dict
 from enum import Enum
+from typing import Dict
 
 from gatovid.exts import bcrypt, db
 
@@ -144,6 +144,7 @@ class PurchasableType(str, Enum):
     BOARD = "board"
     PROFILE_PIC = "profile_pic"
 
+
 class Purchase(db.Model):
     """
     Una compra realizada por un usuario en la tienda.
@@ -166,7 +167,7 @@ class Purchase(db.Model):
 
     def as_dict(self) -> Dict[str, str]:
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
-        del d['user_id']
+        del d["user_id"]
         return d
 
 

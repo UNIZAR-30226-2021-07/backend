@@ -177,6 +177,7 @@ def user_data():
         "purchases": [purchase.as_dict() for purchase in user.purchases],
     }
 
+
 @mod.route("/user_stats", methods=["GET", "POST"])
 def user_stats():
     data = request.args if request.method == "GET" else request.form
@@ -184,11 +185,11 @@ def user_stats():
     name = data.get("name")
     if name is None:
         return {"error": "Parámetro vacío"}
-    
+
     user = User.query.filter_by(name=name).first()
     if user is None:
         return {"error": "El usuario no existe"}
-    
+
     stats = user.stats
 
     return {

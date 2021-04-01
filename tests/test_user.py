@@ -80,14 +80,13 @@ class UserTest(GatovidTestClient):
                 "losses": 121,
                 "wins": 3,
                 "playtime_mins": 0,
-            }
+            },
         }
 
         for name, expected in test_stats.items():
             got = self.request_stats(name)
             self.assertEqual(got, expected)
-            
- 
+
     def test_signup_empty(self):
         """
         Test para valores tanto vacíos como no incluidos en los datos.

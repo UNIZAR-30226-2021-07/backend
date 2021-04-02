@@ -52,10 +52,8 @@ class UserTest(GatovidTestClient):
         token = token_data["access_token"]
 
         got = self.request_data(token)
-        print(got)
-        print(expected)
 
-        self.assertDictEqual(got, expected)
+        self.assertEqual(got, expected)
 
     def test_stats(self):
         """

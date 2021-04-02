@@ -23,6 +23,68 @@ class UserTest(GatovidTestClient):
         "password": "12345678",
     }
 
+    def test_data(self):
+        """
+        Test para el endpoint de los datos del usuario.
+        """
+
+        expected = {
+            "board": 0,
+            "coins": 133,
+            "email": "test_user1@gmail.com",
+            "name": "test_user1",
+            "picture": 0,
+            "purchases": [
+                {
+                    "item_id": 1,
+                    "type": "board",
+                },
+                {
+                    "item_id": 2,
+                    "type": "profile_pic",
+                },
+            ],
+        }
+
+        token_data = self.request_token(self.existing_user)
+        self.assertNotIn("error", token_data)
+
+        token = token_data["access_token"]
+
+        got = self.request_data(token)
+
+        self.assertEqual(got, expected)
+
+    def test_stats(self):
+        """
+        Test para el endpoint de las estadísticas.
+        """
+
+        test_stats = {
+            "test_user1": {
+                "games": 0,
+                "wins": 0,
+                "losses": 0,
+                "playtime_mins": 1571,
+            },
+            "test_user2": {
+                "games": 13,
+                "losses": 3,
+                "wins": 10,
+                "playtime_mins": 10,
+            },
+            "test_user3": {
+                "games": 124,
+                "losses": 121,
+                "wins": 3,
+                "playtime_mins": 0,
+            },
+        }
+
+        for name, expected in test_stats.items():
+            got = self.request_stats(name)
+            self.assertEqual(got, expected)
+
     def test_signup_empty(self):
         """
         Test para valores tanto vacíos como no incluidos en los datos.

@@ -16,6 +16,7 @@ import json
 import os
 import re
 from enum import Enum
+from typing import Dict
 
 from gatovid.exts import bcrypt, db
 
@@ -134,7 +135,7 @@ class Stats(db.Model):
         return self.wins + self.losses
 
 
-class PurchasableType(Enum):
+class PurchasableType(str, Enum):
     """
     La tienda tiene varias secciones, así que una compra puede ser de varios
     tipos.
@@ -163,6 +164,11 @@ class Purchase(db.Model):
 
     def __repr__(self) -> str:
         return self.__str__()
+
+    def as_dict(self) -> Dict[str, str]:
+        d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        del d["user_id"]
+        return d
 
 
 class GameManager:

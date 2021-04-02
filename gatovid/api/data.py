@@ -164,7 +164,6 @@ def protected():
 @mod.route("/user_data", methods=["GET", "POST"])
 @jwt_required()
 def user_data():
-
     email = get_jwt_identity()
     user = User.query.get(email)
 

@@ -42,6 +42,7 @@ class Match():
         self.start_time = 0
         self.started = False
         self.paused = False
+        self.players = []
 
         # Todas las partidas requieren un código identificador por las
         # salas de socketio. NOTE: se podrían usar códigos de formatos
@@ -99,4 +100,25 @@ class MatchManager():
         self.users_waiting.remove(user_sid)
 
 
+    def create_public_game(self):
+        new_match = PublicMatch()
+        matches[new_match.code] = new_match
+        return new_match.code
+
+
+    def create_private_game(self, owner: User):
+        new_match = PrivateMatch(owner=owner)
+        matches[new_match.code] = new_match
+        return new_match.code
+
+
+    def remove_game(self, code: str):
+        del matches[code]
+
+    def get_match(self, code: str) -> Match:
+        return matches.get(code)
+
+
+    # def get_waiting(self, N=6):
+        
 MM = MatchManager()

@@ -9,6 +9,7 @@ from flask_socketio import emit, join_room, leave_room
 
 from gatovid.exts import socket
 from gatovid.models import User
+from gatovid.match import MM, MAX_MATCH_PLAYERS
 
 
 @socket.on("connect")
@@ -33,12 +34,24 @@ def connect():
 
 
 @socket.on("join")
-def on_join(data):
-    game = data["game"]
-    # Guardamos la partida actual en la sesión
-    session["game"] = game
+def join(data):
+    game_code = data['game']
 
-    join_room(game)
+    # Restricciones para unirse a la sala
+    match = MM.get_match(game_code)
+    if match is None or len(match.players) > MAX_MATCH_PLAYERS:
+        emit(
+            "join",
+            {
+                "error": "La partida no existe o está llena",
+            },
+        )
+        return
+    
+    # Guardamos la partida actual en la sesión
+    session["game"] = game_code
+
+    join_room(game_code)
 
     emit(
         "chat",
@@ -46,12 +59,17 @@ def on_join(data):
             "msg": session["user"].name + " has entered the room",
             "owner": None,
         },
-        room=game,
+        room=game_code,
     )
 
 
 @socket.on("leave")
-def on_leave(data):
+def leave():
+    # Restricciones para salir de la sala (por si no está)
+    if not session.get("game"):
+        emit("chat", {"error": "No estás en una partida"})
+        return
+
     leave_room(session["game"])
     emit(
         "chat",
@@ -62,9 +80,12 @@ def on_leave(data):
         room=session["game"],
     )
 
-
 @socket.on("chat")
 def chat(msg):
+    if not session.get("game"):
+        emit("chat", {"error": "No estás en una partida"})
+        return
+
     emit(
         "chat",
         {

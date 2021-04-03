@@ -87,6 +87,7 @@ def leave():
         },
         room=session["game"],
     )
+    del session["game"]
 
 @socket.on("chat")
 def chat(msg):

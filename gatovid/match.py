@@ -3,10 +3,22 @@ Módulo de los datos de las partidas.
 """
 
 import queue
+import random
+import string
 from datetime import datetime
 
 from gatovid.models import User
 
+matches = dict()
+MAX_MATCH_PLAYERS = 6
+
+def gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
+    """
+    Devuelve un código de longitud N usando los caracteres
+    especificados.
+    """
+    return ''.join(random.choices(chars, k=N))
+    
 
 def choose_code() -> str:
     """
@@ -14,7 +26,12 @@ def choose_code() -> str:
     reutilizado.
     """
 
-    return "1234"
+    code = gen_code()
+    while matches.get(code):
+        code = gen_code()
+
+    return code
+
 
 class Match():
     """
@@ -28,8 +45,8 @@ class Match():
 
         # Todas las partidas requieren un código identificador por las
         # salas de socketio. NOTE: se podrían usar códigos de formatos
-        # distintos para que no hubiera colisiones, pero no creo que
-        # sea necesario.
+        # distintos para que no hubiera colisiones entre partidas
+        # públicas y privadas, pero no creo que sea necesario.
         self.code = choose_code()
 
 
@@ -51,7 +68,7 @@ class PublicMatch(Match):
     """
 
 class MatchManager():
-    def __init__(self, ):
+    def __init__(self):
         # Cola de usuarios buscando una partida pública
         self.users_waiting = queue.Queue()
         # Cola de partidas esperando nuevos usuarios

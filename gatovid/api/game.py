@@ -33,6 +33,14 @@ def connect():
     return True
 
 
+@socket.on("create_game")
+def create_game():
+    game_code = MM.create_private_game(owner=session["user"])
+    emit("create_game", {"code": game_code})
+    session["game"] = game_code
+    join_room(game_code)
+
+
 @socket.on("join")
 def join(data):
     game_code = data['game']

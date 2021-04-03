@@ -70,6 +70,33 @@ class PublicMatch(Match):
 class MatchManager():
     def __init__(self):
         # Cola de usuarios buscando una partida pública
-        self.users_waiting = queue.Queue()
+        self.users_queue = queue.Queue()
         # Cola de partidas esperando nuevos usuarios
-        self.games_waiting = queue.Queue()
+        self.games_queue = queue.Queue()
+
+        self.users_waiting = set()
+
+
+    def wait_for_game(self, user_sid: str):
+        """
+        Añade al usuario a la cola de usuarios esperando partida.
+        """
+        self.users_queue.put(user_sid)
+
+
+    def stop_waiting(self, user_sid: str):
+        """
+        Elimina al usuario de la lista de usuarios eperando partida.
+        Se necesita por si un usuario se desconecta a mitad de la
+        búsqueda.
+
+        La cola de Python no permite acceso aleatorio, por lo que se
+        usará un set de usuarios esperando. Cuando se retire un
+        usuario de la cola se comprobará si sigue esperando en dicho
+        set.
+        """
+
+        self.users_waiting.remove(user_sid)
+
+
+MM = MatchManager()

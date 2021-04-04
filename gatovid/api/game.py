@@ -161,6 +161,9 @@ def leave():
     match.players.remove(session["user"])
 
     if len(match.players) == 0:
+        # Marcar la partida como finalizada
+        match.started = False
+        # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
     else:
         emit("players_waiting", len(match.players), room=game_code)

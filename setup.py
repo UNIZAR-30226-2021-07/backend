@@ -11,6 +11,7 @@ install_requires = [
     "flask-socketio==5.0.1",
     "eventlet==0.30.2",
     "flask-session==0.3.2",
+    "flask-cors==3.0.10",
 ]
 
 setup(

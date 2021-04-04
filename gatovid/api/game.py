@@ -82,6 +82,25 @@ def create_game():
     join_room(game_code)
 
 
+@socket.on("start_game")
+@requires_game
+def start_game():
+    game = session["game"]
+    match = MM.get_match(game)
+
+    # Comprobamos si el que empieza la partida es el creador
+    try:
+        if match.owner.email != session["user"].email:
+            return {"error": "Debes ser el lider para empezar partida"}
+    except (AttributeError, TypeError):
+        # Si la partida devuelta por el MM es una pública, no tiene
+        # sentido empezar la partida (ya se encarga el manager)
+        return {"error": "La partida no es privada"}
+
+    match.started = True
+    emit('start_game', room=game)
+
+
 @socket.on("join")
 def join(data):
     game_code = data['game']

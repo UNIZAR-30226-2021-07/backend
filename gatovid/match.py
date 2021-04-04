@@ -8,6 +8,7 @@ import string
 from datetime import datetime
 
 from gatovid.models import User
+from gatovid.exts import db
 
 matches = dict()
 MAX_MATCH_PLAYERS = 6
@@ -41,7 +42,7 @@ class Match:
 
     def __init__(self):
         self.start_time = 0
-        self.started = False
+        self._started = False
         self.paused = False
         self.players = set()
 
@@ -51,6 +52,22 @@ class Match:
         # públicas y privadas, pero no creo que sea necesario.
         self.code = choose_code()
 
+    @property
+    def started(self) -> bool:
+        return self._started
+
+    @started.setter
+    def started(self, started: bool) -> None:
+        self._started = started
+        if started:
+            self.start_time = datetime.now()
+        else:
+            elapsed = datetime.now() - self.start_time
+            elapsed_mins = int(elapsed.total_seconds() / 60)
+
+            for player in self.players:
+                player.stats.playtime_mins += elapsed_mins
+            db.session.commit()
 
 class PrivateMatch(Match):
     """

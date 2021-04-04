@@ -10,13 +10,15 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
 from gatovid.exts import socket
+from gatovid.match import MAX_MATCH_PLAYERS, MM
 from gatovid.models import User
-from gatovid.match import MM, MAX_MATCH_PLAYERS
+
 
 def requires_game(f):
     """
     Decorador para comprobar si el usuario está en una partida.
     """
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         game = session.get("game")
@@ -27,7 +29,7 @@ def requires_game(f):
             return {"error": "La partida no existe"}
 
         return f(*args, **kwargs)
-        
+
     return wrapper
 
 
@@ -35,6 +37,7 @@ def requires_game_started(f):
     """
     Decorador para comprobar si el usuario está en una partida.
     """
+
     @wraps(f)
     def wrapper(*args, **kwargs):
         game = session.get("game")
@@ -49,7 +52,7 @@ def requires_game_started(f):
             return {"error": "La partida no ha comenzado"}
 
         return f(*args, **kwargs)
-        
+
     return wrapper
 
 
@@ -63,7 +66,6 @@ def connect():
         # lanzará una excepción.
         verify_jwt_in_request()
     except Exception:
-        emit("invalid token")
         return False
 
     # Inicializamos la sesión del usuario
@@ -98,12 +100,12 @@ def start_game():
         return {"error": "La partida no es privada"}
 
     match.started = True
-    emit('start_game', room=game)
+    emit("start_game", room=game)
 
 
 @socket.on("join")
 def join(data):
-    game_code = data['game']
+    game_code = data["game"]
 
     # Restricciones para unirse a la sala
     match = MM.get_match(game_code)
@@ -115,7 +117,7 @@ def join(data):
             },
         )
         return
-    
+
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
 

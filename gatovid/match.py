@@ -12,13 +12,14 @@ from gatovid.models import User
 matches = dict()
 MAX_MATCH_PLAYERS = 6
 
+
 def gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
     """
     Devuelve un código de longitud N usando los caracteres
     especificados.
     """
-    return ''.join(random.choices(chars, k=N))
-    
+    return "".join(random.choices(chars, k=N))
+
 
 def choose_code() -> str:
     """
@@ -33,7 +34,7 @@ def choose_code() -> str:
     return code
 
 
-class Match():
+class Match:
     """
     Información de una partida.
     """
@@ -62,13 +63,15 @@ class PrivateMatch(Match):
 
         self.owner = owner
 
+
 class PublicMatch(Match):
     """
     Información de una partida pública, gestionada completamente por
     el sistema gestor de partidas.
     """
 
-class MatchManager():
+
+class MatchManager:
     def __init__(self):
         # Cola de usuarios buscando una partida pública
         self.users_queue = queue.Queue()
@@ -77,13 +80,11 @@ class MatchManager():
 
         self.users_waiting = set()
 
-
     def wait_for_game(self, user_sid: str):
         """
         Añade al usuario a la cola de usuarios esperando partida.
         """
         self.users_queue.put(user_sid)
-
 
     def stop_waiting(self, user_sid: str):
         """
@@ -99,18 +100,15 @@ class MatchManager():
 
         self.users_waiting.remove(user_sid)
 
-
     def create_public_game(self):
         new_match = PublicMatch()
         matches[new_match.code] = new_match
         return new_match.code
 
-
     def create_private_game(self, owner: User):
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match
         return new_match.code
-
 
     def remove_game(self, code: str):
         del matches[code]
@@ -118,7 +116,7 @@ class MatchManager():
     def get_match(self, code: str) -> Match:
         return matches.get(code)
 
-
     # def get_waiting(self, N=6):
-        
+
+
 MM = MatchManager()

@@ -43,7 +43,7 @@ class Match:
         self.start_time = 0
         self.started = False
         self.paused = False
-        self.players = []
+        self.players = set()
 
         # Todas las partidas requieren un código identificador por las
         # salas de socketio. NOTE: se podrían usar códigos de formatos

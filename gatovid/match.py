@@ -7,8 +7,8 @@ import random
 import string
 from datetime import datetime
 
-from gatovid.models import User
 from gatovid.exts import db
+from gatovid.models import User
 
 matches = dict()
 MAX_MATCH_PLAYERS = 6
@@ -68,6 +68,7 @@ class Match:
             for player in self.players:
                 player.stats.playtime_mins += elapsed_mins
             db.session.commit()
+
 
 class PrivateMatch(Match):
     """

@@ -82,7 +82,7 @@ def disconnect():
     # estar metido en una partida.
     if session.get("game"):
         leave()
-    
+
 
 @socket.on("create_game")
 def create_game():
@@ -124,9 +124,8 @@ def join(data):
 
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
-
+    # y en la partida
     match.players.add(session["user"])
-    print(match.players)
 
     # Lo unimos a la sesión de socketio
     join_room(game_code)

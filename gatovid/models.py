@@ -73,6 +73,13 @@ class User(db.Model):
     def __repr__(self) -> str:
         return self.__str__()
 
+    def __eq__(self, other):
+        if not isinstance(other, type(self)): return NotImplemented
+        return self.email == other.email
+
+    def __hash__(self):
+        return hash(self.email)
+
     @property
     def password(self) -> str:
         return self._password

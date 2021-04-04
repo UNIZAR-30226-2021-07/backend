@@ -8,7 +8,7 @@ from flask import Flask
 
 from gatovid import api
 from gatovid.config import BaseConfig
-from gatovid.exts import db, jwt, sess, socket
+from gatovid.exts import cors, db, jwt, sess, socket
 from gatovid.models import TokenBlacklist
 
 
@@ -21,6 +21,19 @@ def register_extensions(app: Flask) -> None:
     jwt.init_app(app)
     socket.init_app(app)
     sess.init_app(app)
+    cors.init_app(
+        app,
+        resources={
+            "/data/*": {
+                "origins": [
+                    "http://localhost:5000",
+                    "http://localhost:3000",
+                ],
+                "methods": ["OPTIONS", "GET", "POST"],
+                "allow_headers": ["Authorization", "Content-Type"],
+            }
+        },
+    )
 
     # Configuración para la revocación de tokens. Se comprueba en la
     # base de datos si un token ha sido revocado antes de aceptarlo.

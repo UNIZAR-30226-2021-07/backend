@@ -133,6 +133,10 @@ class MatchManager:
     def get_match(self, code: str) -> Match:
         return matches.get(code)
 
+    def remove_match(self, code: str):
+        # Eliminar con seguridad (para evitar crashes)
+        matches.pop(code, None)
+
     # def get_waiting(self, N=6):
 
 

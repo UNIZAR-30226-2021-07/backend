@@ -159,7 +159,11 @@ def leave():
 
     match = MM.get_match(game_code)
     match.players.remove(session["user"])
-    emit("players_waiting", len(match.players), room=game_code)
+
+    if len(match.players) == 0:
+        MM.remove_match(game_code)
+    else:
+        emit("players_waiting", len(match.players), room=game_code)
 
 
 @socket.on("chat")

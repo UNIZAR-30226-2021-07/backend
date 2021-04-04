@@ -3,6 +3,8 @@ Módulo con el API de websockets para la comunicación en tiempo real con los
 clientes, como el juego mismo o el chat de la partida.
 """
 
+from functools import wraps
+
 from flask import session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
@@ -10,6 +12,45 @@ from flask_socketio import emit, join_room, leave_room
 from gatovid.exts import socket
 from gatovid.models import User
 from gatovid.match import MM, MAX_MATCH_PLAYERS
+
+def requires_game(f):
+    """
+    Decorador para comprobar si el usuario está en una partida.
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        game = session.get("game")
+        if not game:
+            return {"error": "No estás en una partida"}
+
+        if not MM.get_match(game):
+            return {"error": "La partida no existe"}
+
+        return f(*args, **kwargs)
+        
+    return wrapper
+
+
+def requires_game_started(f):
+    """
+    Decorador para comprobar si el usuario está en una partida.
+    """
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        game = session.get("game")
+        if not game:
+            return {"error": "No estás en una partida"}
+
+        match = MM.get_match(game)
+        if not match:
+            return {"error": "La partida no existe"}
+
+        if not match.started:
+            return {"error": "La partida no ha comenzado"}
+
+        return f(*args, **kwargs)
+        
+    return wrapper
 
 
 @socket.on("connect")
@@ -72,12 +113,8 @@ def join(data):
 
 
 @socket.on("leave")
+@requires_game
 def leave():
-    # Restricciones para salir de la sala (por si no está)
-    if not session.get("game"):
-        emit("chat", {"error": "No estás en una partida"})
-        return
-
     leave_room(session["game"])
     emit(
         "chat",
@@ -89,12 +126,10 @@ def leave():
     )
     del session["game"]
 
-@socket.on("chat")
-def chat(msg):
-    if not session.get("game"):
-        emit("chat", {"error": "No estás en una partida"})
-        return
 
+@socket.on("chat")
+@requires_game_started
+def chat(msg):
     emit(
         "chat",
         {

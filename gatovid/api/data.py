@@ -43,7 +43,7 @@ def test(data):
     Endpoint de prueba que realiza una petición a la base de datos y devuelve
     los argumentos que se le han pasado.
 
-    .. warning:: Esto será eliminado en el futuro
+    .. warning:: Esto será eliminado en el futuro.
     """
 
     user = db.session.query(User).first()
@@ -62,14 +62,33 @@ def test(data):
     }
 
 
+@route_get_or_post(mod, "/protected_test")
+@jwt_required()
+def protected(data):
+    """
+    Endpoint temporal para probar la autenticación con JWTs.
+
+    .. warning:: Esto será eliminado en el futuro.
+    """
+
+    return {"email": get_jwt_identity()}
+
+
 @route_get_or_post(mod, "/signup")
 def signup(data):
     """
     Endpoint de registro de un usuario. Los parámetros deben cumplir las reglas
     de validación establecidas en :meth:`gatovid.models.User`.
 
-    :param email: Dirección de correo electrónico, 
+    :param email: Dirección de correo electrónico
     :type email: `str`
+    :param name: Nombre del usuario
+    :type name: `str`
+    :param password: Contraseña del usuario
+    :type password: `str`
+
+    :return: Un objeto JSON con el nombre y correo del usuario registrado, como
+        forma de verificación de la operación, o un error de validación.
     """
 
     try:
@@ -103,8 +122,13 @@ def signup(data):
 @jwt_required()
 def remove_user(data):
     """
+    Endpoint autenticado de borrado de cuenta.
+
     Al borrar una cuenta se cierra también la sesión, garantizando que solo se
     podrá borrar una vez.
+
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario.
     """
 
     email = get_jwt_identity()
@@ -123,12 +147,27 @@ def remove_user(data):
 @jwt_required()
 def modify_user(data):
     """
-    Al endpoint de modificación del usuario se le pasan aquellos campos a
-    cambiar, todos siendo opcionales.
+    Endpoint autenticado de modificación del usuario, al cual se le pasan
+    aquellos campos a cambiar, todos siendo opcionales. Los parámetros deben
+    cumplir las reglas de validación establecidas en
+    :meth:`gatovid.models.User`.
 
     No hace falta pasar el email porque al estar protegido se puede obtener a
     partir del token. De esta forma se asegura que no se modifican los perfiles
     de otros usuarios.
+
+    :param name: Nombre nuevo del usuario
+    :type name: `Optional[str]`
+    :param password: Contraseña nueva del usuario
+    :type password: `Optional[str]`
+    :param board: El identificador del nuevo tapete del usuario
+    :type board: `Optional[int]`
+    :param picture: El identificador de la nueva foto del usuario
+    :type picture: `Optional[int]`
+
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario. Se considera un error el no
+        indicar ninguno de los parámetros opcionales anteriores.
     """
 
     email = get_jwt_identity()
@@ -157,6 +196,19 @@ def modify_user(data):
 
 @route_get_or_post(mod, "/login")
 def login(data):
+    """
+    Endpoint para iniciar la sesión con las credenciales de un usuario ya
+    registrado. Debe cumplir los requisitos de :ref:`error_validacion`.
+
+    :param email: Dirección de correo electrónico
+    :type email: `str`
+    :param password: Contraseña
+    :type password: `str`
+
+    :return: Un token de acceso en el campo `access_token`, o un error de
+        validación.
+    """
+
     email = data.get("email")
     password = data.get("password")
 
@@ -176,21 +228,35 @@ def login(data):
 @route_get_or_post(mod, "/logout")
 @jwt_required()
 def logout(data):
+    """
+    Endpoint autenticado para cerrar la sesión.
+
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario.
+    """
+
     if revoke_token():
         return msg_ok("Sesión cerrada con éxito")
     else:
-        return msg_err("No se pudo cerrar sesión")
-
-
-@route_get_or_post(mod, "/protected_test")
-@jwt_required()
-def protected(data):
-    return {"email": get_jwt_identity()}
+        return msg_err("No se pudo cerrar sesión", code=500)
 
 
 @route_get_or_post(mod, "/user_data")
 @jwt_required()
 def user_data(data):
+    """
+    Endpoint autenticado para acceder a los datos personales de un usuario.
+
+    :return: Un objeto JSON con los campos:
+
+    * `email: str`
+    * `name: str`
+    * `coins: int`
+    * `picture: int` (identificador)
+    * `board: int` (identificador)
+    * `purchases: List[{"item_id": str, "type": ("board" | "profile_pic")}]`
+    """
+
     email = get_jwt_identity()
     user = User.query.get(email)
 
@@ -206,6 +272,16 @@ def user_data(data):
 
 @route_get_or_post(mod, "/user_stats")
 def user_stats(data):
+    """
+    Endpoint para acceder a las estadísticas de un usuario, dado su nombre.
+
+    :param name: Nombre del usuario
+    :type name: `str`
+
+    :return: Un objeto JSON con los campos `games`, `losses`, `wins` y
+        `playtime_mins`, todos enteros.
+    """
+
     name = data.get("name")
     user = User.query.filter_by(name=name).first()
     if user is None:

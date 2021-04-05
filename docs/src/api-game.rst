@@ -1,7 +1,9 @@
 API de Juegos
 =============
 
-.. autosummary::
-   :toctree: _autosummary
+.. currentmodule:: gatovid.api.game
 
-   gatovid.api.game
+.. autofunction:: connect
+.. autofunction:: on_join
+.. autofunction:: on_leave
+.. autofunction:: chat

@@ -39,6 +39,13 @@ def revoke_token() -> bool:
 
 @route_get_or_post(mod, "/test")
 def test(data):
+    """
+    Endpoint de prueba que realiza una petición a la base de datos y devuelve
+    los argumentos que se le han pasado.
+
+    .. warning:: Esto será eliminado en el futuro
+    """
+
     user = db.session.query(User).first()
 
     return {
@@ -57,6 +64,14 @@ def test(data):
 
 @route_get_or_post(mod, "/signup")
 def signup(data):
+    """
+    Endpoint de registro de un usuario. Los parámetros deben cumplir las reglas
+    de validación establecidas en :meth:`gatovid.models.User`.
+
+    :param email: Dirección de correo electrónico, 
+    :type email: `str`
+    """
+
     try:
         user = User(
             email=data.get("email"),
@@ -86,7 +101,7 @@ def signup(data):
 
 @route_get_or_post(mod, "/remove_user")
 @jwt_required()
-def remove_account(data):
+def remove_user(data):
     """
     Al borrar una cuenta se cierra también la sesión, garantizando que solo se
     podrá borrar una vez.

@@ -1,5 +1,5 @@
 """
-Punto de entrada para cuando se ejecuta `gatovid` con `python -m gatovid`.
+Punto de entrada para cuando se ejecuta ``gatovid`` con ``python -m gatovid``.
 """
 
 import sys

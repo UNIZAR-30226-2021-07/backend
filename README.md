@@ -75,9 +75,8 @@ necesario un formato demasiado complejo.
 Para construir la documentación se pueden seguir los siguientes pasos:
 
 ```
-$ pip install -e .
+$ pip install -e .[docs]
 $ cd docs
-$ pip install -r requirements.txt
 $ make html
 ```
 

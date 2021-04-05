@@ -23,7 +23,7 @@ extras_require = {
         "black",
         "isort",
         "flake8",
-    }
+    },
 }
 
 setup(

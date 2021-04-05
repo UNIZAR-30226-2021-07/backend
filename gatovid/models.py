@@ -156,7 +156,16 @@ class User(db.Model):
 
     @picture.setter
     def picture(self, picture: Optional[int]) -> None:
-        return
+        if picture is None:
+            raise InvalidModelException("Foto de perfil vacía")
+
+        purchase = Purchase.query.filter(
+            item_id=picture, user_id=self.email, type=PurchasableType.PROFILE_PIC
+        ).first()
+        if purchase is None:
+            raise InvalidModelException("Foto de perfil no comprada")
+
+        self._picture = picture
 
     @property
     def board(self) -> int:
@@ -164,7 +173,16 @@ class User(db.Model):
 
     @board.setter
     def board(self, board: Optional[int]) -> None:
-        return
+        if board is None:
+            raise InvalidModelException("Tablero vacío")
+
+        purchase = Purchase.query.filter(
+            item_id=board, user_id=self.email, type=PurchasableType.BOARD
+        ).first()
+        if purchase is None:
+            raise InvalidModelException("Tablero no comprado")
+
+        self._board = board
 
 
 class TokenBlacklist(db.Model):

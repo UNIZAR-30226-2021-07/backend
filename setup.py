@@ -18,6 +18,7 @@ extras_require = {
     "docs": {
         "Sphinx==3.5.2",
         "myst-parser==0.13.5",
+        "furo==2021.3.20b30",
     },
     "format": {
         "black",

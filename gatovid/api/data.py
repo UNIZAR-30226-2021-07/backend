@@ -57,22 +57,19 @@ cliente básico para acceder a la API de datos:
 
 1. Hacer petición
 2. Comprobar si hay un error
+    1. Si no hay error se puede usar el valor devuelto
+    2. Si hay error:
+        1. Si es 401, será necesario refrescar el token y volver al punto 1.
+        2. Si el código es 400:
+            1. Si es fallo del usuario se le muestra el mensaje de error del campo
+               `error`.
+            2. Si es fallo del programador, tendrá que hacerse debug en el cliente y
+               solucionarlo, ya que no es esperado que suceda. Se puede usar el
+               campo `error` para ello.
 
-  1. Si no hay error se puede usar el valor devuelto
-  2. Si hay error:
-
-    1. Si es 401, será necesario refrescar el token y volver al punto 1.
-    2. Si el código es 400:
-
-      1. Si es fallo del usuario se le muestra el mensaje de error del campo
-         `error`.
-      2. Si es fallo del programador, tendrá que hacerse debug en el cliente y
-         solucionarlo, ya que no es esperado que suceda. Se puede usar el
-         campo `error` para ello.
-
-    3. Si es 500, tendrá que hacerse debug en el backend y solucionarlo, que
-       será donde se encuentre más información. En este caso no se puede usar el
-       campo `error`, por tanto.
+        3. Si es 500, tendrá que hacerse debug en el backend y solucionarlo, que
+           será donde se encuentre más información. En este caso no se puede usar el
+           campo `error`, por tanto.
 """
 
 from flask import Blueprint, request

@@ -83,7 +83,6 @@ class UserTest(GatovidTestClient):
 
         for name, expected in test_stats.items():
             got = self.request_stats(name)
-            print(got, got.json)
             self.assertRequestOk(got)
             self.assertEqual(got.json, expected)
 
@@ -304,12 +303,12 @@ class UserTest(GatovidTestClient):
         token = token_resp.json["access_token"]
 
         # Primer intento
-        remove_data = self.request_remove(token, self.new_user)
-        self.assertRequestOk(remove_data)
+        remove_resp = self.request_remove(token, self.new_user)
+        self.assertRequestOk(remove_resp)
 
         # Segundo intento
-        remove_data = self.request_remove(token, self.new_user)
-        self.assertRequestErr(remove_data)
+        remove_resp = self.request_remove(token, self.new_user)
+        self.assertRequestErr(remove_resp)
 
     def test_remove_cascade(self):
         """
@@ -326,16 +325,56 @@ class UserTest(GatovidTestClient):
         self.assertIsNotNone(purchases)
 
         # Inicio de sessión
-        token_data = self.request_token(self.existing_user)
-        self.assertRequestOk(token_data)
-        token = token_data.json["access_token"]
+        token_resp = self.request_token(self.existing_user)
+        self.assertRequestOk(token_resp)
+        token = token_resp.json["access_token"]
 
         # Y eliminación del usuario
-        remove_data = self.request_remove(token, self.existing_user)
-        self.assertRequestOk(remove_data)
+        remove_resp = self.request_remove(token, self.existing_user)
+        self.assertRequestOk(remove_resp)
 
         # Ahora no existen
         stats = Stats.query.filter_by(user_id=user_id).first()
         self.assertIsNone(stats)
         purchases = Purchase.query.filter_by(user_id=user_id).first()
         self.assertIsNone(purchases)
+
+    def test_modify_user(self):
+        """
+        Comprueba que se sigue aplicando la validación de campos al modificar
+        el usuario, y algunos casos especiales.
+        """
+
+    def test_modify_user_empty(self):
+        """
+        Prueba casos en los que no se debería cambiar el usuario.
+        """
+
+        tests = [
+            # Vacío
+            {},
+            # El email no se puede cambiar
+            {"email": "test@gmail.com"},
+            # Campos inexistentes
+            {"some_field_that_doesnt_exist": 1234},
+            # Los mismos valores
+            {
+                "name": self.existing_user["name"],
+                "password": self.existing_user["password"],
+            },
+        ]
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        for payload in tests:
+            initial_user_resp = self.request_data(token)
+            self.assertRequestOk(initial_user_resp)
+
+            modify_resp = self.request_modify(token, payload)
+            self.assertRequestOk(modify_resp)
+
+            modified_user_resp = self.request_data(token)
+            self.assertRequestOk(modified_user_resp)
+
+            self.assertEqual(initial_user_resp.json, modified_user_resp.json)

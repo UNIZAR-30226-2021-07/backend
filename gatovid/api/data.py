@@ -111,27 +111,28 @@ def remove_account():
 def modify_user():
     """
     Al endpoint de modificación del usuario se le pasan aquellos campos a
-    cambiar, todos siendo opcionales. Se considera por tanto que una petición
-    vacía es errónea.
+    cambiar, todos siendo opcionales.
 
     No hace falta pasar el email porque al estar protegido se puede obtener a
     partir del token. De esta forma se asegura que no se modifican los perfiles
     de otros usuarios.
     """
+
     data = request.args if request.method == "GET" else request.form
 
     email = get_jwt_identity()
-    user = data.get("name")
-    password = data.get("password")
-    board = data.get("board")
-    picture = data.get("picture")
-
-    if not all([user, password, board, picture]):
-        return msg_err("Campos vacíos")
-
     user = User.query.get(email)
 
-    db.session.delete(user)
+    for field in ("name", "password", "board", "picture"):
+        new_val = data.get(field)
+        if new_val is None:
+            continue
+
+        try:
+            setattr(user, field, new_val)
+        except InvalidModelException as e:
+            return msg_err(e)
+
     db.session.commit()
 
     return msg_ok("Usuario modificado con éxito")

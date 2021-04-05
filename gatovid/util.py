@@ -2,7 +2,10 @@
 Algunas funciones útiles a lo largo de todo el programa.
 """
 
+import functools
 from typing import Dict, Optional
+
+from flask import Blueprint, request
 
 
 def msg_ok(msg: any) -> Dict[str, str]:
@@ -24,3 +27,21 @@ def msg_err(
     ret = {"error": str(msg), **payload}
 
     return ret, code
+
+
+def route_get_or_post(blueprint: Blueprint, rule: str):
+    """
+    Simplifica los endpoints GET + POST simples con un decorator
+    """
+
+    def decorator(func):
+        # El orden importa, sino todos los endpoints tendrán el nombre "wrapped"
+        @blueprint.route(rule, methods=["GET", "POST"])
+        @functools.wraps(func)
+        def wrapped():
+            data = request.args if request.method == "GET" else request.form
+            return func(data)
+
+        return wrapped
+
+    return decorator

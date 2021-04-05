@@ -26,7 +26,7 @@ class BaseTestCase(TestCase):
         db.drop_all()
 
     def assertRequestErr(self, resp, code=None):
-        msg = f"payload: {resp.json}"
+        msg = f"description: {resp.json}"
         if code is None:
             self.assertGreaterEqual(resp.status_code, 400, msg=msg)
             self.assertLessEqual(resp.status_code, 599, msg=msg)
@@ -36,7 +36,7 @@ class BaseTestCase(TestCase):
         self.assertIn("error", resp.json)
 
     def assertRequestOk(self, resp, code=None):
-        msg = f"payload: {resp.json}"
+        msg = f"description: {resp.json}"
         if code is None:
             self.assertGreaterEqual(resp.status_code, 200, msg=msg)
             self.assertLessEqual(resp.status_code, 299, msg=msg)

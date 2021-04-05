@@ -16,7 +16,9 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Dict
+from typing import Dict, Optional
+
+from sqlalchemy.orm import validates
 
 from gatovid.exts import bcrypt, db
 
@@ -28,6 +30,13 @@ BOARDS_PATH = os.path.join(CUR_DIR, "assets", "boards.json")
 PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())
 BOARDS = json.loads(open(BOARDS_PATH, "r").read())
+
+
+class InvalidModelException(Exception):
+    """
+    Esta excepción se usa para indicar la creación de modelos inválidos, como
+    por ejemplo un usuario con contraseña vacía.
+    """
 
 
 class User(db.Model):
@@ -87,10 +96,86 @@ class User(db.Model):
 
     @password.setter
     def password(self, password: str) -> None:
+        self.validate_password("password", password)
+
         self._password = bcrypt.generate_password_hash(password).decode("utf-8")
 
-    def check_password(self, plaintext: str) -> bool:
+    def check_password(self, plaintext: Optional[str]) -> bool:
+        if plaintext is None:
+            return False
+
         return bcrypt.check_password_hash(self.password, plaintext)
+
+    @validates("email")
+    def validate_email(self, key: str, email: Optional[str]) -> None:
+        if email is None:
+            raise InvalidModelException("Email vacío")
+
+        if not User.EMAIL_REGEX.fullmatch(email):
+            raise InvalidModelException("Email incorrecto")
+
+        return email
+
+    @validates("name")
+    def validate_name(self, key: str, name: Optional[str]) -> bool:
+        if name is None:
+            raise InvalidModelException("Nombre vacío")
+
+        if not User.NAME_REGEX.fullmatch(name):
+            raise InvalidModelException("Nombre no cumple con los requisitos")
+
+        return name
+
+    @validates("password")
+    def validate_password(self, key: str, password: Optional[str]) -> None:
+        if password is None:
+            raise InvalidModelException("Contaseña vacía")
+
+        if len(password) < User.MIN_PASSWORD_LENGTH:
+            raise InvalidModelException("Contraseña demasiado corta")
+
+        if len(password) > User.MAX_PASSWORD_LENGTH:
+            raise InvalidModelException("Contraseña demasiado larga")
+
+        return password
+
+    @validates("picture")
+    def validate_picture(self, key: str, picture: Optional[int]) -> None:
+        if picture is None:
+            raise InvalidModelException("Foto de perfil vacía")
+
+        if not isinstance(picture, int):
+            try:
+                picture = int(picture)
+            except ValueError:
+                raise InvalidModelException("Foto de perfil debería ser un entero")
+
+        purchase = Purchase.query.filter_by(
+            item_id=picture, user_id=self.email, type=PurchasableType.PROFILE_PIC
+        ).first()
+        if purchase is None:
+            raise InvalidModelException("Foto de perfil no comprada")
+
+        return picture
+
+    @validates("board")
+    def validate_board(self, key: str, board: Optional[int]) -> None:
+        if board is None:
+            raise InvalidModelException("Tablero vacío")
+
+        if not isinstance(board, int):
+            try:
+                board = int(board)
+            except ValueError:
+                raise InvalidModelException("Tablero debería ser un entero")
+
+        purchase = Purchase.query.filter_by(
+            item_id=board, user_id=self.email, type=PurchasableType.BOARD
+        ).first()
+        if purchase is None:
+            raise InvalidModelException("Tablero no comprado")
+
+        return board
 
 
 class TokenBlacklist(db.Model):

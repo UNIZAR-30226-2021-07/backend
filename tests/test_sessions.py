@@ -16,44 +16,43 @@ class SessionsTest(GatovidTestClient):
         Test básico para la creación de un token.
         """
 
-        data = self.request_token(self.user_data)
-
-        self.assertNotIn("error", data)
-        self.assertIn("access_token", data)
-
-        self.token = data["access_token"]
+        resp = self.request_token(self.user_data)
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
 
     def test_authorized(self):
         """
         Test a un endpoint protegido con un token válido.
         """
 
-        data = self.request_token(self.user_data)
-        self.assertIn("access_token", data)
+        resp = self.request_token(self.user_data)
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
 
-        data = self.token_use(data["access_token"])
+        resp = self.token_use(resp.json["access_token"])
 
-        self.assertNotIn("error", data)
-        self.assertIn("email", data)
-        self.assertEqual(data["email"], self.user_data["email"])
+        self.assertRequestOk(resp)
+        self.assertIn("email", resp.json)
+        self.assertEqual(resp.json["email"], self.user_data["email"])
 
     def test_unauthorized(self):
         """
         Test a un endpoint protegido con un token inválido.
         """
 
-        data = self.token_use("a9sd8f7as9d8f")
-        self.assertIn("error", data)
+        resp = self.token_use("a9sd8f7as9d8f")
+        self.assertRequestErr(resp, 401)
 
     def test_revoked(self):
         """
         Test a un endpoint protegido con un token revocado.
         """
 
-        data = self.request_token(self.user_data)
-        self.assertIn("access_token", data)
+        resp = self.request_token(self.user_data)
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
 
-        self.revoke_token(data["access_token"])
+        self.revoke_token(resp.json["access_token"])
 
-        data = self.token_use(data["access_token"])
-        self.assertIn("error", data)
+        resp = self.token_use(resp.json["access_token"])
+        self.assertRequestErr(resp, 401)

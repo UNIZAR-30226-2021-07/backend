@@ -1,6 +1,78 @@
 """
-Módulo con el REST API para la gestión de los datos de la base de datos, como
-los usuarios, las estadísticas...
+API de Datos
+============
+
+Errores y Validación
+####################
+
+Existen varios tipos de errores que pueden devolverse desde la API de datos:
+
+1. :ref:`error_validacion` (400): la petición al servidor es inválida porque se
+   le ha pasado uno o más parámetros inválidos, o su estructura no es la
+   esperada.
+2. :ref:`error_autenticacion` (401): un token ha sido usado de forma inválida:
+
+3. Error interno (500-599): una excepción inesperada y que ha causado una
+   terminación del servidor. No tendrá ningún mensaje que lo acompañe.
+
+.. _error_validacion:
+
+Errores de Validación
+*********************
+
+Todos los endpoints validan los parámetros que se le pasan. Generalmente, se
+comprueba lo siguiente:
+
+* Que su valor no sea nulo.
+* Que el tipo sea el adecuado. Esto será importante solo cuando la variable sea
+  algo distinto a una cadena.
+* Comprobaciones lógicas
+
+Casos específicos
+-----------------
+
+.. currentmodule:: gatovid.models
+
+El correo electrónico tiene que cumplir la siguiente expresión regular:
+
+.. autoattribute:: gatovid.models.User.EMAIL_REGEX
+
+Y el nombre la siguiente:
+
+.. autoattribute:: gatovid.models.User.NAME_REGEX
+
+La longitud de la contraseña tendrá que estar entre los dos valores siguientes:
+
+.. autoattribute:: gatovid.models.User.MIN_PASSWORD_LENGTH
+.. autoattribute:: gatovid.models.User.MAX_PASSWORD_LENGTH
+
+También puede deberse a otros errores lógicos, como que se intente asignar a un
+usuario una foto de perfil o tapete que no haya comprado.
+
+Cliente Básico
+**************
+
+Dadas las restricciones anteriores, se describe a continuación cómo sería un
+cliente básico para acceder a la API de datos:
+
+1. Hacer petición
+2. Comprobar si hay un error
+
+  1. Si no hay error se puede usar el valor devuelto
+  2. Si hay error:
+
+    1. Si es 401, será necesario refrescar el token y volver al punto 1.
+    2. Si el código es 400:
+
+      1. Si es fallo del usuario se le muestra el mensaje de error del campo
+         `error`.
+      2. Si es fallo del programador, tendrá que hacerse debug en el cliente y
+         solucionarlo, ya que no es esperado que suceda. Se puede usar el
+         campo `error` para ello.
+
+    3. Si es 500, tendrá que hacerse debug en el backend y solucionarlo, que
+       será donde se encuentre más información. En este caso no se puede usar el
+       campo `error`, por tanto.
 """
 
 from flask import Blueprint, request
@@ -14,7 +86,8 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
-from gatovid.models import TokenBlacklist, User
+from gatovid.models import InvalidModelException, TokenBlacklist, User
+from gatovid.util import msg_err, msg_ok, route_get_or_post
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
@@ -36,8 +109,15 @@ def revoke_token() -> bool:
         return False
 
 
-@mod.route("/test", methods=["GET", "POST"])
-def test():
+@route_get_or_post(mod, "/test")
+def test(data):
+    """
+    Endpoint de prueba que realiza una petición a la base de datos y devuelve
+    los argumentos que se le han pasado.
+
+    .. warning:: Esto será eliminado en el futuro.
+    """
+
     user = db.session.query(User).first()
 
     return {
@@ -54,36 +134,43 @@ def test():
     }
 
 
-@mod.route("/signup", methods=["GET", "POST"])
-def signup():
-    data = request.args if request.method == "GET" else request.form
+@route_get_or_post(mod, "/protected_test")
+@jwt_required()
+def protected(data):
+    """
+    Endpoint temporal para probar la autenticación con JWTs.
 
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
+    .. warning:: Esto será eliminado en el futuro.
+    """
 
-    if None in (name, email, password):
-        return {"error": "Parámetro vacío"}
+    return {"email": get_jwt_identity()}
 
-    # Comprobamos que el email introducido es correcto
-    if not User.EMAIL_REGEX.fullmatch(email):
-        return {"error": "Email incorrecto"}
 
-    # Comprobamos que el nombre cumple con los requisitos
-    if not User.NAME_REGEX.fullmatch(name):
-        return {"error": "El nombre no cumple con los requisitos"}
+@route_get_or_post(mod, "/signup")
+def signup(data):
+    """
+    Endpoint de registro de un usuario. Los parámetros deben cumplir las reglas
+    de validación establecidas en :meth:`gatovid.models.User`.
 
-    if len(password) < User.MIN_PASSWORD_LENGTH:
-        return {"error": "Contraseña demasiado corta"}
+    :param email: Dirección de correo electrónico
+    :type email: `str`
+    :param name: Nombre del usuario
+    :type name: `str`
+    :param password: Contraseña del usuario
+    :type password: `str`
 
-    if len(password) > User.MAX_PASSWORD_LENGTH:
-        return {"error": "Contraseña demasiado larga"}
+    :return: Un objeto JSON con el nombre y correo del usuario registrado, como
+        forma de verificación de la operación, o un error de validación.
+    """
 
-    user = User(
-        email=email,
-        name=name,
-        password=password,
-    )
+    try:
+        user = User(
+            email=data.get("email"),
+            name=data.get("name"),
+            password=data.get("password"),
+        )
+    except InvalidModelException as e:
+        return msg_err(e)
 
     try:
         db.session.add(user)
@@ -91,7 +178,7 @@ def signup():
     except IntegrityError as e:
         if isinstance(e.orig, UniqueViolation):
             db.session.rollback()
-            return {"error": "Email o nombre ya en uso"}
+            return msg_err("Email o nombre ya en uso")
         else:
             raise
 
@@ -103,67 +190,145 @@ def signup():
     }
 
 
-@mod.route("/remove_user", methods=["GET", "POST"])
+@route_get_or_post(mod, "/remove_user")
 @jwt_required()
-def remove_account():
+def remove_user(data):
     """
+    Endpoint autenticado de borrado de cuenta.
+
     Al borrar una cuenta se cierra también la sesión, garantizando que solo se
     podrá borrar una vez.
+
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario.
     """
 
     email = get_jwt_identity()
     user = User.query.get(email)
 
     if not revoke_token():
-        return {"error": "No se pudo cerrar sesión"}
+        return msg_err("No se pudo cerrar sesión")
 
     db.session.delete(user)
     db.session.commit()
 
-    return {"message": "Usuario eliminado con éxito"}
+    return msg_ok("Usuario eliminado con éxito")
 
 
-@mod.route("/login", methods=["GET", "POST"])
-def login():
-    data = request.args if request.method == "GET" else request.form
+@route_get_or_post(mod, "/modify_user")
+@jwt_required()
+def modify_user(data):
+    """
+    Endpoint autenticado de modificación del usuario, al cual se le pasan
+    aquellos campos a cambiar, todos siendo opcionales. Los parámetros deben
+    cumplir las reglas de validación establecidas en
+    :meth:`gatovid.models.User`.
+
+    No hace falta pasar el email porque al estar protegido se puede obtener a
+    partir del token. De esta forma se asegura que no se modifican los perfiles
+    de otros usuarios.
+
+    :param name: Nombre nuevo del usuario
+    :type name: `Optional[str]`
+    :param password: Contraseña nueva del usuario
+    :type password: `Optional[str]`
+    :param board: El identificador del nuevo tapete del usuario
+    :type board: `Optional[int]`
+    :param picture: El identificador de la nueva foto del usuario
+    :type picture: `Optional[int]`
+
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario. Se considera un error el no
+        indicar ninguno de los parámetros opcionales anteriores.
+    """
+
+    email = get_jwt_identity()
+    user = User.query.get(email)
+
+    modified = False
+    for field in ("name", "password", "board", "picture"):
+        new_val = data.get(field)
+        if new_val is None:
+            continue
+
+        try:
+            setattr(user, field, new_val)
+        except InvalidModelException as e:
+            return msg_err(e)
+
+        modified = True
+
+    if not modified:
+        return msg_err("Ningún campo válido a modificar")
+
+    db.session.commit()
+
+    return msg_ok("Usuario modificado con éxito")
+
+
+@route_get_or_post(mod, "/login")
+def login(data):
+    """
+    Endpoint para iniciar la sesión con las credenciales de un usuario ya
+    registrado. Debe cumplir los requisitos de :ref:`error_validacion`.
+
+    :param email: Dirección de correo electrónico
+    :type email: `str`
+    :param password: Contraseña
+    :type password: `str`
+
+    :return: Un token de acceso en el campo `access_token`, o un error de
+        validación.
+    """
 
     email = data.get("email")
     password = data.get("password")
 
-    if None in (email, password):
-        return {"error": "Parámetro vacío"}
-
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
     if user is None:
-        return {"error": "El usuario no existe"}
+        return msg_err("El usuario no existe")
 
     # Comprobamos si los hashes coinciden
     if not user.check_password(password):
-        return {"error": "Contraseña incorrecta"}
+        return msg_err("Contraseña incorrecta")
 
     access_token = create_access_token(identity=email)
     return {"access_token": access_token}
 
 
-@mod.route("/logout", methods=["GET", "POST"])
+@route_get_or_post(mod, "/logout")
 @jwt_required()
-def logout():
+def logout(data):
+    """
+    Endpoint autenticado para cerrar la sesión.
+
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario.
+    """
+
     if revoke_token():
-        return {"message": "Sesión cerrada con éxito"}
+        return msg_ok("Sesión cerrada con éxito")
     else:
-        return {"error": "No se pudo cerrar sesión"}
+        return msg_err("No se pudo cerrar sesión", code=500)
 
 
-@mod.route("/protected_test", methods=["GET", "POST"])
+@route_get_or_post(mod, "/user_data")
 @jwt_required()
-def protected():
-    return {"email": get_jwt_identity()}
+def user_data(data):
+    """
+    Endpoint autenticado para acceder a los datos personales de un usuario.
 
+    :return: Un objeto JSON con los campos:
 
-@mod.route("/user_data", methods=["GET", "POST"])
-@jwt_required()
-def user_data():
+    * `email: str`
+    * `name: str`
+    * `coins: int`
+    * `picture: int` (identificador)
+    * `board: int` (identificador)
+    * `purchases: List[{"item_id": str, "type": ("board" | "profile_pic")}]`
+    """
+
     email = get_jwt_identity()
     user = User.query.get(email)
 
@@ -177,17 +342,22 @@ def user_data():
     }
 
 
-@mod.route("/user_stats", methods=["GET", "POST"])
-def user_stats():
-    data = request.args if request.method == "GET" else request.form
+@route_get_or_post(mod, "/user_stats")
+def user_stats(data):
+    """
+    Endpoint para acceder a las estadísticas de un usuario, dado su nombre.
+
+    :param name: Nombre del usuario
+    :type name: `str`
+
+    :return: Un objeto JSON con los campos `games`, `losses`, `wins` y
+        `playtime_mins`, todos enteros.
+    """
 
     name = data.get("name")
-    if name is None:
-        return {"error": "Parámetro vacío"}
-
     user = User.query.filter_by(name=name).first()
     if user is None:
-        return {"error": "El usuario no existe"}
+        return msg_err("El usuario no existe")
 
     stats = user.stats
 

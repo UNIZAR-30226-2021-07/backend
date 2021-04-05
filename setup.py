@@ -14,6 +14,18 @@ install_requires = [
     "flask-cors==3.0.10",
 ]
 
+extras_require = {
+    "docs": {
+        "Sphinx==3.5.2",
+        "myst-parser==0.13.5",
+    },
+    "format": {
+        "black",
+        "isort",
+        "flake8",
+    },
+}
+
 setup(
     name="gatovid",
     version="0.1",
@@ -22,4 +34,5 @@ setup(
     long_description_content_type="text/markdown",
     python_requires=">=3.8",
     install_requires=install_requires,
+    extras_require=extras_require,
 )

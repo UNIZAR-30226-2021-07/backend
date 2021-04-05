@@ -1,9 +1,8 @@
-API de Juegos
-=============
-
 .. currentmodule:: gatovid.api.game
 
-.. autofunction:: connect
-.. autofunction:: on_join
-.. autofunction:: on_leave
-.. autofunction:: chat
+.. automodule:: gatovid.api.game
+    :members:
+        connect,
+        on_join,
+        on_leave,
+        chat,

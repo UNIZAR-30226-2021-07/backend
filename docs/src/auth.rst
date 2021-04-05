@@ -18,12 +18,12 @@ en el backend:
    bbdd, por si se filtrase).
 3. Cuando te has loggeado, te da un token que tiene codificado en él:
 
-  1. Identidad: el email en este caso
-  2. Fecha de expiracion
-  3. Resto de datos para el cifrado
+   1. Identidad: el email en este caso
+   2. Fecha de expiracion
+   3. Resto de datos para el cifrado
 
-  Va cifrado de tal manera que solo el servidor lo puede desencriptar y, como la
-  información va metida en el token, no hace falta una base de datos de tokens.
+   Va cifrado de tal manera que solo el servidor lo puede desencriptar y, como la
+   información va metida en el token, no hace falta una base de datos de tokens.
 
 4. El logout es más complicado porque como los tokens no están en memoria hay
    que prohibirlos de alguna forma. Para eso ponemos una tabla en la BBDD de

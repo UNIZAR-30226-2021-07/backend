@@ -28,9 +28,13 @@ author = 'UNIZAR-30226-2021-07'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    # Markdown for simpler and easier editing
-    'myst_parser'
+    # Para ficheros en markdown como el README
+    'myst_parser',
+    # Documentación automática
+    'sphinx.ext.autodoc',
+    'sphinx.ext.autosummary',
 ]
+autosummary_generate = True
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']

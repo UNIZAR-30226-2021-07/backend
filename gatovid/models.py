@@ -96,6 +96,8 @@ class User(db.Model):
         if not User.NAME_REGEX.fullmatch(name):
             raise InvalidModelException("Nombre no cumple con los requisitos")
 
+        self._name = name
+
     @property
     def email(self) -> str:
         return self._email
@@ -111,6 +113,8 @@ class User(db.Model):
 
         if not User.EMAIL_REGEX.fullmatch(email):
             raise InvalidModelException("Email incorrecto")
+
+        self._email = email
 
     @property
     def password(self) -> str:
@@ -213,7 +217,7 @@ class Stats(db.Model):
     """
 
     # Relación "One to One" (1:1)
-    user_id = db.Column(db.String, db.ForeignKey("user.email"), primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey("user._email"), primary_key=True)
     user = db.relationship("User", back_populates="stats")
 
     losses = db.Column(db.Integer, default=0)
@@ -255,7 +259,7 @@ class Purchase(db.Model):
 
     # Relación "Many to One" (N:1)
     user_id = db.Column(
-        db.String, db.ForeignKey("user.email", ondelete="CASCADE"), primary_key=True
+        db.String, db.ForeignKey("user._email", ondelete="CASCADE"), primary_key=True
     )
     user = db.relationship("User", back_populates="purchases")
 

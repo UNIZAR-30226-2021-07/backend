@@ -36,18 +36,20 @@ def db_test_data():
                 email="test_user1@gmail.com",
                 name="test_user1",
                 password="whatever1",
-                coins=133,
             ),
             User(
                 email="test_user2@gmail.com",
                 name="test_user2",
                 password="whatever2",
-                coins=10,
             ),
             User(email="test_user3@gmail.com", name="test_user3", password="whatever3"),
         ]
         for user in users:
             db.session.add(user)
+        db.session.commit()
+
+        users[0].coins_incr(133)
+        users[1].coins_incr(10)
         db.session.commit()
 
         # Estadísticas iniciales para cada usuario

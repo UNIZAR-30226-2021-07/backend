@@ -339,6 +339,32 @@ class UserTest(GatovidTestClient):
         purchases = Purchase.query.filter_by(user_id=user_id).first()
         self.assertIsNone(purchases)
 
+    def test_type_validation(self):
+        """
+        Comprueba que se devuelve un error esperado (y no un 500) al enviar
+        datos con tipo inválido.
+
+        Este test solo se puede realizar para aquellos parámetros que no sean
+        cadenas. Esto se debe a que para realizar la petición al servidor se
+        convertirá a una cadena de todos modos.
+        """
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        for field in ("board", "picture"):
+            for value in ("some string", True, [1, 2, 3]):
+                user = self.existing_user.copy()
+                user[field] = value
+
+                initial = self.request_data(token).json
+
+                modify_resp = self.request_modify(token, user)
+                self.assertRequestErr(modify_resp, 400)
+
+                final = self.request_data(token).json
+                self.assertEqual(initial, final)
+
     def test_modify(self):
         """
         Un test básico del correcto correcto del endpoint de modificación de
@@ -394,31 +420,25 @@ class UserTest(GatovidTestClient):
         final = self.request_data(token).json
         self.assertEqual(initial, final)
 
-    def test_type_validation(self):
+    def test_modify_not_purchased(self):
         """
-        Comprueba que se devuelve un error esperado (y no un 500) al enviar
-        datos con tipo inválido.
-
-        Este test solo se puede realizar para aquellos parámetros que no sean
-        cadenas. Esto se debe a que para realizar la petición al servidor se
-        convertirá a una cadena de todos modos.
+        Comprueba que no se puedan asignar ítems a un usuario que no ha comprado
+        todavía.
         """
 
         token_resp = self.request_token(self.existing_user)
         token = token_resp.json["access_token"]
 
-        for field in ("board", "picture"):
-            for value in ("some string", True, [1, 2, 3]):
-                user = self.existing_user.copy()
-                user[field] = value
+        initial = self.request_data(token).json
 
-                initial = self.request_data(token).json
+        modify_resp = self.request_modify(token, {"picture": 10})
+        self.assertRequestErr(modify_resp, 400)
 
-                modify_resp = self.request_modify(token, user)
-                self.assertRequestErr(modify_resp, 400)
+        modify_resp = self.request_modify(token, {"board": 10})
+        self.assertRequestErr(modify_resp, 400)
 
-                final = self.request_data(token).json
-                self.assertEqual(initial, final)
+        final = self.request_data(token).json
+        self.assertEqual(initial, final)
 
     def test_modify_empty(self):
         """

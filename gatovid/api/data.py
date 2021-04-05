@@ -194,9 +194,6 @@ def user_stats():
 
     name = data.get("name")
     user = User.query.filter_by(name=name).first()
-    print(User.query.filter_by(name=name).first())
-    print(User.query.filter_by(_name=name).first())
-    print(User.query.all())
     if user is None:
         return msg_err("El usuario no existe")
 

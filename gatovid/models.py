@@ -88,6 +88,8 @@ class User(db.Model):
 
     @password.setter
     def password(self, password: str) -> None:
+        self.validate_password('password', password)
+
         self._password = bcrypt.generate_password_hash(password).decode("utf-8")
 
     def check_password(self, plaintext: Optional[str]) -> bool:
@@ -96,6 +98,7 @@ class User(db.Model):
 
         return bcrypt.check_password_hash(self.password, plaintext)
 
+# '''
     @validates('email')
     def validate_email(self, key: str, email: Optional[str]) -> None:
         """
@@ -151,7 +154,7 @@ class User(db.Model):
         return picture
 
     @validates('board')
-    def board(self, key: str, board: Optional[int]) -> None:
+    def validate_board(self, key: str, board: Optional[int]) -> None:
         if board is None:
             raise InvalidModelException("Tablero vacío")
 
@@ -162,6 +165,7 @@ class User(db.Model):
             raise InvalidModelException("Tablero no comprado")
 
         return board
+# '''
 
 
 class TokenBlacklist(db.Model):

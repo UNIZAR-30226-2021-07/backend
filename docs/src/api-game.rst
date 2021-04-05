@@ -2,7 +2,8 @@
 
 .. automodule:: gatovid.api.game
     :members:
-        connect,
-        on_join,
-        on_leave,
+        create_game,
+        start_game,
+        join,
+        leave,
         chat,

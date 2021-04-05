@@ -107,6 +107,9 @@ def start_game():
         # sentido empezar la partida (ya se encarga el manager)
         return {"error": "La partida no es privada"}
 
+    if len(match.players) < 2:
+        return {"error": "Se necesitan al menos dos jugadores"}
+    
     match.started = True
     emit("start_game", room=game)
 

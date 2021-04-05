@@ -20,6 +20,8 @@ from typing import Dict, Optional
 
 from gatovid.exts import bcrypt, db
 
+from sqlalchemy.orm import validates
+
 CUR_DIR = os.path.dirname(os.path.realpath(__file__))
 PROFILE_PICS_PATH = os.path.join(CUR_DIR, "assets", "profile_pics.json")
 CARDS_PATH = os.path.join(CUR_DIR, "assets", "cards.json")
@@ -55,17 +57,17 @@ class User(db.Model):
 
     # Se usa su correo electrónico como clave primaria, de forma que se pueda
     # cambiar el email.
-    _email = db.Column(db.String, primary_key=True)
-    _name = db.Column(db.String, nullable=False, unique=True)
+    email = db.Column(db.String, primary_key=True)
+    name = db.Column(db.String, nullable=False, unique=True)
 
     # La contraseña es un campo privado porque su acceso es más complejo. Su
     # modificación requiere encriptarla previamente.
     _password = db.Column(db.String, nullable=False)
 
-    _coins = db.Column(db.Integer, default=0)
+    coins = db.Column(db.Integer, default=0)
 
-    _picture = db.Column(db.Integer, default=0)
-    _board = db.Column(db.Integer, default=0)
+    picture = db.Column(db.Integer, default=0)
+    board = db.Column(db.Integer, default=0)
 
     # Relación "One to One" (1:1)
     stats = db.relationship(
@@ -81,29 +83,21 @@ class User(db.Model):
         return self.__str__()
 
     @property
-    def name(self) -> str:
-        return self._name
+    def password(self) -> str:
+        return self._password
 
-    @name.setter
-    def name(self, name: Optional[str]) -> None:
-        """
-        Se comprueba que el nombre cumple con los requisitos
-        """
+    @password.setter
+    def password(self, password: str) -> None:
+        self._password = bcrypt.generate_password_hash(password).decode("utf-8")
 
-        if name is None:
-            raise InvalidModelException("Nombre vacío")
+    def check_password(self, plaintext: Optional[str]) -> bool:
+        if plaintext is None:
+            return False
 
-        if not User.NAME_REGEX.fullmatch(name):
-            raise InvalidModelException("Nombre no cumple con los requisitos")
+        return bcrypt.check_password_hash(self.password, plaintext)
 
-        self._name = name
-
-    @property
-    def email(self) -> str:
-        return self._email
-
-    @email.setter
-    def email(self, email: Optional[str]) -> None:
+    @validates('email')
+    def validate_email(self, key: str, email: Optional[str]) -> None:
         """
         Se comprueba que el email introducido es correcto
         """
@@ -114,14 +108,24 @@ class User(db.Model):
         if not User.EMAIL_REGEX.fullmatch(email):
             raise InvalidModelException("Email incorrecto")
 
-        self._email = email
+        return email
 
-    @property
-    def password(self) -> str:
-        return self._password
+    @validates('name')
+    def validate_name(self, key: str, name: Optional[str]) -> bool:
+        """
+        Se comprueba que el nombre cumple con los requisitos
+        """
 
-    @password.setter
-    def password(self, password: Optional[str]) -> None:
+        if name is None:
+            raise InvalidModelException("Nombre vacío")
+
+        if not User.NAME_REGEX.fullmatch(name):
+            raise InvalidModelException("Nombre no cumple con los requisitos")
+
+        return name
+
+    @validates('password')
+    def validate_password(self, key: str, password: Optional[str]) -> None:
         if password is None:
             raise InvalidModelException("Contaseña vacía")
 
@@ -131,62 +135,33 @@ class User(db.Model):
         if len(password) > User.MAX_PASSWORD_LENGTH:
             raise InvalidModelException("Contraseña demasiado larga")
 
-        self._password = bcrypt.generate_password_hash(password).decode("utf-8")
+        return password
 
-    def check_password(self, plaintext: Optional[str]) -> bool:
-        if plaintext is None:
-            return False
-
-        return bcrypt.check_password_hash(self.password, plaintext)
-
-    @property
-    def coins(self) -> int:
-        return self._coins
-
-    def coins_incr(self, amount: int) -> None:
-        """
-        Las monedas no se deberían establecer directamente, por lo que se tiene
-        un método de incremento y otro de decremento únicamente.
-        """
-
-        self._coins += amount
-
-    def coins_decr(self, amount: int) -> None:
-        self.coins -= amount
-
-    @property
-    def picture(self) -> int:
-        return self._picture
-
-    @picture.setter
-    def picture(self, picture: Optional[int]) -> None:
+    @validates('picture')
+    def validate_picture(self, key: str, picture: Optional[int]) -> None:
         if picture is None:
             raise InvalidModelException("Foto de perfil vacía")
 
-        purchase = Purchase.query.filter(
+        purchase = Purchase.query.filter_by(
             item_id=picture, user_id=self.email, type=PurchasableType.PROFILE_PIC
         ).first()
         if purchase is None:
             raise InvalidModelException("Foto de perfil no comprada")
 
-        self._picture = picture
+        return picture
 
-    @property
-    def board(self) -> int:
-        return self._board
-
-    @board.setter
-    def board(self, board: Optional[int]) -> None:
+    @validates('board')
+    def board(self, key: str, board: Optional[int]) -> None:
         if board is None:
             raise InvalidModelException("Tablero vacío")
 
-        purchase = Purchase.query.filter(
+        purchase = Purchase.query.filter_by(
             item_id=board, user_id=self.email, type=PurchasableType.BOARD
         ).first()
         if purchase is None:
             raise InvalidModelException("Tablero no comprado")
 
-        self._board = board
+        return board
 
 
 class TokenBlacklist(db.Model):
@@ -217,7 +192,7 @@ class Stats(db.Model):
     """
 
     # Relación "One to One" (1:1)
-    user_id = db.Column(db.String, db.ForeignKey("user._email"), primary_key=True)
+    user_id = db.Column(db.String, db.ForeignKey("user.email"), primary_key=True)
     user = db.relationship("User", back_populates="stats")
 
     losses = db.Column(db.Integer, default=0)
@@ -259,7 +234,7 @@ class Purchase(db.Model):
 
     # Relación "Many to One" (N:1)
     user_id = db.Column(
-        db.String, db.ForeignKey("user._email", ondelete="CASCADE"), primary_key=True
+        db.String, db.ForeignKey("user.email", ondelete="CASCADE"), primary_key=True
     )
     user = db.relationship("User", back_populates="purchases")
 

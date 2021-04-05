@@ -26,11 +26,15 @@ class BaseTestCase(TestCase):
         db.session.remove()
         db.drop_all()
 
-    def assertRequestFailed(self, data):
-        self.assertIn("error", data)
+    def assertRequestErr(self, resp):
+        self.assertGreaterEqual(resp.status_code, 400)
+        self.assertLessEqual(resp.status_code, 599)
+        self.assertIn("error", resp.json)
 
-    def assertRequestOk(self, data):
-        self.assertNotIn("error", data)
+    def assertRequestOk(self, resp):
+        self.assertGreaterEqual(resp.status_code, 200)
+        self.assertLessEqual(resp.status_code, 299)
+        self.assertNotIn("error", resp.json)
 
 
 class GatovidTestClient(BaseTestCase):
@@ -65,7 +69,7 @@ class GatovidTestClient(BaseTestCase):
         else:
             raise Exception("not supported")
 
-        return json.loads(response.data.decode())
+        return response
 
     def auth_headers(self, token: str) -> Dict[str, str]:
         return {"Authorization": "Bearer " + token}

@@ -5,7 +5,7 @@ prueba.
 
 from sqlalchemy.exc import IntegrityError
 
-from gatovid.app import app
+from gatovid.app import app, logger
 from gatovid.exts import db
 from gatovid.models import PurchasableType, Purchase, Stats, User
 
@@ -15,13 +15,13 @@ def db_reset():
     Resetea la base de datos desde cero para poder insertar filas nuevas.
     """
 
-    print("Cleaning database... ", end="")
+    logger.info("Cleaning database...")
     with app.app_context():
         db.session.commit()
         db.session.remove()
         db.drop_all()
         db.create_all()
-    print("done")
+    logger.info("Done cleaning database")
 
 
 def db_test_data():
@@ -36,20 +36,18 @@ def db_test_data():
                 email="test_user1@gmail.com",
                 name="test_user1",
                 password="whatever1",
+                coins=133,
             ),
             User(
                 email="test_user2@gmail.com",
                 name="test_user2",
                 password="whatever2",
+                coins=10
             ),
             User(email="test_user3@gmail.com", name="test_user3", password="whatever3"),
         ]
         for user in users:
             db.session.add(user)
-        db.session.commit()
-
-        users[0].coins_incr(133)
-        users[1].coins_incr(10)
         db.session.commit()
 
         # Estadísticas iniciales para cada usuario
@@ -80,8 +78,8 @@ def db_test_data():
 
 def db_init():
     try:
-        print("Generating fake data... ", end="")
+        logger.info("Generating fake data...")
         db_test_data()
-        print("done")
+        logger.info("Generation of fake data done")
     except IntegrityError:
-        print("initialization already done, skipping.")
+        logger.info("Generation of fake data skipped, initialization already done")

@@ -3,8 +3,6 @@ Módulo con el REST API para la gestión de los datos de la base de datos, como
 los usuarios, las estadísticas...
 """
 
-from typing import Dict, Optional
-
 from flask import Blueprint, request
 from flask_jwt_extended import (
     create_access_token,
@@ -15,31 +13,11 @@ from flask_jwt_extended import (
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
+from gatovid.util import msg_ok, msg_err
 from gatovid.exts import db
 from gatovid.models import InvalidModelException, TokenBlacklist, User
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
-
-
-def msg_ok(msg: any) -> Dict[str, str]:
-    """
-    Para la confirmación de éxito de peticiones con un mensaje.
-    """
-
-    return {"message": str(msg)}
-
-
-def msg_err(
-    msg: any, error: int = 400, payload: Optional[Dict[str, str]] = {}
-) -> (Dict[str, str], int):
-    """
-    Para la notificación de error de una petición, posiblemente con más
-    información.
-    """
-
-    ret = {"error": str(msg), **payload}
-
-    return ret, error
 
 
 def revoke_token() -> bool:
@@ -216,6 +194,9 @@ def user_stats():
 
     name = data.get("name")
     user = User.query.filter_by(name=name).first()
+    print(User.query.filter_by(name=name).first())
+    print(User.query.filter_by(_name=name).first())
+    print(User.query.all())
     if user is None:
         return msg_err("El usuario no existe")
 

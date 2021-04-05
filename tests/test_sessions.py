@@ -16,24 +16,24 @@ class SessionsTest(GatovidTestClient):
         Test básico para la creación de un token.
         """
 
-        req = self.request_token(self.user_data)
-        self.assertRequestOk(req)
-        self.assertIn("access_token", req)
+        resp = self.request_token(self.user_data)
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
 
     def test_authorized(self):
         """
         Test a un endpoint protegido con un token válido.
         """
 
-        req = self.request_token(self.user_data)
-        self.assertRequestOk(req)
-        self.assertIn("access_token", req)
+        resp = self.request_token(self.user_data)
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
 
-        req = self.token_use(req["access_token"])
+        resp = self.token_use(resp.json["access_token"])
 
-        self.assertRequestOk(req)
-        self.assertIn("email", req)
-        self.assertEqual(req["email"], self.user_data["email"])
+        self.assertRequestOk(resp)
+        self.assertIn("email", resp.json)
+        self.assertEqual(resp.json["email"], self.user_data["email"])
 
     def test_unauthorized(self):
         """
@@ -41,18 +41,18 @@ class SessionsTest(GatovidTestClient):
         """
 
         req = self.token_use("a9sd8f7as9d8f")
-        self.assertRequestFailed(req)
+        self.assertRequestErr(req)
 
     def test_revoked(self):
         """
         Test a un endpoint protegido con un token revocado.
         """
 
-        req = self.request_token(self.user_data)
-        self.assertRequestOk(req)
-        self.assertIn("access_token", req)
+        resp = self.request_token(self.user_data)
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
 
-        self.revoke_token(req["access_token"])
+        self.revoke_token(resp.json["access_token"])
 
-        req = self.token_use(req["access_token"])
-        self.assertRequestFailed(req)
+        resp = self.token_use(resp.json["access_token"])
+        self.assertRequestErr(resp)

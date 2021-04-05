@@ -5,7 +5,7 @@ clientes, como el juego mismo o el chat de la partida.
 
 from functools import wraps
 
-from flask import session
+from flask import session, request
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
@@ -35,7 +35,7 @@ def requires_game(f):
 
 def requires_game_started(f):
     """
-    Decorador para comprobar si el usuario está en una partida.
+    Decorador para comprobar si el usuario está en una partida y ésta ha comenzado.
     """
 
     @wraps(f)
@@ -72,6 +72,7 @@ def connect():
     email = get_jwt_identity()
 
     session["user"] = User.query.get(email)
+    session["user"].sid = request.sid
 
     return True
 
@@ -99,7 +100,7 @@ def start_game():
 
     # Comprobamos si el que empieza la partida es el creador
     try:
-        if match.owner.email != session["user"].email:
+        if match.owner != session["user"]:
             return {"error": "Debes ser el lider para empezar partida"}
     except (AttributeError, TypeError):
         # Si la partida devuelta por el MM es una pública, no tiene
@@ -125,7 +126,7 @@ def join(data):
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
     # y en la partida
-    match.players.add(session["user"])
+    match.add_player(session["user"])
 
     # Lo unimos a la sesión de socketio
     join_room(game_code)
@@ -162,8 +163,20 @@ def leave():
 
     if len(match.players) == 0:
         MM.remove_match(game_code)
+        return # La partida ha acabado, no seguir
     else:
         emit("players_waiting", len(match.players), room=game_code)
+
+    # Comprobar si hay que delegar el cargo de lider
+    try:
+        if match.owner == session["user"]:
+            # Si él es el lider, delegamos el cargo de lider a otro jugador
+            match.owner = match.players[0]
+            # Mensaje solo al nuevo dueño de la sala
+            emit("game_owner", room=match.owner.sid)
+    except (AttributeError, TypeError) as e:
+        # Si la partida es pública no tiene lider
+        return {"error": "La partida no es privada " + str(e)}
 
 
 @socket.on("chat")

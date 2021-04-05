@@ -44,7 +44,7 @@ class Match:
         self.start_time = 0
         self._started = False
         self.paused = False
-        self.players = set()
+        self.players : List[User] = []
 
         # Todas las partidas requieren un código identificador por las
         # salas de socketio. NOTE: se podrían usar códigos de formatos
@@ -69,6 +69,10 @@ class Match:
                 player.stats.playtime_mins += elapsed_mins
             db.session.commit()
 
+    def add_player(self, player: User) -> None:
+        # Aseguramos que el usuario no está dos veces
+        if player not in self.players:
+            self.players.append(player)
 
 class PrivateMatch(Match):
     """

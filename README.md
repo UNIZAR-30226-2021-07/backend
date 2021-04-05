@@ -36,7 +36,7 @@ $ python -m venv .venv
 $ # Entrar al virtualenv
 $ source .venv/bin/activate
 $ # Instalar programas en el virtualenv, sólo la primera vez
-$ pip install black isort flake8
+$ pip install -e .[format]
 $ # El script de formatting y etc
 $ ./format.sh
 $ # Salir del virtualenv

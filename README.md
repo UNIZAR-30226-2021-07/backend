@@ -82,7 +82,9 @@ porque su único uso es para el desarrollo de los clientes en el equipo, y no es
 necesario un formato demasiado complejo.
 
 Para construir la documentación se puede usar el siguiente comando, para el cual
-se requiere `sphinx` instalado (está en el AUR, o con `pip`).
+se requiere `sphinx` instalado (está en el AUR, o con `pip`). También
+necesitarás `myst-parser` (también en el AUR o PyPi), dado que la edición se
+realiza en Markdown por simplicidad.
 
 ```
 $ make html

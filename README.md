@@ -73,6 +73,24 @@ Y para los tests automáticos:
 $ docker-compose run api /usr/local/bin/python -m unittest
 ```
 
+## Documentación
+
+Se tiene un setup sencillo de documentación con
+[Sphinx](https://www.sphinx-doc.org/en/master/usage/quickstart.html), que es la
+herramienta más usada para ello en Python. Se pretende mantenerlo sencillo
+porque su único uso es para el desarrollo de los clientes en el equipo, y no es
+necesario un formato demasiado complejo.
+
+Para construir la documentación se puede usar el siguiente comando, para el cual
+se requiere `sphinx` instalado (está en el AUR, o con `pip`).
+
+```
+$ make html
+```
+
+Se incluirán todas las páginas autogeneradas en el directorio `_build/html`.
+También se puede generar LaTeX con `make latex`.
+
 ## Despliegue
 
 Se incluyen archivos de configuración para el deployment en

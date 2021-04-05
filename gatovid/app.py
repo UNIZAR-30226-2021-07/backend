@@ -28,6 +28,7 @@ def register_extensions(app: Flask) -> None:
                 "origins": [
                     "http://localhost:5000",
                     "http://localhost:3000",
+                    "https://unizar-30226-2021-07.github.io:80",
                 ],
                 "methods": ["OPTIONS", "GET", "POST"],
                 "allow_headers": ["Authorization", "Content-Type"],

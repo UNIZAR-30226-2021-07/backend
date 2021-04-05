@@ -26,6 +26,12 @@ class BaseTestCase(TestCase):
         db.session.remove()
         db.drop_all()
 
+    def assertRequestFailed(self, data):
+        self.assertIn("error", data)
+
+    def assertRequestOk(self, data):
+        self.assertNotIn("error", data)
+
 
 class GatovidTestClient(BaseTestCase):
     """

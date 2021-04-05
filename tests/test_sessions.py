@@ -16,44 +16,43 @@ class SessionsTest(GatovidTestClient):
         Test básico para la creación de un token.
         """
 
-        data = self.request_token(self.user_data)
-
-        self.assertNotIn("error", data)
-        self.assertIn("access_token", data)
-
-        self.token = data["access_token"]
+        req = self.request_token(self.user_data)
+        self.assertRequestOk(req)
+        self.assertIn("access_token", req)
 
     def test_authorized(self):
         """
         Test a un endpoint protegido con un token válido.
         """
 
-        data = self.request_token(self.user_data)
-        self.assertIn("access_token", data)
+        req = self.request_token(self.user_data)
+        self.assertRequestOk(req)
+        self.assertIn("access_token", req)
 
-        data = self.token_use(data["access_token"])
+        req = self.token_use(req["access_token"])
 
-        self.assertNotIn("error", data)
-        self.assertIn("email", data)
-        self.assertEqual(data["email"], self.user_data["email"])
+        self.assertRequestOk(req)
+        self.assertIn("email", req)
+        self.assertEqual(req["email"], self.user_data["email"])
 
     def test_unauthorized(self):
         """
         Test a un endpoint protegido con un token inválido.
         """
 
-        data = self.token_use("a9sd8f7as9d8f")
-        self.assertIn("error", data)
+        req = self.token_use("a9sd8f7as9d8f")
+        self.assertRequestFailed(req)
 
     def test_revoked(self):
         """
         Test a un endpoint protegido con un token revocado.
         """
 
-        data = self.request_token(self.user_data)
-        self.assertIn("access_token", data)
+        req = self.request_token(self.user_data)
+        self.assertRequestOk(req)
+        self.assertIn("access_token", req)
 
-        self.revoke_token(data["access_token"])
+        self.revoke_token(req["access_token"])
 
-        data = self.token_use(data["access_token"])
-        self.assertIn("error", data)
+        req = self.token_use(req["access_token"])
+        self.assertRequestFailed(req)

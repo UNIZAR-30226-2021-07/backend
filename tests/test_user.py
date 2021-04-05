@@ -47,7 +47,7 @@ class UserTest(GatovidTestClient):
         }
 
         token_data = self.request_token(self.existing_user)
-        self.assertNotIn("error", token_data)
+        self.assertRequestOk(token_data)
 
         token = token_data["access_token"]
 

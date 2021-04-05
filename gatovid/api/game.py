@@ -5,7 +5,7 @@ clientes, como el juego mismo o el chat de la partida.
 
 from functools import wraps
 
-from flask import session, request
+from flask import request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
@@ -109,7 +109,7 @@ def start_game():
 
     if len(match.players) < 2:
         return {"error": "Se necesitan al menos dos jugadores"}
-    
+
     match.started = True
     emit("start_game", room=game)
 
@@ -169,7 +169,7 @@ def leave():
         match.started = False
         # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
-        return # La partida ha acabado, no seguir
+        return  # La partida ha acabado, no seguir
     else:
         emit("players_waiting", len(match.players), room=game_code)
 

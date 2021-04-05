@@ -6,6 +6,7 @@ import queue
 import random
 import string
 from datetime import datetime
+from typing import List
 
 from gatovid.exts import db
 from gatovid.models import User
@@ -44,7 +45,7 @@ class Match:
         self.start_time = 0
         self._started = False
         self.paused = False
-        self.players : List[User] = []
+        self.players: List[User] = []
 
         # Todas las partidas requieren un código identificador por las
         # salas de socketio. NOTE: se podrían usar códigos de formatos
@@ -73,6 +74,7 @@ class Match:
         # Aseguramos que el usuario no está dos veces
         if player not in self.players:
             self.players.append(player)
+
 
 class PrivateMatch(Match):
     """

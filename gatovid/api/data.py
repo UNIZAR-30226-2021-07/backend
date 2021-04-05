@@ -13,9 +13,9 @@ from flask_jwt_extended import (
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
-from gatovid.util import msg_ok, msg_err
 from gatovid.exts import db
 from gatovid.models import InvalidModelException, TokenBlacklist, User
+from gatovid.util import msg_err, msg_ok
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 

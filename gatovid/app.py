@@ -7,10 +7,10 @@ import locale
 from flask import Flask
 
 from gatovid import api
-from gatovid.util import msg_err
 from gatovid.config import BaseConfig
 from gatovid.exts import cors, db, jwt, sess, socket
 from gatovid.models import TokenBlacklist
+from gatovid.util import msg_err
 
 
 def register_extensions(app: Flask) -> None:

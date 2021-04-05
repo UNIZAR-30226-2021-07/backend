@@ -18,9 +18,9 @@ import re
 from enum import Enum
 from typing import Dict, Optional
 
-from gatovid.exts import bcrypt, db
-
 from sqlalchemy.orm import validates
+
+from gatovid.exts import bcrypt, db
 
 CUR_DIR = os.path.dirname(os.path.realpath(__file__))
 PROFILE_PICS_PATH = os.path.join(CUR_DIR, "assets", "profile_pics.json")
@@ -88,7 +88,7 @@ class User(db.Model):
 
     @password.setter
     def password(self, password: str) -> None:
-        self.validate_password('password', password)
+        self.validate_password("password", password)
 
         self._password = bcrypt.generate_password_hash(password).decode("utf-8")
 
@@ -98,8 +98,8 @@ class User(db.Model):
 
         return bcrypt.check_password_hash(self.password, plaintext)
 
-# '''
-    @validates('email')
+    # '''
+    @validates("email")
     def validate_email(self, key: str, email: Optional[str]) -> None:
         """
         Se comprueba que el email introducido es correcto
@@ -113,7 +113,7 @@ class User(db.Model):
 
         return email
 
-    @validates('name')
+    @validates("name")
     def validate_name(self, key: str, name: Optional[str]) -> bool:
         """
         Se comprueba que el nombre cumple con los requisitos
@@ -127,7 +127,7 @@ class User(db.Model):
 
         return name
 
-    @validates('password')
+    @validates("password")
     def validate_password(self, key: str, password: Optional[str]) -> None:
         if password is None:
             raise InvalidModelException("Contaseña vacía")
@@ -140,7 +140,7 @@ class User(db.Model):
 
         return password
 
-    @validates('picture')
+    @validates("picture")
     def validate_picture(self, key: str, picture: Optional[int]) -> None:
         if picture is None:
             raise InvalidModelException("Foto de perfil vacía")
@@ -153,7 +153,7 @@ class User(db.Model):
 
         return picture
 
-    @validates('board')
+    @validates("board")
     def validate_board(self, key: str, board: Optional[int]) -> None:
         if board is None:
             raise InvalidModelException("Tablero vacío")
@@ -165,6 +165,8 @@ class User(db.Model):
             raise InvalidModelException("Tablero no comprado")
 
         return board
+
+
 # '''
 
 

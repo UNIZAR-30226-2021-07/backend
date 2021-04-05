@@ -331,9 +331,7 @@ class UserTest(GatovidTestClient):
         token = token_data.json["access_token"]
 
         # Y eliminación del usuario
-        remove_data = self.request_remove(
-            token, self.existing_user
-        )
+        remove_data = self.request_remove(token, self.existing_user)
         self.assertRequestOk(remove_data)
 
         # Ahora no existen

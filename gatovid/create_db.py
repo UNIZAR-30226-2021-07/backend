@@ -42,7 +42,7 @@ def db_test_data():
                 email="test_user2@gmail.com",
                 name="test_user2",
                 password="whatever2",
-                coins=10
+                coins=10,
             ),
             User(email="test_user3@gmail.com", name="test_user3", password="whatever3"),
         ]

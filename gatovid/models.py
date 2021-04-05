@@ -103,9 +103,6 @@ class User(db.Model):
         if email is None:
             raise InvalidModelException("Email vacío")
 
-        if not isinstance(email, str):
-            raise InvalidModelException("Email debería ser una cadena")
-
         if not User.EMAIL_REGEX.fullmatch(email):
             raise InvalidModelException("Email incorrecto")
 
@@ -116,9 +113,6 @@ class User(db.Model):
         if name is None:
             raise InvalidModelException("Nombre vacío")
 
-        if not isinstance(name, str):
-            raise InvalidModelException("Nombre debería ser una cadena")
-
         if not User.NAME_REGEX.fullmatch(name):
             raise InvalidModelException("Nombre no cumple con los requisitos")
 
@@ -128,9 +122,6 @@ class User(db.Model):
     def validate_password(self, key: str, password: Optional[str]) -> None:
         if password is None:
             raise InvalidModelException("Contaseña vacía")
-
-        if not isinstance(password, str):
-            raise InvalidModelException("Contraseña debería ser una cadena")
 
         if len(password) < User.MIN_PASSWORD_LENGTH:
             raise InvalidModelException("Contraseña demasiado corta")
@@ -146,7 +137,10 @@ class User(db.Model):
             raise InvalidModelException("Foto de perfil vacía")
 
         if not isinstance(picture, int):
-            raise InvalidModelException("Foto de perfil debería ser un entero")
+            try:
+                picture = int(picture)
+            except ValueError:
+                raise InvalidModelException("Foto de perfil debería ser un entero")
 
         purchase = Purchase.query.filter_by(
             item_id=picture, user_id=self.email, type=PurchasableType.PROFILE_PIC
@@ -161,9 +155,11 @@ class User(db.Model):
         if board is None:
             raise InvalidModelException("Tablero vacío")
 
-        print(board, type(board))
         if not isinstance(board, int):
-            raise InvalidModelException("Tablero debería ser un entero")
+            try:
+                board = int(board)
+            except ValueError:
+                raise InvalidModelException("Tablero debería ser un entero")
 
         purchase = Purchase.query.filter_by(
             item_id=board, user_id=self.email, type=PurchasableType.BOARD

@@ -397,30 +397,28 @@ class UserTest(GatovidTestClient):
     def test_type_validation(self):
         """
         Comprueba que se devuelve un error esperado (y no un 500) al enviar
-        datos con tipo inválido. Se comprueba tanto para un tipo incorrecto
-        como para un valor nulo.
+        datos con tipo inválido.
+
+        Este test solo se puede realizar para aquellos parámetros que no sean
+        cadenas. Esto se debe a que para realizar la petición al servidor se
+        convertirá a una cadena de todos modos.
         """
-
-        # El email únicamente se puede comprobar en el registro
-        for value in (1234, None):
-            user = self.new_user.copy()
-            user["email"] = value
-
-            signup_resp = self.request_signup(user)
-            self.assertRequestErr(signup_resp, 400)
 
         token_resp = self.request_token(self.existing_user)
         token = token_resp.json["access_token"]
 
-        # Los demás se comprueban con el endpoint de modificar el perfil
-        for field in ("board", "coins", "name", "password"):
-            # Ninguno de ellos es un booleano
-            for value in (True, None):
-                user = self.new_user.copy()
+        for field in ("board", "picture"):
+            for value in ("some string", True, [1, 2, 3]):
+                user = self.existing_user.copy()
                 user[field] = value
+
+                initial = self.request_data(token).json
 
                 modify_resp = self.request_modify(token, user)
                 self.assertRequestErr(modify_resp, 400)
+
+                final = self.request_data(token).json
+                self.assertEqual(initial, final)
 
     def test_modify_empty(self):
         """

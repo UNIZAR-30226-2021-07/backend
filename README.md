@@ -36,7 +36,7 @@ $ python -m venv .venv
 $ # Entrar al virtualenv
 $ source .venv/bin/activate
 $ # Instalar programas en el virtualenv, sólo la primera vez
-$ pip install -e .[format]
+$ pip install -e '.[format]'
 $ # El script de formatting y etc
 $ ./format.sh
 $ # Salir del virtualenv
@@ -75,7 +75,7 @@ necesario un formato demasiado complejo.
 Para construir la documentación se pueden seguir los siguientes pasos:
 
 ```
-$ pip install -e .[docs]
+$ pip install -e '.[docs]'
 $ cd docs
 $ make html
 ```

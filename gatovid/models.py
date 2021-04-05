@@ -98,7 +98,6 @@ class User(db.Model):
 
         return bcrypt.check_password_hash(self.password, plaintext)
 
-    # '''
     @validates("email")
     def validate_email(self, key: str, email: Optional[str]) -> None:
         """
@@ -165,9 +164,6 @@ class User(db.Model):
             raise InvalidModelException("Tablero no comprado")
 
         return board
-
-
-# '''
 
 
 class TokenBlacklist(db.Model):

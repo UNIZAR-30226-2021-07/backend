@@ -16,7 +16,7 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Dict
+from typing import Dict, Optional
 
 from gatovid.exts import bcrypt, db
 
@@ -28,6 +28,13 @@ BOARDS_PATH = os.path.join(CUR_DIR, "assets", "boards.json")
 PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())
 BOARDS = json.loads(open(BOARDS_PATH, "r").read())
+
+
+class InvalidModelException(Exception):
+    """
+    Esta excepción se usa para indicar la creación de modelos inválidos, como
+    por ejemplo un usuario con contraseña vacía.
+    """
 
 
 class User(db.Model):
@@ -48,17 +55,17 @@ class User(db.Model):
 
     # Se usa su correo electrónico como clave primaria, de forma que se pueda
     # cambiar el email.
-    email = db.Column(db.String, primary_key=True)
-    name = db.Column(db.String, nullable=False, unique=True)
+    _email = db.Column(db.String, primary_key=True)
+    _name = db.Column(db.String, nullable=False, unique=True)
 
     # La contraseña es un campo privado porque su acceso es más complejo. Su
     # modificación requiere encriptarla previamente.
     _password = db.Column(db.String, nullable=False)
 
-    coins = db.Column(db.Integer, default=0)
+    _coins = db.Column(db.Integer, default=0)
 
-    picture = db.Column(db.Integer, default=0)
-    board = db.Column(db.Integer, default=0)
+    _picture = db.Column(db.Integer, default=0)
+    _board = db.Column(db.Integer, default=0)
 
     # Relación "One to One" (1:1)
     stats = db.relationship(
@@ -74,15 +81,90 @@ class User(db.Model):
         return self.__str__()
 
     @property
+    def name(self) -> str:
+        return self._name
+
+    @name.setter
+    def name(self, name: Optional[str]) -> None:
+        """
+        Se comprueba que el nombre cumple con los requisitos
+        """
+
+        if name is None:
+            raise InvalidModelException("Nombre vacío")
+
+        if not User.NAME_REGEX.fullmatch(name):
+            raise InvalidModelException("Nombre no cumple con los requisitos")
+
+    @property
+    def email(self) -> str:
+        return self._email
+
+    @email.setter
+    def email(self, email: Optional[str]) -> None:
+        """
+        Se comprueba que el email introducido es correcto
+        """
+
+        if email is None:
+            raise InvalidModelException("Email vacío")
+
+        if not User.EMAIL_REGEX.fullmatch(email):
+            raise InvalidModelException("Email incorrecto")
+
+    @property
     def password(self) -> str:
         return self._password
 
     @password.setter
-    def password(self, password: str) -> None:
+    def password(self, password: Optional[str]) -> None:
+        if password is None:
+            raise InvalidModelException("Contaseña vacía")
+
+        if len(password) < User.MIN_PASSWORD_LENGTH:
+            raise InvalidModelException("Contraseña demasiado corta")
+
+        if len(password) > User.MAX_PASSWORD_LENGTH:
+            raise InvalidModelException("Contraseña demasiado larga")
+
         self._password = bcrypt.generate_password_hash(password).decode("utf-8")
 
-    def check_password(self, plaintext: str) -> bool:
+    def check_password(self, plaintext: Optional[str]) -> bool:
+        if plaintext is None:
+            return False
+
         return bcrypt.check_password_hash(self.password, plaintext)
+
+    @property
+    def coins(self) -> int:
+        return self._coins
+
+    def coins_incr(self, amount: int) -> None:
+        """
+        Las monedas no se deberían establecer directamente, por lo que se tiene
+        un método de incremento y otro de decremento únicamente.
+        """
+
+        self._coins += amount
+
+    def coins_decr(self, amount: int) -> None:
+        self.coins -= amount
+
+    @property
+    def picture(self) -> int:
+        return self._picture
+
+    @picture.setter
+    def picture(self, picture: Optional[int]) -> None:
+        return
+
+    @property
+    def board(self) -> int:
+        return self._board
+
+    @board.setter
+    def board(self, board: Optional[int]) -> None:
+        return
 
 
 class TokenBlacklist(db.Model):

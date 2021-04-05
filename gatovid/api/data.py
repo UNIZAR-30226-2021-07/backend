@@ -58,31 +58,10 @@ def test():
 def signup():
     data = request.args if request.method == "GET" else request.form
 
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
-
-    if None in (name, email, password):
-        return {"error": "Parámetro vacío"}
-
-    # Comprobamos que el email introducido es correcto
-    if not User.EMAIL_REGEX.fullmatch(email):
-        return {"error": "Email incorrecto"}
-
-    # Comprobamos que el nombre cumple con los requisitos
-    if not User.NAME_REGEX.fullmatch(name):
-        return {"error": "El nombre no cumple con los requisitos"}
-
-    if len(password) < User.MIN_PASSWORD_LENGTH:
-        return {"error": "Contraseña demasiado corta"}
-
-    if len(password) > User.MAX_PASSWORD_LENGTH:
-        return {"error": "Contraseña demasiado larga"}
-
     user = User(
-        email=email,
-        name=name,
-        password=password,
+        email=data.get("email"),
+        name=data.get("name"),
+        password=data.get("password"),
     )
 
     try:
@@ -123,15 +102,43 @@ def remove_account():
     return {"message": "Usuario eliminado con éxito"}
 
 
+@mod.route("/modify_user", methods=["GET", "POST"])
+@jwt_required()
+def modify_user():
+    """
+    Al endpoint de modificación del usuario se le pasan aquellos campos a
+    cambiar, todos siendo opcionales. Se considera por tanto que una petición
+    vacía es errónea.
+
+    No hace falta pasar el email porque al estar protegido se puede obtener a
+    partir del token. De esta forma se asegura que no se modifican los perfiles
+    de otros usuarios.
+    """
+    data = request.args if request.method == "GET" else request.form
+
+    email = get_jwt_identity()
+    user = data.get("name")
+    password = data.get("password")
+    board = data.get("board")
+    picture = data.get("picture")
+
+    if not all([user, password, board, picture]):
+        return {"error": "Campos vacíos"}
+
+    user = User.query.get(email)
+
+    db.session.delete(user)
+    db.session.commit()
+
+    return {"message": "Usuario modificado con éxito"}
+
+
 @mod.route("/login", methods=["GET", "POST"])
 def login():
     data = request.args if request.method == "GET" else request.form
 
     email = data.get("email")
     password = data.get("password")
-
-    if None in (email, password):
-        return {"error": "Parámetro vacío"}
 
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
@@ -182,9 +189,6 @@ def user_stats():
     data = request.args if request.method == "GET" else request.form
 
     name = data.get("name")
-    if name is None:
-        return {"error": "Parámetro vacío"}
-
     user = User.query.filter_by(name=name).first()
     if user is None:
         return {"error": "El usuario no existe"}

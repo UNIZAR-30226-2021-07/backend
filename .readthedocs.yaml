@@ -4,12 +4,10 @@
 # Más sobre el formato:
 # https://docs.readthedocs.io/en/stable/config-file/v2.html
 
-# Required
 version: 2
 
-# Build documentation in the docs/ directory with Sphinx
 sphinx:
-   configuration: docs/conf.py
+   configuration: docs/src/conf.py
 
 python:
   version: 3.8

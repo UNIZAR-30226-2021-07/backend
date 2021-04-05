@@ -123,6 +123,7 @@ def modify_user():
     email = get_jwt_identity()
     user = User.query.get(email)
 
+    modified = False
     for field in ("name", "password", "board", "picture"):
         new_val = data.get(field)
         if new_val is None:
@@ -132,6 +133,11 @@ def modify_user():
             setattr(user, field, new_val)
         except InvalidModelException as e:
             return msg_err(e)
+
+        modified = True
+
+    if not modified:
+        return msg_err("Ningún campo válido a modificar")
 
     db.session.commit()
 

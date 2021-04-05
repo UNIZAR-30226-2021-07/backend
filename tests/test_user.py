@@ -23,28 +23,49 @@ class UserTest(GatovidTestClient):
         "password": "12345678",
     }
 
+    existing_user_full = {
+        "board": 0,
+        "coins": 133,
+        "email": "test_user1@gmail.com",
+        "name": "test_user1",
+        "picture": 0,
+        "purchases": [
+            {
+                "item_id": 1,
+                "type": "board",
+            },
+            {
+                "item_id": 2,
+                "type": "profile_pic",
+            },
+        ],
+    }
+
+    all_stats = {
+        "test_user1": {
+            "games": 0,
+            "wins": 0,
+            "losses": 0,
+            "playtime_mins": 1571,
+        },
+        "test_user2": {
+            "games": 13,
+            "losses": 3,
+            "wins": 10,
+            "playtime_mins": 10,
+        },
+        "test_user3": {
+            "games": 124,
+            "losses": 121,
+            "wins": 3,
+            "playtime_mins": 0,
+        },
+    }
+
     def test_data(self):
         """
         Test para el endpoint de los datos del usuario.
         """
-
-        expected = {
-            "board": 0,
-            "coins": 133,
-            "email": "test_user1@gmail.com",
-            "name": "test_user1",
-            "picture": 0,
-            "purchases": [
-                {
-                    "item_id": 1,
-                    "type": "board",
-                },
-                {
-                    "item_id": 2,
-                    "type": "profile_pic",
-                },
-            ],
-        }
 
         token_resp = self.request_token(self.existing_user)
         self.assertRequestOk(token_resp)
@@ -53,35 +74,14 @@ class UserTest(GatovidTestClient):
 
         got = self.request_data(token)
         self.assertRequestOk(got)
-        self.assertEqual(got.json, expected)
+        self.assertEqual(got.json, self.existing_user_full)
 
     def test_stats(self):
         """
         Test para el endpoint de las estadísticas.
         """
 
-        test_stats = {
-            "test_user1": {
-                "games": 0,
-                "wins": 0,
-                "losses": 0,
-                "playtime_mins": 1571,
-            },
-            "test_user2": {
-                "games": 13,
-                "losses": 3,
-                "wins": 10,
-                "playtime_mins": 10,
-            },
-            "test_user3": {
-                "games": 124,
-                "losses": 121,
-                "wins": 3,
-                "playtime_mins": 0,
-            },
-        }
-
-        for name, expected in test_stats.items():
+        for name, expected in self.all_stats.items():
             got = self.request_stats(name)
             self.assertRequestOk(got)
             self.assertEqual(got.json, expected)
@@ -96,11 +96,11 @@ class UserTest(GatovidTestClient):
 
             user[field] = ""
             resp = self.request_signup(user)
-            self.assertRequestErr(resp)
+            self.assertRequestErr(resp, 400)
 
             del user[field]
             resp = self.request_signup(user)
-            self.assertRequestErr(resp)
+            self.assertRequestErr(resp, 400)
 
     def test_signup_existing_user(self):
         """
@@ -113,7 +113,7 @@ class UserTest(GatovidTestClient):
             "password": self.new_user["password"],
         }
         resp = self.request_signup(user)
-        self.assertRequestErr(resp)
+        self.assertRequestErr(resp, 400)
 
     def test_signup_existing_email(self):
         """
@@ -126,7 +126,7 @@ class UserTest(GatovidTestClient):
             "password": self.new_user["password"],
         }
         resp = self.request_signup(user)
-        self.assertRequestErr(resp)
+        self.assertRequestErr(resp, 400)
 
     def test_signup(self):
         """
@@ -138,7 +138,7 @@ class UserTest(GatovidTestClient):
 
         # Un segundo intento fallará
         resp = self.request_signup(self.new_user)
-        self.assertRequestErr(resp)
+        self.assertRequestErr(resp, 400)
 
     def test_signup_length(self):
         """
@@ -177,7 +177,7 @@ class UserTest(GatovidTestClient):
                 if should_work:
                     self.assertRequestOk(resp)
                 else:
-                    self.assertRequestErr(resp)
+                    self.assertRequestErr(resp, 400)
 
                 unique_id += 1
 
@@ -225,7 +225,7 @@ class UserTest(GatovidTestClient):
                 if should_work:
                     self.assertRequestOk(resp)
                 else:
-                    self.assertRequestErr(resp)
+                    self.assertRequestErr(resp, 400)
 
                 unique_id += 1
 
@@ -282,7 +282,7 @@ class UserTest(GatovidTestClient):
 
         # Un inicio de sesión ahora fallará porque ya existe el usuario
         signup_resp = self.request_signup(self.new_user)
-        self.assertRequestErr(signup_resp)
+        self.assertRequestErr(signup_resp, 400)
 
         token = token_resp.json["access_token"]
         remove_resp = self.request_remove(token, self.new_user)
@@ -308,7 +308,7 @@ class UserTest(GatovidTestClient):
 
         # Segundo intento
         remove_resp = self.request_remove(token, self.new_user)
-        self.assertRequestErr(remove_resp)
+        self.assertRequestErr(remove_resp, 401)
 
     def test_remove_cascade(self):
         """
@@ -339,42 +339,125 @@ class UserTest(GatovidTestClient):
         purchases = Purchase.query.filter_by(user_id=user_id).first()
         self.assertIsNone(purchases)
 
-    def test_modify_user(self):
+    def test_modify(self):
         """
-        Comprueba que se sigue aplicando la validación de campos al modificar
-        el usuario, y algunos casos especiales.
-        """
-
-    def test_modify_user_empty(self):
-        """
-        Prueba casos en los que no se debería cambiar el usuario.
+        Un test básico del correcto correcto del endpoint de modificación de
+        usuario.
         """
 
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        payload = {
+            "name": self.new_user["name"],
+            "password": self.new_user["password"],
+            "board": self.existing_user_full["purchases"][0]["item_id"],
+            "picture": self.existing_user_full["purchases"][1]["item_id"],
+        }
+        modify_resp = self.request_modify(token, payload)
+        self.assertRequestOk(modify_resp)
+
+        # La nueva contraseña solo se puede comprobar iniciando sesión de nuevo
+        # con ella.
+        login_info = {
+            "email": self.existing_user["email"],
+            "name": payload["name"],
+            "password": payload["password"],
+        }
+        token_resp = self.request_token(login_info)
+        token = token_resp.json["access_token"]
+        self.assertRequestOk(token_resp)
+
+        # El resto de campos se pueden comprobar con la petición de datos del
+        # usuario.
+        modified = self.request_data(token).json
+        for field in ("name", "board", "picture"):
+            self.assertEqual(modified[field], payload[field])
+
+    def test_modify_invalid(self):
+        """
+        Comprueba que la validación también está activa para la modifiación del
+        perfil.
+        """
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        initial = self.request_data(token).json
+
+        payload = {
+            "name": "This is an invalid name",
+        }
+        modify_resp = self.request_modify(token, payload)
+        self.assertRequestErr(modify_resp, 400)
+
+        final = self.request_data(token).json
+        self.assertEqual(initial, final)
+
+    def test_type_validation(self):
+        """
+        Comprueba que se devuelve un error esperado (y no un 500) al enviar
+        datos con tipo inválido. Se comprueba tanto para un tipo incorrecto
+        como para un valor nulo.
+        """
+
+        # El email únicamente se puede comprobar en el registro
+        for value in (1234, None):
+            user = self.new_user.copy()
+            user["email"] = value
+
+            signup_resp = self.request_signup(user)
+            self.assertRequestErr(signup_resp, 400)
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        # Los demás se comprueban con el endpoint de modificar el perfil
+        for field in ("board", "coins", "name", "password"):
+            # Ninguno de ellos es un booleano
+            for value in (True, None):
+                user = self.new_user.copy()
+                user[field] = value
+
+                modify_resp = self.request_modify(token, user)
+                self.assertRequestErr(modify_resp, 400)
+
+    def test_modify_empty(self):
+        """
+        Prueba casos en los que no se debería cambiar el usuario. Algunos de los
+        casos devolverán un error por tratarse de un claro fallo en el cliente.
+        """
+
+        # Payload con un booleano que indica si debería tener éxito.
         tests = [
             # Vacío
-            {},
+            ({}, False),
             # El email no se puede cambiar
-            {"email": "test@gmail.com"},
+            ({"email": "test@gmail.com"}, False),
             # Campos inexistentes
-            {"some_field_that_doesnt_exist": 1234},
+            ({"some_field_that_doesnt_exist": 1234}, False),
             # Los mismos valores
-            {
-                "name": self.existing_user["name"],
-                "password": self.existing_user["password"],
-            },
+            (
+                {
+                    "name": self.existing_user["name"],
+                    "password": self.existing_user["password"],
+                },
+                True,
+            ),
         ]
 
         token_resp = self.request_token(self.existing_user)
         token = token_resp.json["access_token"]
 
-        for payload in tests:
+        for payload, should_succeed in tests:
             initial_user_resp = self.request_data(token)
             self.assertRequestOk(initial_user_resp)
 
             modify_resp = self.request_modify(token, payload)
-            self.assertRequestOk(modify_resp)
+            if should_succeed:
+                self.assertRequestOk(modify_resp)
+            else:
+                self.assertRequestErr(modify_resp, 400)
 
             modified_user_resp = self.request_data(token)
-            self.assertRequestOk(modified_user_resp)
-
             self.assertEqual(initial_user_resp.json, modified_user_resp.json)

@@ -40,8 +40,8 @@ class SessionsTest(GatovidTestClient):
         Test a un endpoint protegido con un token inválido.
         """
 
-        req = self.token_use("a9sd8f7as9d8f")
-        self.assertRequestErr(req)
+        resp = self.token_use("a9sd8f7as9d8f")
+        self.assertRequestErr(resp, 401)
 
     def test_revoked(self):
         """
@@ -55,4 +55,4 @@ class SessionsTest(GatovidTestClient):
         self.revoke_token(resp.json["access_token"])
 
         resp = self.token_use(resp.json["access_token"])
-        self.assertRequestErr(resp)
+        self.assertRequestErr(resp, 401)

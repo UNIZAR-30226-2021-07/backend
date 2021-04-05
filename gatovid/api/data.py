@@ -13,8 +13,9 @@ from flask_jwt_extended import (
 from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
+from gatovid.api import msg_ok, msg_err
 from gatovid.exts import db
-from gatovid.models import TokenBlacklist, User
+from gatovid.models import TokenBlacklist, User, InvalidModelException
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
@@ -58,11 +59,14 @@ def test():
 def signup():
     data = request.args if request.method == "GET" else request.form
 
-    user = User(
-        email=data.get("email"),
-        name=data.get("name"),
-        password=data.get("password"),
-    )
+    try:
+        user = User(
+            email=data.get("email"),
+            name=data.get("name"),
+            password=data.get("password"),
+        )
+    except InvalidModelException as e:
+        return msg_err(e)
 
     try:
         db.session.add(user)
@@ -70,7 +74,7 @@ def signup():
     except IntegrityError as e:
         if isinstance(e.orig, UniqueViolation):
             db.session.rollback()
-            return {"error": "Email o nombre ya en uso"}
+            return msg_err("Email o nombre ya en uso")
         else:
             raise
 
@@ -94,12 +98,12 @@ def remove_account():
     user = User.query.get(email)
 
     if not revoke_token():
-        return {"error": "No se pudo cerrar sesión"}
+        return msg_err("No se pudo cerrar sesión")
 
     db.session.delete(user)
     db.session.commit()
 
-    return {"message": "Usuario eliminado con éxito"}
+    return msg_ok("Usuario eliminado con éxito")
 
 
 @mod.route("/modify_user", methods=["GET", "POST"])
@@ -123,14 +127,14 @@ def modify_user():
     picture = data.get("picture")
 
     if not all([user, password, board, picture]):
-        return {"error": "Campos vacíos"}
+        return msg_err("Campos vacíos")
 
     user = User.query.get(email)
 
     db.session.delete(user)
     db.session.commit()
 
-    return {"message": "Usuario modificado con éxito"}
+    return msg_ok("Usuario modificado con éxito")
 
 
 @mod.route("/login", methods=["GET", "POST"])
@@ -143,11 +147,11 @@ def login():
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
     if user is None:
-        return {"error": "El usuario no existe"}
+        return msg_err("El usuario no existe")
 
     # Comprobamos si los hashes coinciden
     if not user.check_password(password):
-        return {"error": "Contraseña incorrecta"}
+        return msg_err("Contraseña incorrecta")
 
     access_token = create_access_token(identity=email)
     return {"access_token": access_token}
@@ -157,9 +161,9 @@ def login():
 @jwt_required()
 def logout():
     if revoke_token():
-        return {"message": "Sesión cerrada con éxito"}
+        return msg_ok("Sesión cerrada con éxito")
     else:
-        return {"error": "No se pudo cerrar sesión"}
+        return msg_err("No se pudo cerrar sesión")
 
 
 @mod.route("/protected_test", methods=["GET", "POST"])
@@ -191,7 +195,7 @@ def user_stats():
     name = data.get("name")
     user = User.query.filter_by(name=name).first()
     if user is None:
-        return {"error": "El usuario no existe"}
+        return msg_err("El usuario no existe")
 
     stats = user.stats
 

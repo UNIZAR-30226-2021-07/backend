@@ -23,67 +23,68 @@ class UserTest(GatovidTestClient):
         "password": "12345678",
     }
 
+    existing_user_full = {
+        "board": 0,
+        "coins": 133,
+        "email": "test_user1@gmail.com",
+        "name": "test_user1",
+        "picture": 0,
+        "purchases": [
+            {
+                "item_id": 1,
+                "type": "board",
+            },
+            {
+                "item_id": 2,
+                "type": "profile_pic",
+            },
+        ],
+    }
+
+    all_stats = {
+        "test_user1": {
+            "games": 0,
+            "wins": 0,
+            "losses": 0,
+            "playtime_mins": 1571,
+        },
+        "test_user2": {
+            "games": 13,
+            "losses": 3,
+            "wins": 10,
+            "playtime_mins": 10,
+        },
+        "test_user3": {
+            "games": 124,
+            "losses": 121,
+            "wins": 3,
+            "playtime_mins": 0,
+        },
+    }
+
     def test_data(self):
         """
         Test para el endpoint de los datos del usuario.
         """
 
-        expected = {
-            "board": 0,
-            "coins": 133,
-            "email": "test_user1@gmail.com",
-            "name": "test_user1",
-            "picture": 0,
-            "purchases": [
-                {
-                    "item_id": 1,
-                    "type": "board",
-                },
-                {
-                    "item_id": 2,
-                    "type": "profile_pic",
-                },
-            ],
-        }
+        token_resp = self.request_token(self.existing_user)
+        self.assertRequestOk(token_resp)
 
-        token_data = self.request_token(self.existing_user)
-        self.assertNotIn("error", token_data)
-
-        token = token_data["access_token"]
+        token = token_resp.json["access_token"]
 
         got = self.request_data(token)
-
-        self.assertEqual(got, expected)
+        self.assertRequestOk(got)
+        self.assertEqual(got.json, self.existing_user_full)
 
     def test_stats(self):
         """
         Test para el endpoint de las estadísticas.
         """
 
-        test_stats = {
-            "test_user1": {
-                "games": 0,
-                "wins": 0,
-                "losses": 0,
-                "playtime_mins": 1571,
-            },
-            "test_user2": {
-                "games": 13,
-                "losses": 3,
-                "wins": 10,
-                "playtime_mins": 10,
-            },
-            "test_user3": {
-                "games": 124,
-                "losses": 121,
-                "wins": 3,
-                "playtime_mins": 0,
-            },
-        }
-
-        for name, expected in test_stats.items():
+        for name, expected in self.all_stats.items():
             got = self.request_stats(name)
-            self.assertEqual(got, expected)
+            self.assertRequestOk(got)
+            self.assertEqual(got.json, expected)
 
     def test_signup_empty(self):
         """
@@ -94,12 +95,12 @@ class UserTest(GatovidTestClient):
             user = self.new_user.copy()
 
             user[field] = ""
-            data = self.request_signup(user)
-            self.assertIn("error", data)
+            resp = self.request_signup(user)
+            self.assertRequestErr(resp, 400)
 
             del user[field]
-            data = self.request_signup(user)
-            self.assertIn("error", data)
+            resp = self.request_signup(user)
+            self.assertRequestErr(resp, 400)
 
     def test_signup_existing_user(self):
         """
@@ -111,8 +112,8 @@ class UserTest(GatovidTestClient):
             "email": self.existing_user["email"],
             "password": self.new_user["password"],
         }
-        data = self.request_signup(user)
-        self.assertIn("error", data)
+        resp = self.request_signup(user)
+        self.assertRequestErr(resp, 400)
 
     def test_signup_existing_email(self):
         """
@@ -124,20 +125,20 @@ class UserTest(GatovidTestClient):
             "email": self.new_user["email"],
             "password": self.new_user["password"],
         }
-        data = self.request_signup(user)
-        self.assertIn("error", data)
+        resp = self.request_signup(user)
+        self.assertRequestErr(resp, 400)
 
     def test_signup(self):
         """
         Test básico para la creación de un usuario nuevo.
         """
 
-        data = self.request_signup(self.new_user)
-        self.assertNotIn("error", data)
+        resp = self.request_signup(self.new_user)
+        self.assertRequestOk(resp)
 
         # Un segundo intento fallará
-        data = self.request_signup(self.new_user)
-        self.assertIn("error", data)
+        resp = self.request_signup(self.new_user)
+        self.assertRequestErr(resp, 400)
 
     def test_signup_length(self):
         """
@@ -172,11 +173,11 @@ class UserTest(GatovidTestClient):
                 }
                 test_user[field] = test_value
 
-                data = self.request_signup(test_user)
+                resp = self.request_signup(test_user)
                 if should_work:
-                    self.assertNotIn("error", data)
+                    self.assertRequestOk(resp)
                 else:
-                    self.assertIn("error", data)
+                    self.assertRequestErr(resp, 400)
 
                 unique_id += 1
 
@@ -220,11 +221,11 @@ class UserTest(GatovidTestClient):
                 }
                 test_user[field] = value
 
-                data = self.request_signup(test_user)
+                resp = self.request_signup(test_user)
                 if should_work:
-                    self.assertNotIn("error", data)
+                    self.assertRequestOk(resp)
                 else:
-                    self.assertIn("error", data)
+                    self.assertRequestErr(resp, 400)
 
                 unique_id += 1
 
@@ -273,22 +274,23 @@ class UserTest(GatovidTestClient):
         Test básico para comprobar que se elimina un usuario.
         """
 
-        signup_data = self.request_signup(self.new_user)
-        self.assertNotIn("error", signup_data)
+        signup_resp = self.request_signup(self.new_user)
+        self.assertRequestOk(signup_resp)
 
-        token_data = self.request_token(self.new_user)
-        self.assertNotIn("error", token_data)
+        token_resp = self.request_token(self.new_user)
+        self.assertRequestOk(token_resp)
 
         # Un inicio de sesión ahora fallará porque ya existe el usuario
-        signup_data = self.request_signup(self.new_user)
-        self.assertIn("error", signup_data)
+        signup_resp = self.request_signup(self.new_user)
+        self.assertRequestErr(signup_resp, 400)
 
-        remove_data = self.request_remove(token_data["access_token"], self.new_user)
-        self.assertNotIn("error", remove_data)
+        token = token_resp.json["access_token"]
+        remove_resp = self.request_remove(token, self.new_user)
+        self.assertRequestOk(remove_resp)
 
         # Un registro ahora funcionará tras eliminar el usuario
-        signup_data = self.request_signup(self.new_user)
-        self.assertNotIn("error", signup_data)
+        signup_resp = self.request_signup(self.new_user)
+        self.assertRequestOk(signup_resp)
 
     def test_repeated_remove(self):
         """
@@ -296,16 +298,17 @@ class UserTest(GatovidTestClient):
         usuario, y si causa problemas en ese caso.
         """
 
-        token_data = self.request_token(self.existing_user)
-        self.assertNotIn("error", token_data)
+        token_resp = self.request_token(self.existing_user)
+        self.assertRequestOk(token_resp)
+        token = token_resp.json["access_token"]
 
         # Primer intento
-        remove_data = self.request_remove(token_data["access_token"], self.new_user)
-        self.assertNotIn("error", remove_data)
+        remove_resp = self.request_remove(token, self.new_user)
+        self.assertRequestOk(remove_resp)
 
         # Segundo intento
-        remove_data = self.request_remove(token_data["access_token"], self.new_user)
-        self.assertIn("error", remove_data)
+        remove_resp = self.request_remove(token, self.new_user)
+        self.assertRequestErr(remove_resp, 401)
 
     def test_remove_cascade(self):
         """
@@ -322,17 +325,157 @@ class UserTest(GatovidTestClient):
         self.assertIsNotNone(purchases)
 
         # Inicio de sessión
-        token_data = self.request_token(self.existing_user)
-        self.assertNotIn("error", token_data)
+        token_resp = self.request_token(self.existing_user)
+        self.assertRequestOk(token_resp)
+        token = token_resp.json["access_token"]
 
         # Y eliminación del usuario
-        remove_data = self.request_remove(
-            token_data["access_token"], self.existing_user
-        )
-        self.assertNotIn("error", remove_data)
+        remove_resp = self.request_remove(token, self.existing_user)
+        self.assertRequestOk(remove_resp)
 
         # Ahora no existen
         stats = Stats.query.filter_by(user_id=user_id).first()
         self.assertIsNone(stats)
         purchases = Purchase.query.filter_by(user_id=user_id).first()
         self.assertIsNone(purchases)
+
+    def test_type_validation(self):
+        """
+        Comprueba que se devuelve un error esperado (y no un 500) al enviar
+        datos con tipo inválido.
+
+        Este test solo se puede realizar para aquellos parámetros que no sean
+        cadenas. Esto se debe a que para realizar la petición al servidor se
+        convertirá a una cadena de todos modos.
+        """
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        for field in ("board", "picture"):
+            for value in ("some string", True, [1, 2, 3]):
+                user = self.existing_user.copy()
+                user[field] = value
+
+                initial = self.request_data(token).json
+
+                modify_resp = self.request_modify(token, user)
+                self.assertRequestErr(modify_resp, 400)
+
+                final = self.request_data(token).json
+                self.assertEqual(initial, final)
+
+    def test_modify(self):
+        """
+        Un test básico del correcto correcto del endpoint de modificación de
+        usuario.
+        """
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        payload = {
+            "name": self.new_user["name"],
+            "password": self.new_user["password"],
+            "board": self.existing_user_full["purchases"][0]["item_id"],
+            "picture": self.existing_user_full["purchases"][1]["item_id"],
+        }
+        modify_resp = self.request_modify(token, payload)
+        self.assertRequestOk(modify_resp)
+
+        # La nueva contraseña solo se puede comprobar iniciando sesión de nuevo
+        # con ella.
+        login_info = {
+            "email": self.existing_user["email"],
+            "name": payload["name"],
+            "password": payload["password"],
+        }
+        token_resp = self.request_token(login_info)
+        token = token_resp.json["access_token"]
+        self.assertRequestOk(token_resp)
+
+        # El resto de campos se pueden comprobar con la petición de datos del
+        # usuario.
+        modified = self.request_data(token).json
+        for field in ("name", "board", "picture"):
+            self.assertEqual(modified[field], payload[field])
+
+    def test_modify_invalid(self):
+        """
+        Comprueba que la validación también está activa para la modifiación del
+        perfil.
+        """
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        initial = self.request_data(token).json
+
+        payload = {
+            "name": "This is an invalid name",
+        }
+        modify_resp = self.request_modify(token, payload)
+        self.assertRequestErr(modify_resp, 400)
+
+        final = self.request_data(token).json
+        self.assertEqual(initial, final)
+
+    def test_modify_not_purchased(self):
+        """
+        Comprueba que no se puedan asignar ítems a un usuario que no ha comprado
+        todavía.
+        """
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        initial = self.request_data(token).json
+
+        modify_resp = self.request_modify(token, {"picture": 10})
+        self.assertRequestErr(modify_resp, 400)
+
+        modify_resp = self.request_modify(token, {"board": 10})
+        self.assertRequestErr(modify_resp, 400)
+
+        final = self.request_data(token).json
+        self.assertEqual(initial, final)
+
+    def test_modify_empty(self):
+        """
+        Prueba casos en los que no se debería cambiar el usuario. Algunos de los
+        casos devolverán un error por tratarse de un claro fallo en el cliente.
+        """
+
+        # Payload con un booleano que indica si debería tener éxito.
+        tests = [
+            # Vacío
+            ({}, False),
+            # El email no se puede cambiar
+            ({"email": "test@gmail.com"}, False),
+            # Campos inexistentes
+            ({"some_field_that_doesnt_exist": 1234}, False),
+            # Los mismos valores
+            (
+                {
+                    "name": self.existing_user["name"],
+                    "password": self.existing_user["password"],
+                },
+                True,
+            ),
+        ]
+
+        token_resp = self.request_token(self.existing_user)
+        token = token_resp.json["access_token"]
+
+        for payload, should_succeed in tests:
+            initial_user_resp = self.request_data(token)
+            self.assertRequestOk(initial_user_resp)
+
+            modify_resp = self.request_modify(token, payload)
+            if should_succeed:
+                self.assertRequestOk(modify_resp)
+            else:
+                self.assertRequestErr(modify_resp, 400)
+
+            modified_user_resp = self.request_data(token)
+            self.assertEqual(initial_user_resp.json, modified_user_resp.json)

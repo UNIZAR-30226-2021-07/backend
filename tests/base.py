@@ -1,4 +1,3 @@
-import json
 from typing import Dict
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
@@ -25,6 +24,26 @@ class BaseTestCase(TestCase):
     def tearDown(self):
         db.session.remove()
         db.drop_all()
+
+    def assertRequestErr(self, resp, code=None):
+        msg = f"description: {resp.json}"
+        if code is None:
+            self.assertGreaterEqual(resp.status_code, 400, msg=msg)
+            self.assertLessEqual(resp.status_code, 599, msg=msg)
+        else:
+            self.assertEqual(resp.status_code, code, msg=msg)
+
+        self.assertIn("error", resp.json)
+
+    def assertRequestOk(self, resp, code=None):
+        msg = f"description: {resp.json}"
+        if code is None:
+            self.assertGreaterEqual(resp.status_code, 200, msg=msg)
+            self.assertLessEqual(resp.status_code, 299, msg=msg)
+        else:
+            self.assertEqual(resp.status_code, code, msg=msg)
+
+        self.assertNotIn("error", resp.json)
 
 
 class GatovidTestClient(BaseTestCase):
@@ -59,7 +78,7 @@ class GatovidTestClient(BaseTestCase):
         else:
             raise Exception("not supported")
 
-        return json.loads(response.data.decode())
+        return response
 
     def auth_headers(self, token: str) -> Dict[str, str]:
         return {"Authorization": "Bearer " + token}
@@ -79,6 +98,11 @@ class GatovidTestClient(BaseTestCase):
     def request_remove(self, token: str, data: Dict[str, str]) -> Dict[str, str]:
         return self.request(
             "/data/remove_user", data=data, headers=self.auth_headers(token)
+        )
+
+    def request_modify(self, token: str, data: Dict[str, str]) -> Dict[str, str]:
+        return self.request(
+            "/data/modify_user", data=data, headers=self.auth_headers(token)
         )
 
     def request_stats(self, name: str) -> Dict[str, str]:

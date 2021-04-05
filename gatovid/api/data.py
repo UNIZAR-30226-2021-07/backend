@@ -14,7 +14,8 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
-from gatovid.models import TokenBlacklist, User
+from gatovid.models import InvalidModelException, TokenBlacklist, User
+from gatovid.util import msg_err, msg_ok, route_get_or_post
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
@@ -36,8 +37,8 @@ def revoke_token() -> bool:
         return False
 
 
-@mod.route("/test", methods=["GET", "POST"])
-def test():
+@route_get_or_post(mod, "/test")
+def test(data):
     user = db.session.query(User).first()
 
     return {
@@ -54,36 +55,16 @@ def test():
     }
 
 
-@mod.route("/signup", methods=["GET", "POST"])
-def signup():
-    data = request.args if request.method == "GET" else request.form
-
-    name = data.get("name")
-    email = data.get("email")
-    password = data.get("password")
-
-    if None in (name, email, password):
-        return {"error": "Parámetro vacío"}
-
-    # Comprobamos que el email introducido es correcto
-    if not User.EMAIL_REGEX.fullmatch(email):
-        return {"error": "Email incorrecto"}
-
-    # Comprobamos que el nombre cumple con los requisitos
-    if not User.NAME_REGEX.fullmatch(name):
-        return {"error": "El nombre no cumple con los requisitos"}
-
-    if len(password) < User.MIN_PASSWORD_LENGTH:
-        return {"error": "Contraseña demasiado corta"}
-
-    if len(password) > User.MAX_PASSWORD_LENGTH:
-        return {"error": "Contraseña demasiado larga"}
-
-    user = User(
-        email=email,
-        name=name,
-        password=password,
-    )
+@route_get_or_post(mod, "/signup")
+def signup(data):
+    try:
+        user = User(
+            email=data.get("email"),
+            name=data.get("name"),
+            password=data.get("password"),
+        )
+    except InvalidModelException as e:
+        return msg_err(e)
 
     try:
         db.session.add(user)
@@ -91,7 +72,7 @@ def signup():
     except IntegrityError as e:
         if isinstance(e.orig, UniqueViolation):
             db.session.rollback()
-            return {"error": "Email o nombre ya en uso"}
+            return msg_err("Email o nombre ya en uso")
         else:
             raise
 
@@ -103,9 +84,9 @@ def signup():
     }
 
 
-@mod.route("/remove_user", methods=["GET", "POST"])
+@route_get_or_post(mod, "/remove_user")
 @jwt_required()
-def remove_account():
+def remove_account(data):
     """
     Al borrar una cuenta se cierra también la sesión, garantizando que solo se
     podrá borrar una vez.
@@ -115,55 +96,86 @@ def remove_account():
     user = User.query.get(email)
 
     if not revoke_token():
-        return {"error": "No se pudo cerrar sesión"}
+        return msg_err("No se pudo cerrar sesión")
 
     db.session.delete(user)
     db.session.commit()
 
-    return {"message": "Usuario eliminado con éxito"}
+    return msg_ok("Usuario eliminado con éxito")
 
 
-@mod.route("/login", methods=["GET", "POST"])
-def login():
-    data = request.args if request.method == "GET" else request.form
+@route_get_or_post(mod, "/modify_user")
+@jwt_required()
+def modify_user(data):
+    """
+    Al endpoint de modificación del usuario se le pasan aquellos campos a
+    cambiar, todos siendo opcionales.
 
+    No hace falta pasar el email porque al estar protegido se puede obtener a
+    partir del token. De esta forma se asegura que no se modifican los perfiles
+    de otros usuarios.
+    """
+
+    email = get_jwt_identity()
+    user = User.query.get(email)
+
+    modified = False
+    for field in ("name", "password", "board", "picture"):
+        new_val = data.get(field)
+        if new_val is None:
+            continue
+
+        try:
+            setattr(user, field, new_val)
+        except InvalidModelException as e:
+            return msg_err(e)
+
+        modified = True
+
+    if not modified:
+        return msg_err("Ningún campo válido a modificar")
+
+    db.session.commit()
+
+    return msg_ok("Usuario modificado con éxito")
+
+
+@route_get_or_post(mod, "/login")
+def login(data):
     email = data.get("email")
     password = data.get("password")
-
-    if None in (email, password):
-        return {"error": "Parámetro vacío"}
 
     # Comprobamos si existe un usuario con ese email
     user = User.query.get(email)
     if user is None:
-        return {"error": "El usuario no existe"}
+        return msg_err("El usuario no existe")
 
     # Comprobamos si los hashes coinciden
     if not user.check_password(password):
-        return {"error": "Contraseña incorrecta"}
+        return msg_err("Contraseña incorrecta")
 
     access_token = create_access_token(identity=email)
     return {"access_token": access_token}
 
 
-@mod.route("/logout", methods=["GET", "POST"])
+@route_get_or_post(mod, "/logout")
 @jwt_required()
-def logout():
+def logout(data):
     if revoke_token():
-        return {"message": "Sesión cerrada con éxito"}
+        return msg_ok("Sesión cerrada con éxito")
     else:
-        return {"error": "No se pudo cerrar sesión"}
+        return msg_err("No se pudo cerrar sesión")
 
 
-@mod.route("/protected_test", methods=["GET", "POST"])
+@route_get_or_post(mod, "/protected_test")
 @jwt_required()
-def protected():
+def protected(data):
     return {"email": get_jwt_identity()}
 
 
-@mod.route("/user_data", methods=["GET", "POST"])
+@route_get_or_post(mod, "/user_data")
 @jwt_required()
-def user_data():
+def user_data(data):
     email = get_jwt_identity()
     user = User.query.get(email)
 
@@ -177,17 +189,12 @@ def user_data():
     }
 
 
-@mod.route("/user_stats", methods=["GET", "POST"])
-def user_stats():
-    data = request.args if request.method == "GET" else request.form
-
+@route_get_or_post(mod, "/user_stats")
+def user_stats(data):
     name = data.get("name")
-    if name is None:
-        return {"error": "Parámetro vacío"}
-
     user = User.query.filter_by(name=name).first()
     if user is None:
-        return {"error": "El usuario no existe"}
+        return msg_err("El usuario no existe")
 
     stats = user.stats
 

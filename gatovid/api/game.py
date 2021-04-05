@@ -13,7 +13,7 @@ librería SocketIO en el cliente.
 
 El nombre de los mensajes es el mismo que las funciones a contactar. Por
 ejemplo, si se quiere contactar con el endpoint de :meth:`create_game`, se debe
-emitir un mensaje de tipo `create_game`.
+emitir un mensaje de tipo ``create_game``.
 
 Parámetros
 ####################
@@ -30,7 +30,7 @@ Errores y Validación
 
 Los errores de las peticiones serán devueltos al cliente llamando a un callback
 definido en la función emit de SocketIO. Todos los errores estarán en formato
-JSON, donde habrá un campo `error: str` que contendrá el mensaje de error
+JSON, donde habrá un campo ``error: str`` que contendrá el mensaje de error
 devuelto.
 
 .. code-block:: javascript
@@ -131,9 +131,9 @@ def create_game():
     """
     Creación y unión automática a una partida privada.
 
-    :return: Un mensaje de tipo `create_game` con un objeto JSON con el campo:
+    :return: Un mensaje de tipo ``create_game`` con un objeto JSON con el campo:
 
-    * `game: str`
+        * ``game: str``
     """
     game_code = MM.create_private_game(owner=session["user"])
     join({"game": game_code})
@@ -149,7 +149,7 @@ def start_game():
     Se requieren mínimo 2 jugadores (contando al lider) esperando la partida
     para empezarla. Además, solo el lider de la partida podrá iniciarla.
 
-    :return: Un mensaje de tipo `start_game` a todos los jugadores esperando en
+    :return: Un mensaje de tipo ``start_game`` a todos los jugadores esperando en
         la sala.
     """
 
@@ -181,9 +181,9 @@ def join(game_code):
     llena.
 
     :param game_code: Código de partida privada
-    :type game_code: `str`
+    :type game_code: ``str``
 
-    :return: Un mensaje de tipo `players_waiting` con un entero indicando el
+    :return: Un mensaje de tipo ``players_waiting`` con un entero indicando el
         número de jugadores esperando a la partida (incluido él mismo). Además, un
         mensaje de chat (ver formato en :meth:`chat`) indicando que el jugador se ha
         unido a la partida.
@@ -226,11 +226,11 @@ def leave():
     Si la partida se queda sin jugadores, se borra. Si la partida no ha
     comenzado y el jugador es el lider, se delega el cargo a otro jugador.
 
-    :return: Si la partida no se borra, un mensaje de tipo `players_waiting` con
+    :return: Si la partida no se borra, un mensaje de tipo ``players_waiting`` con
         un entero indicando el número de jugadores esperando a la partida. Además,
-        un mensaje de chat (ver formato en :meth:`chat`) indicando que el jugador se
+        un mensaje de chat (ver formato en :meth:``chat``) indicando que el jugador se
         ha unido a la partida. Si se ha delegado el cargo de lider, el nuevo lider
-        recibirá un mensaje de tipo `game_owner`.
+        recibirá un mensaje de tipo ``game_owner``.
     """
 
     game_code = session["game"]
@@ -278,13 +278,13 @@ def chat(msg):
     Se requiere que la partida esté ya comenzada.
 
     :param msg: Mensaje a enviar
-    :type msg: `str`
+    :type msg: ``str``
 
-    :return: Un mensaje de tipo `chat` con un objeto JSON que contiene los
+    :return: Un mensaje de tipo ``chat`` con un objeto JSON que contiene los
         campos:
 
-    * `msg: str` Mensaje enviado por el jugador
-    * `owner: str` Nombre de usuario del jugador que envía el mensaje
+        * ``msg: str`` Mensaje enviado por el jugador
+        * ``owner: str`` Nombre de usuario del jugador que envía el mensaje
 
     """
 

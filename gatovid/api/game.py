@@ -105,8 +105,8 @@ def connect():
     """
 
     try:
-        # Comprobamos si el token es válido. Si el token es inválido,
-        # lanzará una excepción.
+        # Comprobamos si el token es válido. Si el token es inválido, lanzará
+        # una excepción.
         verify_jwt_in_request()
     except Exception:
         return False
@@ -163,8 +163,8 @@ def start_game():
         if match.owner != session["user"]:
             return {"error": "Debes ser el lider para empezar partida"}
     except (AttributeError, TypeError):
-        # Si la partida devuelta por el MM es una pública, no tiene
-        # sentido empezar la partida (ya se encarga el manager)
+        # Si la partida devuelta por el MM es una pública, no tiene sentido
+        # empezar la partida (ya se encarga el manager)
         return {"error": "La partida no es privada"}
 
     if len(match.players) < 2:

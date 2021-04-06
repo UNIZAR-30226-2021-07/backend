@@ -41,10 +41,9 @@ devuelto.
           console.error(data.error);
       }
   });
-
 """
 
-from functools import wraps
+import functools
 
 from flask import request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
@@ -60,7 +59,7 @@ def requires_game(f):
     Decorador para comprobar si el usuario está en una partida.
     """
 
-    @wraps(f)
+    @functools.wraps(f)
     def wrapper(*args, **kwargs):
         game = session.get("game")
         if not game:
@@ -76,10 +75,11 @@ def requires_game(f):
 
 def requires_game_started(f):
     """
-    Decorador para comprobar si el usuario está en una partida y ésta ha comenzado.
+    Decorador para comprobar si el usuario está en una partida y esta ha
+    comenzado.
     """
 
-    @wraps(f)
+    @functools.wraps(f)
     def wrapper(*args, **kwargs):
         game = session.get("game")
         if not game:
@@ -100,8 +100,10 @@ def requires_game_started(f):
 @socket.on("connect")
 def connect():
     """
-    Return False si queremos prohibir la conexión del usuario.
+    Devuelve falso si se prohibe la conexión del usuario porque no ha iniciado
+    sesión.
     """
+
     try:
         # Comprobamos si el token es válido. Si el token es inválido,
         # lanzará una excepción.
@@ -149,8 +151,8 @@ def start_game():
     Se requieren mínimo 2 jugadores (contando al lider) esperando la partida
     para empezarla. Además, solo el lider de la partida podrá iniciarla.
 
-    :return: Un mensaje de tipo ``start_game`` a todos los jugadores esperando en
-        la sala.
+    :return: Un mensaje de tipo ``start_game`` a todos los jugadores esperando
+        en la sala.
     """
 
     game = session["game"]
@@ -184,9 +186,9 @@ def join(game_code):
     :type game_code: ``str``
 
     :return: Un mensaje de tipo ``players_waiting`` con un entero indicando el
-        número de jugadores esperando a la partida (incluido él mismo). Además, un
-        mensaje de chat (ver formato en :meth:`chat`) indicando que el jugador se ha
-        unido a la partida.
+        número de jugadores esperando a la partida (incluido él mismo). Además,
+        un mensaje de chat (ver formato en :meth:`chat`) indicando que el
+        jugador se ha unido a la partida.
     """
 
     if session.get("game"):
@@ -229,11 +231,11 @@ def leave():
     Si la partida se queda sin jugadores, se borra. Si la partida no ha
     comenzado y el jugador es el lider, se delega el cargo a otro jugador.
 
-    :return: Si la partida no se borra, un mensaje de tipo ``players_waiting`` con
-        un entero indicando el número de jugadores esperando a la partida. Además,
-        un mensaje de chat (ver formato en :meth:``chat``) indicando que el jugador se
-        ha unido a la partida. Si se ha delegado el cargo de lider, el nuevo lider
-        recibirá un mensaje de tipo ``game_owner``.
+    :return: Si la partida no se borra, un mensaje de tipo ``players_waiting``
+        con un entero indicando el número de jugadores esperando a la partida.
+        Además, un mensaje de chat (ver formato en :meth:``chat``) indicando que
+        el jugador se ha unido a la partida. Si se ha delegado el cargo de
+        líder, el nuevo lider recibirá un mensaje de tipo ``game_owner``.
     """
 
     game_code = session["game"]
@@ -288,7 +290,6 @@ def chat(msg):
 
         * ``msg: str`` Mensaje enviado por el jugador
         * ``owner: str`` Nombre de usuario del jugador que envía el mensaje
-
     """
 
     if not isinstance(msg, str):

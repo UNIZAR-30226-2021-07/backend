@@ -5,8 +5,8 @@ prueba.
 
 from sqlalchemy.exc import IntegrityError
 
-from gatovid.app import app, logger
-from gatovid.exts import db
+from gatovid.app import app
+from gatovid.exts import db, logger
 from gatovid.models import PurchasableType, Purchase, Stats, User
 
 

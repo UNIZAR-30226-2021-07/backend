@@ -4,7 +4,8 @@ Punto de entrada para cuando se ejecuta ``gatovid`` con ``python -m gatovid``.
 
 import sys
 
-from gatovid.app import app, logger
+from gatovid.app import app
+from gatovid.exts import logger
 from gatovid.create_db import db_init, db_reset
 
 # Creación inicial de los datos

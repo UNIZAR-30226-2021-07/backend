@@ -138,7 +138,7 @@ def create_game():
         * ``game: str``
     """
     game_code = MM.create_private_game(owner=session["user"])
-    join({"game": game_code})
+    join(game_code)
     emit("create_game", {"code": game_code})
 
 

@@ -192,6 +192,9 @@ def join(game_code):
     if session.get("game"):
         return {"error": "Ya estás en una partida"}
 
+    if not isinstance(game_code, str):
+        return {"error": "Tipo incorrecto para el código de partida"}
+
     # Restricciones para unirse a la sala
     match = MM.get_match(game_code)
     if match is None or len(match.players) > MAX_MATCH_PLAYERS:

@@ -17,16 +17,15 @@ MAX_MATCH_PLAYERS = 6
 
 def gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
     """
-    Devuelve un código de longitud N usando los caracteres
-    especificados.
+    Devuelve un código de longitud N usando los caracteres especificados.
     """
+
     return "".join(random.choices(chars, k=N))
 
 
 def choose_code() -> str:
     """
-    Devuelve un código sin usar y lo registra para que no pueda ser
-    reutilizado.
+    Devuelve un código sin usar y lo registra para que no pueda ser reutilizado.
     """
 
     code = gen_code()
@@ -41,16 +40,16 @@ class Match:
     Información de una partida.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.start_time = 0
         self._started = False
         self.paused = False
         self.players: List[User] = []
 
-        # Todas las partidas requieren un código identificador por las
-        # salas de socketio. NOTE: se podrían usar códigos de formatos
-        # distintos para que no hubiera colisiones entre partidas
-        # públicas y privadas, pero no creo que sea necesario.
+        # Todas las partidas requieren un código identificador por las salas de
+        # socketio. NOTE: se podrían usar códigos de formatos distintos para que
+        # no hubiera colisiones entre partidas públicas y privadas, pero no creo
+        # que sea necesario.
         self.code = choose_code()
 
     @property
@@ -78,11 +77,11 @@ class Match:
 
 class PrivateMatch(Match):
     """
-    Información de una partida privada, a la que solo se puede unir
-    con código y el lider tiene que decidir cuándo comenzar.
+    Información de una partida privada, a la que solo se puede unir con código y
+    el lider tiene que decidir cuándo comenzar.
     """
 
-    def __init__(self, owner: User):
+    def __init__(self, owner: User) -> None:
         super().__init__()
 
         self.owner = owner
@@ -90,13 +89,13 @@ class PrivateMatch(Match):
 
 class PublicMatch(Match):
     """
-    Información de una partida pública, gestionada completamente por
-    el sistema gestor de partidas.
+    Información de una partida pública, gestionada completamente por el sistema
+    gestor de partidas.
     """
 
 
 class MatchManager:
-    def __init__(self):
+    def __init__(self) -> None:
         # Cola de usuarios buscando una partida pública
         self.users_queue = queue.Queue()
         # Cola de partidas esperando nuevos usuarios
@@ -104,43 +103,42 @@ class MatchManager:
 
         self.users_waiting = set()
 
-    def wait_for_game(self, user_sid: str):
+    def wait_for_game(self, user_sid: str) -> None:
         """
         Añade al usuario a la cola de usuarios esperando partida.
         """
+
         self.users_queue.put(user_sid)
 
-    def stop_waiting(self, user_sid: str):
+    def stop_waiting(self, user_sid: str) -> None:
         """
-        Elimina al usuario de la lista de usuarios eperando partida.
-        Se necesita por si un usuario se desconecta a mitad de la
-        búsqueda.
+        Elimina al usuario de la lista de usuarios eperando partida. Se necesita
+        por si un usuario se desconecta a mitad de la búsqueda.
 
-        La cola de Python no permite acceso aleatorio, por lo que se
-        usará un set de usuarios esperando. Cuando se retire un
-        usuario de la cola se comprobará si sigue esperando en dicho
-        set.
+        La cola de Python no permite acceso aleatorio, por lo que se usará un
+        set de usuarios esperando. Cuando se retire un usuario de la cola se
+        comprobará si sigue esperando en dicho set.
         """
 
         self.users_waiting.remove(user_sid)
 
-    def create_public_game(self):
+    def create_public_game(self) -> None:
         new_match = PublicMatch()
         matches[new_match.code] = new_match
         return new_match.code
 
-    def create_private_game(self, owner: User):
+    def create_private_game(self, owner: User) -> None:
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match
         return new_match.code
 
-    def remove_game(self, code: str):
+    def remove_game(self, code: str) -> None:
         del matches[code]
 
     def get_match(self, code: str) -> Match:
         return matches.get(code)
 
-    def remove_match(self, code: str):
+    def remove_match(self, code: str) -> None:
         # Eliminar con seguridad (para evitar crashes)
         matches.pop(code, None)
 

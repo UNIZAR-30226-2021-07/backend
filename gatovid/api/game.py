@@ -291,6 +291,9 @@ def chat(msg):
 
     """
 
+    if not isinstance(msg, str):
+        return {"error": "Tipo incorrecto para el mensaje"}
+
     emit(
         "chat",
         {

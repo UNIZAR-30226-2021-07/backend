@@ -25,4 +25,4 @@ sess = Session()
 # Cross Origins Requests
 cors = CORS()
 # For logging messages
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("gatovid")

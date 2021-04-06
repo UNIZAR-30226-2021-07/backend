@@ -3,6 +3,8 @@ Extensiones usadas en la aplicación, declaradas en un archivo distinto para
 administrar correctamente las dependencias circulares.
 """
 
+import logging
+
 from flask_bcrypt import Bcrypt
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
@@ -22,3 +24,5 @@ socket = SocketIO(cors_allowed_origins="*")
 sess = Session()
 # Cross Origins Requests
 cors = CORS()
+# For logging messages
+logger = logging.getLogger(__name__)

@@ -62,14 +62,14 @@ cliente básico para acceder a la API de datos:
         1. Si es 401, será necesario refrescar el token y volver al punto 1.
         2. Si el código es 400:
             1. Si es fallo del usuario se le muestra el mensaje de error del campo
-               `error`.
+               ``error``.
             2. Si es fallo del programador, tendrá que hacerse debug en el cliente y
                solucionarlo, ya que no es esperado que suceda. Se puede usar el
-               campo `error` para ello.
+               campo ``error`` para ello.
 
         3. Si es 500, tendrá que hacerse debug en el backend y solucionarlo, que
            será donde se encuentre más información. En este caso no se puede usar el
-           campo `error`, por tanto.
+           campo ``error``, por tanto.
 """
 
 from flask import Blueprint, request
@@ -150,11 +150,11 @@ def signup(data):
     de validación establecidas en :meth:`gatovid.models.User`.
 
     :param email: Dirección de correo electrónico
-    :type email: `str`
+    :type email: ``str``
     :param name: Nombre del usuario
-    :type name: `str`
+    :type name: ``str``
     :param password: Contraseña del usuario
-    :type password: `str`
+    :type password: ``str``
 
     :return: Un objeto JSON con el nombre y correo del usuario registrado, como
         forma de verificación de la operación, o un error de validación.
@@ -226,13 +226,13 @@ def modify_user(data):
     de otros usuarios.
 
     :param name: Nombre nuevo del usuario
-    :type name: `Optional[str]`
+    :type name: ``Optional[str]``
     :param password: Contraseña nueva del usuario
-    :type password: `Optional[str]`
+    :type password: ``Optional[str]``
     :param board: El identificador del nuevo tapete del usuario
-    :type board: `Optional[int]`
+    :type board: ``Optional[int]``
     :param picture: El identificador de la nueva foto del usuario
-    :type picture: `Optional[int]`
+    :type picture: ``Optional[int]``
 
     :return: Un mensaje descriptivo de la operación realizada correctamente, o
         un mensaje de error interno en caso contrario. Se considera un error el no
@@ -270,11 +270,11 @@ def login(data):
     registrado. Debe cumplir los requisitos de :ref:`error_validacion`.
 
     :param email: Dirección de correo electrónico
-    :type email: `str`
+    :type email: ``str``
     :param password: Contraseña
-    :type password: `str`
+    :type password: ``str``
 
-    :return: Un token de acceso en el campo `access_token`, o un error de
+    :return: Un token de acceso en el campo ``access_token``, o un error de
         validación.
     """
 
@@ -318,12 +318,12 @@ def user_data(data):
 
     :return: Un objeto JSON con los campos:
 
-    * `email: str`
-    * `name: str`
-    * `coins: int`
-    * `picture: int` (identificador)
-    * `board: int` (identificador)
-    * `purchases: List[{"item_id": str, "type": ("board" | "profile_pic")}]`
+    * ``email: str``
+    * ``name: str``
+    * ``coins: int``
+    * ``picture: int`` (identificador)
+    * ``board: int`` (identificador)
+    * ``purchases: List[{"item_id": str, "type": ("board" | "profile_pic")}]``
     """
 
     email = get_jwt_identity()
@@ -345,10 +345,10 @@ def user_stats(data):
     Endpoint para acceder a las estadísticas de un usuario, dado su nombre.
 
     :param name: Nombre del usuario
-    :type name: `str`
+    :type name: ``str``
 
-    :return: Un objeto JSON con los campos `games`, `losses`, `wins` y
-        `playtime_mins`, todos enteros.
+    :return: Un objeto JSON con los campos ``games``, ``losses``, ``wins`` y
+        ``playtime_mins``, todos enteros.
     """
 
     name = data.get("name")

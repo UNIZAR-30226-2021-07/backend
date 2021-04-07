@@ -50,7 +50,7 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
 from gatovid.exts import socket
-from gatovid.match import MAX_MATCH_PLAYERS, MM
+from gatovid.match import MAX_MATCH_PLAYERS, MM, PrivateMatch
 from gatovid.models import User
 
 
@@ -127,6 +127,15 @@ def disconnect():
     if session.get("game"):
         leave()
 
+@socket.on("search_game")
+def search_game():
+    """
+    Unión a una partida pública organizada por el servidor.
+
+    :return: TODO
+    """
+
+    MM.wait_for_game(session["user"])
 
 @socket.on("create_game")
 def create_game():
@@ -204,12 +213,19 @@ def join(game_code):
 
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
-    # y en la partida
-    match.add_player(session["user"])
 
-    # Lo unimos a la sesión de socketio
+    # Guardamos al jugador en la partida
+    match.add_player(session["user"])
+    # Unimos al usuario a la sesión de socketio
     join_room(game_code)
 
+    if isinstance(match, PrivateMatch):
+        emit("players_waiting", len(match.players), room=game_code)
+    else:
+        # Si la partida es pública, la iniciamos en cuanto entre un jugador
+        if not match.started:
+            match.started = True
+        
     emit(
         "chat",
         {
@@ -218,8 +234,6 @@ def join(game_code):
         },
         room=game_code,
     )
-
-    emit("players_waiting", len(match.players), room=game_code)
 
 
 @socket.on("leave")
@@ -263,15 +277,12 @@ def leave():
         emit("players_waiting", len(match.players), room=game_code)
 
     # Comprobar si hay que delegar el cargo de lider
-    try:
+    if isinstance(match, PrivateMatch):
         if match.owner == session["user"]:
             # Si él es el lider, delegamos el cargo de lider a otro jugador
             match.owner = match.players[0]
             # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
-    except (AttributeError, TypeError) as e:
-        # Si la partida es pública no tiene lider
-        return {"error": "La partida no es privada " + str(e)}
 
 
 @socket.on("chat")

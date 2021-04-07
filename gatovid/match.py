@@ -76,6 +76,10 @@ class Match:
         socket.emit("start_game", room=self.code)
 
     def end(self) -> None:
+        """
+        Termina la partida y guarda las estadísticas para todos los usuarios.
+        """
+
         elapsed = datetime.now() - self.start_time
         elapsed_mins = int(elapsed.total_seconds() / 60)
 
@@ -100,19 +104,6 @@ class Match:
             raise GameLogicException("El usuario ya está en la partida")
 
         self.players.add(player)
-
-    def finalize(self) -> None:
-        """
-        Termina la partida y guarda las estadísticas para todos los usuarios.
-        """
-
-        elapsed = datetime.now() - self.start_time
-        elapsed_mins = int(elapsed.total_seconds() / 60)
-
-        for player in self.players:
-            player.stats.playtime_mins += elapsed_mins
-
-        db.session.commit()
 
 
 class PrivateMatch(Match):

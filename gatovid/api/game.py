@@ -80,6 +80,7 @@ def requires_game(started=False):
             return f(*args, **kwargs)
 
         return wrapper
+
     return deco
 
 
@@ -114,10 +115,11 @@ def disconnect():
     # Puede estar buscando una partida pública
     if session["user"] in MM.users_waiting:
         MM.stop_waiting(session["user"])
-    
+
     # Puede estar metido en una partida, tenemos que hacer que salga.
     if session.get("game"):
         leave()
+
 
 @socket.on("search_game")
 def search_game():
@@ -131,6 +133,7 @@ def search_game():
     """
 
     MM.wait_for_game(session["user"])
+
 
 @socket.on("create_game")
 def create_game():
@@ -224,7 +227,7 @@ def join(game_code):
         # PublicMatch.
         if len(match.players) == match.num_players:
             match.start()
-        
+
     emit(
         "chat",
         {

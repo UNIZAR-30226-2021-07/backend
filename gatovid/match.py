@@ -2,10 +2,10 @@
 Módulo de los datos de las partidas.
 """
 
-from collections import deque
 import random
 import string
 import threading
+from collections import deque
 from datetime import datetime
 from typing import List
 
@@ -76,6 +76,7 @@ class Match:
         if player not in self.players:
             self.players.append(player)
 
+
 class PrivateMatch(Match):
     """
     Información de una partida privada, a la que solo se puede unir con código y
@@ -123,7 +124,6 @@ class PublicMatch(Match):
 
 
 class MatchManager:
-
     def __init__(self) -> None:
         # Cola de usuarios buscando una partida pública
         self.users_waiting = deque()
@@ -152,14 +152,14 @@ class MatchManager:
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
         if len(self.users_waiting) >= MAX_MATCH_PLAYERS:
-            self.create_public_game()            
+            self.create_public_game()
 
         # Si siguen quedando jugadores en la cola, configuramos el timer.
         if len(self.users_waiting) > 0:
             # Creamos un timer
             self.timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
             self.timer.start()
-            
+
     def matchmaking_check(self):
         """
         Comprobación de si se puede crear una partida pública "de emergencia"
@@ -167,7 +167,7 @@ class MatchManager:
         """
 
         if len(self.users_waiting) >= MIN_MATCH_PLAYERS:
-            self.create_public_game()            
+            self.create_public_game()
 
     def stop_waiting(self, user: User) -> None:
         """

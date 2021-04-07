@@ -276,23 +276,3 @@ class Purchase(db.Model):
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         del d["user_id"]
         return d
-
-
-class GameManager:
-    """"""
-
-
-class Game:
-    """"""
-
-
-class Player:
-    """"""
-
-
-class Card:
-    """"""
-
-
-class Message:
-    """"""

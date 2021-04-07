@@ -62,6 +62,19 @@ class Match:
         # que sea necesario.
         self.code = choose_code()
 
+    def calc_coins(self, position: int) -> int:
+        """
+        Calcula las monedas obtenidos según la posición final, según la fórmula
+        establecida:
+
+        Sea N el número de jugadores de la partida, el jugador en puesto i
+        ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo N
+        * 10, y el último 0.
+        """
+
+        N = len(self.players)
+        return 10 * (N - 1)
+
     def is_started(self) -> bool:
         return self._started
 
@@ -84,7 +97,14 @@ class Match:
         elapsed_mins = int(elapsed.total_seconds() / 60)
 
         for player in self.players:
+            position = 1  # TODO tras la implementación del juego
+            player.coins += self.calc_coins(position)
             player.stats.playtime_mins += elapsed_mins
+            if position == 1:
+                player.stats.wins += 1
+            else:
+                player.stats.losses += 1
+
         db.session.commit()
 
         socket.emit("game_ended", room=self.code)

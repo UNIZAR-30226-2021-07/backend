@@ -171,8 +171,7 @@ def start_game():
     if len(match.players) < 2:
         return {"error": "Se necesitan al menos dos jugadores"}
 
-    match.started = True
-    emit("start_game", room=game)
+    match.start()
 
 
 @socket.on("join")
@@ -214,9 +213,12 @@ def join(game_code):
     if isinstance(match, PrivateMatch):
         emit("players_waiting", len(match.players), room=game_code)
     else:
-        # Si la partida es pública, la iniciamos en cuanto entre un jugador
-        if not match.started:
-            match.started = True
+        # Si es una partida pública, iniciamos la partida si ya están todos.
+        # Si hay algún jugador que no se une a la partida, la partida acabará
+        # empezando (si hay suficientes jugadores) debido al start_timer en
+        # PublicMatch.
+        if len(match.players) == match.num_players:
+            match.start()
         
     emit(
         "chat",
@@ -260,8 +262,7 @@ def leave():
     match.players.remove(session["user"])
 
     if len(match.players) == 0:
-        # Marcar la partida como finalizada
-        match.started = False
+        match.end()
         # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir

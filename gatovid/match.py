@@ -46,7 +46,7 @@ class Match:
 
     def __init__(self) -> None:
         self.start_time = 0
-        self._started = False
+        self.started = False
         self.paused = False
         self.players: List[User] = []
 
@@ -56,22 +56,20 @@ class Match:
         # que sea necesario.
         self.code = choose_code()
 
-    @property
-    def started(self) -> bool:
-        return self._started
+    def start(self) -> None:
+        self.started = True
+        self.start_time = datetime.now()
+        socket.emit("start_game", room=self.code)
 
-    @started.setter
-    def started(self, started: bool) -> None:
-        self._started = started
-        if started:
-            self.start_time = datetime.now()
-        else:
-            elapsed = datetime.now() - self.start_time
-            elapsed_mins = int(elapsed.total_seconds() / 60)
+    def end(self) -> None:
+        elapsed = datetime.now() - self.start_time
+        elapsed_mins = int(elapsed.total_seconds() / 60)
 
-            for player in self.players:
-                player.stats.playtime_mins += elapsed_mins
-            db.session.commit()
+        for player in self.players:
+            player.stats.playtime_mins += elapsed_mins
+        db.session.commit()
+
+        socket.emit("game_ended", room=self.code)
 
     def add_player(self, player: User) -> None:
         # Aseguramos que el usuario no está dos veces
@@ -102,9 +100,19 @@ class PublicMatch(Match):
 
         self.num_players = num_players
 
+        self.start_timer = threading.Timer(TIME_UNTIL_START, self.start_check)
 
-def test():
-    print("timer")
+    def start(self):
+        # Cancelamos el timer si sigue
+        self.start_timer.cancel()
+
+        super().start()
+
+    def start_check(self):
+        if len(self.players) >= MIN_MATCH_PLAYERS:
+            # Empezamos la partida
+            self.start()
+
 
 class MatchManager:
 
@@ -137,7 +145,9 @@ class MatchManager:
         # partida para todos.
         if len(self.users_waiting) >= MAX_MATCH_PLAYERS:
             self.create_public_game()            
-        else:
+
+        # Si siguen quedando jugadores en la cola, configuramos el timer.
+        if len(self.users_waiting) > 0:
             # Creamos un timer
             self.timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
             self.timer.start()
@@ -154,6 +164,10 @@ class MatchManager:
 
         self.users_waiting.remove(user)
 
+        # Si ya no hay mas jugadores esperando, cancelamos el timer
+        if len(self.users_waiting) == 0:
+            self.timer.cancel()
+
     def create_public_game(self) -> None:
         # Obtener los jugadores esperando
         players = self.get_waiting()
@@ -168,6 +182,8 @@ class MatchManager:
         for player in players:
             socket.emit("found_game", {"code": code}, room=player.sid)
 
+        # Ponemos un timer para empezar la partida, por si no se unen todos
+        new_match.start_timer.start()
 
     def create_private_game(self, owner: User) -> None:
         new_match = PrivateMatch(owner=owner)

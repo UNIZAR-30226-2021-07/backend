@@ -54,47 +54,34 @@ from gatovid.match import MAX_MATCH_PLAYERS, MM, GameLogicException, PrivateMatc
 from gatovid.models import User
 
 
-def requires_game(f):
+def requires_game(started=False):
     """
-    Decorador para comprobar si el usuario está en una partida.
-    """
-
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        game = session.get("game")
-        if not game:
-            return {"error": "No estás en una partida"}
-
-        if not MM.get_match(game):
-            return {"error": "La partida no existe"}
-
-        return f(*args, **kwargs)
-
-    return wrapper
-
-
-def requires_game_started(f):
-    """
-    Decorador para comprobar si el usuario está en una partida y esta ha
-    comenzado.
+    Decorador para comprobar si el usuario está en una partida. Si started es
+    True, se comprueba también que la partida ha empezado.
     """
 
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        game = session.get("game")
-        if not game:
-            return {"error": "No estás en una partida"}
+    def deco(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            game = session.get("game")
+            if not game:
+                return {"error": "No estás en una partida"}
 
-        match = MM.get_match(game)
-        if not match:
-            return {"error": "La partida no existe"}
+            match = MM.get_match(game)
+            if not match:
+                # FIXME: creo que esto no podría llegar a pasar, porque para que
+                # la partida no exista, el usuario ha tenido que salir. Sino, se
+                # retiene la partida.
+                return {"error": "La partida no existe"}
 
-        if not match.started:
-            return {"error": "La partida no ha comenzado"}
+            if started and not match.started:
+                return {"error": "La partida no ha comenzado"}
 
-        return f(*args, **kwargs)
+            return f(*args, **kwargs)
 
-    return wrapper
+        return wrapper
+
+    return deco
 
 
 @socket.on("connect")
@@ -122,20 +109,31 @@ def connect():
 
 @socket.on("disconnect")
 def disconnect():
-    # La sesión del usuario se limpia al reconectarse, pero puede estar metido
-    # en una partida.
+    # La sesión del usuario se limpia al reconectarse, aunque existen casos que
+    # necesitan limpieza.
+
+    # Puede estar buscando una partida pública
+    if session["user"] in MM.users_waiting:
+        MM.stop_waiting(session["user"])
+
+    # Puede estar metido en una partida, tenemos que hacer que salga.
     if session.get("game"):
         leave()
+
 
 @socket.on("search_game")
 def search_game():
     """
     Unión a una partida pública organizada por el servidor.
 
-    :return: TODO
+    :return: El cliente no recibirá respuesta hasta que el servidor haya
+        encontrado oponentes contra los que jugar. Una vez encontrada una partida,
+        recibirá un mensaje de tipo `found_game` con un objeto JSON que contiene un
+        atributo ``code: str`` con el código de la partida.
     """
 
     MM.wait_for_game(session["user"])
+
 
 @socket.on("create_game")
 def create_game():
@@ -153,7 +151,7 @@ def create_game():
 
 
 @socket.on("start_game")
-@requires_game
+@requires_game()
 def start_game():
     """
     Puesta en marcha de una partida privada.
@@ -180,25 +178,24 @@ def start_game():
     if len(match.players) < 2:
         return {"error": "Se necesitan al menos dos jugadores"}
 
-    match.started = True
-    emit("start_game", room=game)
+    match.start()
 
 
 @socket.on("join")
 def join(game_code):
     """
-    Unión a una partida privada proporcionando un código de partida.
+    Unión a una partida proporcionando un código de partida.
 
     Un jugador no se puede unir a una partida si ya está en otra o si ya está
     llena.
 
-    :param game_code: Código de partida privada
+    :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Un mensaje de tipo ``players_waiting`` con un entero indicando el
-        número de jugadores esperando a la partida (incluido él mismo). Además,
-        un mensaje de chat (ver formato en :meth:`chat`) indicando que el
-        jugador se ha unido a la partida.
+    :return: Si la partida es privada, un mensaje de tipo ``players_waiting``
+        con un entero indicando el número de jugadores esperando a la partida
+        (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
+        en :meth:`chat`) indicando que el jugador se ha unido a la partida.
     """
 
     if session.get("game"):
@@ -225,11 +222,16 @@ def join(game_code):
     join_room(game_code)
 
     if isinstance(match, PrivateMatch):
+        # Si es una partida privada, informamos a todos los de la sala del nuevo
+        # número de jugadores. El lider decidirá cuando iniciarla.
         emit("players_waiting", len(match.players), room=game_code)
     else:
-        # Si la partida es pública, la iniciamos en cuanto entre un jugador
-        if not match.started:
-            match.started = True
+        # Si es una partida pública, iniciamos la partida si ya están todos.
+        # Si hay algún jugador que no se une a la partida, la partida acabará
+        # empezando (si hay suficientes jugadores) debido al start_timer en
+        # PublicMatch.
+        if len(match.players) == match.num_players:
+            match.start()
 
     emit(
         "chat",
@@ -242,7 +244,7 @@ def join(game_code):
 
 
 @socket.on("leave")
-@requires_game
+@requires_game()
 def leave():
     """
     Salir de la partida actual.
@@ -272,8 +274,7 @@ def leave():
     match = MM.get_match(game_code)
     match.players.remove(session["user"])
     if len(match.players) == 0:
-        # Marcar la partida como finalizada
-        match.started = False
+        match.end()
         # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
@@ -290,7 +291,7 @@ def leave():
 
 
 @socket.on("chat")
-@requires_game_started
+@requires_game(started=True)
 def chat(msg):
     """
     Enviar un mensaje al chat de la partida.

@@ -2,10 +2,10 @@
 Módulo de los datos de las partidas.
 """
 
-from collections import deque
 import random
 import string
 import threading
+from collections import deque
 from datetime import datetime
 from typing import Set
 
@@ -52,7 +52,7 @@ class Match:
 
     def __init__(self) -> None:
         self.start_time = 0
-        self._started = False
+        self.started = False
         self.paused = False
         self.players: Set[User] = set()
 
@@ -65,14 +65,25 @@ class Match:
     def is_started(self) -> bool:
         return self._started
 
-    def start_match(self) -> None:
+    def start(self) -> None:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es
         más limitada que un setter.
         """
 
-        self._started = True
+        self.started = True
         self.start_time = datetime.now()
+        socket.emit("start_game", room=self.code)
+
+    def end(self) -> None:
+        elapsed = datetime.now() - self.start_time
+        elapsed_mins = int(elapsed.total_seconds() / 60)
+
+        for player in self.players:
+            player.stats.playtime_mins += elapsed_mins
+        db.session.commit()
+
+        socket.emit("game_ended", room=self.code)
 
     def add_player(self, player: User) -> None:
         """
@@ -125,14 +136,32 @@ class PublicMatch(Match):
     def __init__(self, num_players: int = 0) -> None:
         super().__init__()
 
+        # Número de jugadores a la hora de hacer el matchmaking. Para comprobar
+        # si están todos los jugadores que se habían organizado.
         self.num_players = num_players
 
+        # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
+        # han conectado todos los jugadores.
+        self.start_timer = threading.Timer(TIME_UNTIL_START, self.start_check)
 
-def test():
-    print("timer")
+    def start(self):
+        # Cancelamos el timer si sigue
+        self.start_timer.cancel()
+
+        super().start()
+
+    def start_check(self):
+        """
+        Comprobación de si la partida puede comenzar tras haber dado un tiempo a
+        los jugadores para que se conecten. Si es posible, la partida empezará.
+        """
+
+        if len(self.players) >= MIN_MATCH_PLAYERS:
+            # Empezamos la partida
+            self.start()
+
 
 class MatchManager:
-
     def __init__(self) -> None:
         # Cola de usuarios buscando una partida pública
         self.users_waiting = deque()
@@ -161,15 +190,22 @@ class MatchManager:
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
         if len(self.users_waiting) >= MAX_MATCH_PLAYERS:
-            self.create_public_game()            
-        else:
+            self.create_public_game()
+
+        # Si siguen quedando jugadores en la cola, configuramos el timer.
+        if len(self.users_waiting) > 0:
             # Creamos un timer
             self.timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
             self.timer.start()
-            
+
     def matchmaking_check(self):
+        """
+        Comprobación de si se puede crear una partida pública "de emergencia"
+        (con menos jugadores que el máximo). La partida se crea si es posible.
+        """
+
         if len(self.users_waiting) >= MIN_MATCH_PLAYERS:
-            self.create_public_game()            
+            self.create_public_game()
 
     def stop_waiting(self, user: User) -> None:
         """
@@ -178,6 +214,10 @@ class MatchManager:
         """
 
         self.users_waiting.remove(user)
+
+        # Si ya no hay mas jugadores esperando, cancelamos el timer
+        if len(self.users_waiting) == 0:
+            self.timer.cancel()
 
     def create_public_game(self) -> None:
         # Obtener los jugadores esperando
@@ -193,6 +233,8 @@ class MatchManager:
         for player in players:
             socket.emit("found_game", {"code": code}, room=player.sid)
 
+        # Ponemos un timer para empezar la partida, por si no se unen todos
+        new_match.start_timer.start()
 
     def create_private_game(self, owner: User) -> None:
         new_match = PrivateMatch(owner=owner)

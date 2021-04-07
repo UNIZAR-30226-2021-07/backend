@@ -54,47 +54,33 @@ from gatovid.match import MAX_MATCH_PLAYERS, MM, PrivateMatch
 from gatovid.models import User
 
 
-def requires_game(f):
+def requires_game(started=False):
     """
-    Decorador para comprobar si el usuario está en una partida.
-    """
-
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        game = session.get("game")
-        if not game:
-            return {"error": "No estás en una partida"}
-
-        if not MM.get_match(game):
-            return {"error": "La partida no existe"}
-
-        return f(*args, **kwargs)
-
-    return wrapper
-
-
-def requires_game_started(f):
-    """
-    Decorador para comprobar si el usuario está en una partida y esta ha
-    comenzado.
+    Decorador para comprobar si el usuario está en una partida. Si started es
+    True, se comprueba también que la partida ha empezado.
     """
 
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        game = session.get("game")
-        if not game:
-            return {"error": "No estás en una partida"}
+    def deco(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            game = session.get("game")
+            if not game:
+                return {"error": "No estás en una partida"}
 
-        match = MM.get_match(game)
-        if not match:
-            return {"error": "La partida no existe"}
+            match = MM.get_match(game)
+            if not match:
+                # FIXME: creo que esto no podría llegar a pasar, porque para que
+                # la partida no exista, el usuario ha tenido que salir. Sino, se
+                # retiene la partida.
+                return {"error": "La partida no existe"}
 
-        if not match.started:
-            return {"error": "La partida no ha comenzado"}
+            if started and not match.started:
+                return {"error": "La partida no ha comenzado"}
 
-        return f(*args, **kwargs)
+            return f(*args, **kwargs)
 
-    return wrapper
+        return wrapper
+    return deco
 
 
 @socket.on("connect")
@@ -152,7 +138,7 @@ def create_game():
 
 
 @socket.on("start_game")
-@requires_game
+@requires_game()
 def start_game():
     """
     Puesta en marcha de una partida privada.
@@ -237,7 +223,7 @@ def join(game_code):
 
 
 @socket.on("leave")
-@requires_game
+@requires_game()
 def leave():
     """
     Salir de la partida actual.
@@ -286,7 +272,7 @@ def leave():
 
 
 @socket.on("chat")
-@requires_game_started
+@requires_game(started=True)
 def chat(msg):
     """
     Enviar un mensaje al chat de la partida.

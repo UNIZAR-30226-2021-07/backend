@@ -47,6 +47,7 @@ class Match:
     def __init__(self) -> None:
         self.start_time = 0
         self.started = False
+        self.started_lock = threading.Lock()
         self.paused = False
         self.players: List[User] = []
 
@@ -57,7 +58,11 @@ class Match:
         self.code = choose_code()
 
     def start(self) -> None:
-        self.started = True
+        with self.started_lock:
+            if self.started:
+                return
+            self.started = True
+
         self.start_time = datetime.now()
         socket.emit("start_game", room=self.code)
 
@@ -131,6 +136,11 @@ class MatchManager:
         # generará una partida con un número de jugadores menor a 6.
         self.timer = None
 
+        # True si se ha realizado el check. Sirve para no acceder a la misma
+        # zona de código dos veces seguidas.
+        self.checked = False
+        self.checked_lock = threading.Lock()
+
     def wait_for_game(self, user: User) -> None:
         """
         Añade al usuario a la cola de usuarios esperando partida.
@@ -149,6 +159,12 @@ class MatchManager:
         if self.timer:
             self.timer.cancel()
 
+        with self.checked_lock:
+            if self.checked:
+                self.checked = False
+                return
+            self.checked = True
+
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
         if len(self.users_waiting) >= MAX_MATCH_PLAYERS:
@@ -160,11 +176,19 @@ class MatchManager:
             self.timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
             self.timer.start()
 
+        self.checked = False
+
     def matchmaking_check(self):
         """
         Comprobación de si se puede crear una partida pública "de emergencia"
         (con menos jugadores que el máximo). La partida se crea si es posible.
         """
+
+        with self.checked_lock:
+            if self.checked:
+                self.checked = False
+                return
+            self.checked = True
 
         if len(self.users_waiting) >= MIN_MATCH_PLAYERS:
             self.create_public_game()

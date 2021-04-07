@@ -177,6 +177,20 @@ class User(db.Model):
 
         return board
 
+    def finalize_game(self, position: Option[int], start_time) -> None:
+        """
+        Guarda la terminación de una partida.
+        """
+
+        self.coins += get_coins()
+        self.stats.playtime_mins += 
+        if position == 1:
+            self.stats.wins += 1
+        else:
+            self.stats.losses += 1
+
+        db.session.commit()
+
 
 class TokenBlacklist(db.Model):
     """

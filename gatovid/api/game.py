@@ -50,7 +50,7 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
 from gatovid.exts import socket
-from gatovid.match import MAX_MATCH_PLAYERS, MM
+from gatovid.match import MAX_MATCH_PLAYERS, MM, GameLogicException
 from gatovid.models import User
 
 
@@ -137,6 +137,7 @@ def create_game():
 
         * ``game: str``
     """
+
     game_code = MM.create_private_game(owner=session["user"])
     join({"game": game_code})
     emit("create_game", {"code": game_code})
@@ -205,7 +206,10 @@ def join(game_code):
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
     # y en la partida
-    match.add_player(session["user"])
+    try:
+        match.add_player(session["user"])
+    except GameLogicException as e:
+        return {"error": str(e)}
 
     # Lo unimos a la sesión de socketio
     join_room(game_code)
@@ -252,7 +256,6 @@ def leave():
 
     match = MM.get_match(game_code)
     match.players.remove(session["user"])
-
     if len(match.players) == 0:
         # Marcar la partida como finalizada
         match.started = False

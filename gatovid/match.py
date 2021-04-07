@@ -6,13 +6,19 @@ import queue
 import random
 import string
 from datetime import datetime
-from typing import List
+from typing import Set
 
 from gatovid.exts import db
 from gatovid.models import User
 
 matches = dict()
 MAX_MATCH_PLAYERS = 6
+
+
+class GameLogicException(Exception):
+    """
+    Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
+    """
 
 
 def gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
@@ -44,7 +50,7 @@ class Match:
         self.start_time = 0
         self._started = False
         self.paused = False
-        self.players: List[User] = []
+        self.players: Set[User] = set()
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -52,27 +58,46 @@ class Match:
         # que sea necesario.
         self.code = choose_code()
 
-    @property
-    def started(self) -> bool:
+    def is_started(self) -> bool:
         return self._started
 
-    @started.setter
-    def started(self, started: bool) -> None:
-        self._started = started
-        if started:
-            self.start_time = datetime.now()
-        else:
-            elapsed = datetime.now() - self.start_time
-            elapsed_mins = int(elapsed.total_seconds() / 60)
+    def start_match(self) -> None:
+        """
+        La partida solo se puede iniciar una vez, por lo que esta operación es
+        más limitada que un setter.
+        """
 
-            for player in self.players:
-                player.stats.playtime_mins += elapsed_mins
-            db.session.commit()
+        self._started = True
+        self.start_time = datetime.now()
 
     def add_player(self, player: User) -> None:
-        # Aseguramos que el usuario no está dos veces
-        if player not in self.players:
-            self.players.append(player)
+        """
+        Añade un usuario a la partida.
+
+        Puede darse una excepción si la partida ya ha empezado o si ya está en
+        la partida anteriormente.
+        """
+
+        if self.is_started():
+            raise GameLogicException("La partida ya ha empezado")
+
+        if player in self.players:
+            raise GameLogicException("El usuario ya está en la partida")
+
+        self.players.add(player)
+
+    def finalize(self) -> None:
+        """
+        Termina la partida y guarda las estadísticas para todos los usuarios.
+        """
+
+        elapsed = datetime.now() - self.start_time
+        elapsed_mins = int(elapsed.total_seconds() / 60)
+
+        for player in self.players:
+            player.stats.playtime_mins += elapsed_mins
+
+        db.session.commit()
 
 
 class PrivateMatch(Match):

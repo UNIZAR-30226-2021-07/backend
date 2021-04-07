@@ -124,7 +124,10 @@ def search_game():
     """
     Unión a una partida pública organizada por el servidor.
 
-    :return: TODO
+    :return: El cliente no recibirá respuesta hasta que el servidor haya
+        encontrado oponentes contra los que jugar. Una vez encontrada una partida,
+        recibirá un mensaje de tipo `found_game` con un objeto JSON que contiene un
+        atributo ``code: str`` con el código de la partida.
     """
 
     MM.wait_for_game(session["user"])
@@ -177,18 +180,18 @@ def start_game():
 @socket.on("join")
 def join(game_code):
     """
-    Unión a una partida privada proporcionando un código de partida.
+    Unión a una partida proporcionando un código de partida.
 
     Un jugador no se puede unir a una partida si ya está en otra o si ya está
     llena.
 
-    :param game_code: Código de partida privada
+    :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Un mensaje de tipo ``players_waiting`` con un entero indicando el
-        número de jugadores esperando a la partida (incluido él mismo). Además,
-        un mensaje de chat (ver formato en :meth:`chat`) indicando que el
-        jugador se ha unido a la partida.
+    :return: Si la partida es privada, un mensaje de tipo ``players_waiting``
+        con un entero indicando el número de jugadores esperando a la partida
+        (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
+        en :meth:`chat`) indicando que el jugador se ha unido a la partida.
     """
 
     if session.get("game"):
@@ -211,6 +214,8 @@ def join(game_code):
     join_room(game_code)
 
     if isinstance(match, PrivateMatch):
+        # Si es una partida privada, informamos a todos los de la sala del nuevo
+        # número de jugadores. El lider decidirá cuando iniciarla.
         emit("players_waiting", len(match.players), room=game_code)
     else:
         # Si es una partida pública, iniciamos la partida si ya están todos.

@@ -76,7 +76,6 @@ class Match:
         if player not in self.players:
             self.players.append(player)
 
-
 class PrivateMatch(Match):
     """
     Información de una partida privada, a la que solo se puede unir con código y
@@ -98,8 +97,12 @@ class PublicMatch(Match):
     def __init__(self, num_players: int = 0) -> None:
         super().__init__()
 
+        # Número de jugadores a la hora de hacer el matchmaking. Para comprobar
+        # si están todos los jugadores que se habían organizado.
         self.num_players = num_players
 
+        # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
+        # han conectado todos los jugadores.
         self.start_timer = threading.Timer(TIME_UNTIL_START, self.start_check)
 
     def start(self):
@@ -109,6 +112,11 @@ class PublicMatch(Match):
         super().start()
 
     def start_check(self):
+        """
+        Comprobación de si la partida puede comenzar tras haber dado un tiempo a
+        los jugadores para que se conecten. Si es posible, la partida empezará.
+        """
+
         if len(self.players) >= MIN_MATCH_PLAYERS:
             # Empezamos la partida
             self.start()
@@ -153,6 +161,11 @@ class MatchManager:
             self.timer.start()
             
     def matchmaking_check(self):
+        """
+        Comprobación de si se puede crear una partida pública "de emergencia"
+        (con menos jugadores que el máximo). La partida se crea si es posible.
+        """
+
         if len(self.users_waiting) >= MIN_MATCH_PLAYERS:
             self.create_public_game()            
 

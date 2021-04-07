@@ -214,14 +214,13 @@ def join(game_code):
 
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
-    # y en la partida
+
+    # Guardamos al jugador en la partida
     try:
         match.add_player(session["user"])
     except GameLogicException as e:
         return {"error": str(e)}
 
-    # Guardamos al jugador en la partida
-    match.add_player(session["user"])
     # Unimos al usuario a la sesión de socketio
     join_room(game_code)
 
@@ -231,7 +230,7 @@ def join(game_code):
         # Si la partida es pública, la iniciamos en cuanto entre un jugador
         if not match.started:
             match.started = True
-        
+
     emit(
         "chat",
         {

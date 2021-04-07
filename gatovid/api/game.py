@@ -108,8 +108,14 @@ def connect():
 
 @socket.on("disconnect")
 def disconnect():
-    # La sesión del usuario se limpia al reconectarse, pero puede estar metido
-    # en una partida.
+    # La sesión del usuario se limpia al reconectarse, aunque existen casos que
+    # necesitan limpieza.
+
+    # Puede estar buscando una partida pública
+    if session["user"] in MM.users_waiting:
+        MM.stop_waiting(session["user"])
+    
+    # Puede estar metido en una partida, tenemos que hacer que salga.
     if session.get("game"):
         leave()
 

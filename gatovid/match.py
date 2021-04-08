@@ -6,7 +6,7 @@ import random
 import string
 import threading
 from collections import deque
-from typing import Optional, Set
+from typing import Optional, List
 
 from gatovid.exts import db, socket
 from gatovid.game import Game
@@ -52,10 +52,10 @@ class Match:
     """
 
     def __init__(self) -> None:
-        self.users: Set[User] = set()
+        self.users: List[User] = []
         self._game: Optional[Game] = None
-        self.started = False
-        self.started_lock = threading.Lock()
+        self._started = False
+        self._started_lock = threading.Lock()
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -72,10 +72,10 @@ class Match:
         más limitada que un setter.
         """
 
-        with self.started_lock:
-            if self.started:
+        with self._started_lock:
+            if self._started:
                 return
-            self.started = True
+            self._started = True
 
         self._game = Game(self.users)
 
@@ -83,21 +83,23 @@ class Match:
 
     def end(self) -> None:
         """
-        Termina la partida y guarda las estadísticas para todos los usuarios.
+        Finaliza la partida y guarda las estadísticas para todos los usuarios en
+        caso de que haya terminado correctamente.
         """
 
-        elapsed_mins = self._game.playtime_mins()
-        winners = self._game.winners()
+        if self.is_started() and self._game.is_finished():
+            elapsed_mins = self._game.playtime_mins()
+            winners = self._game.winners()
 
-        for user in self.users:
-            user.stats.playtime_mins += elapsed_mins
-            user.coins += winners[user.email]["coins"]
-            if winners[user.email]["position"] == 1:
-                user.stats.wins += 1
-            else:
-                user.stats.losses += 1
+            for user in self.users:
+                user.stats.playtime_mins += elapsed_mins
+                user.coins += winners[user.email]["coins"]
+                if winners[user.email]["position"] == 1:
+                    user.stats.wins += 1
+                else:
+                    user.stats.losses += 1
 
-        db.session.commit()
+            db.session.commit()
 
         socket.emit("game_ended", room=self.code)
 
@@ -115,7 +117,7 @@ class Match:
         if user in self.users:
             raise GameLogicException("El usuario ya está en la partida")
 
-        self.users.add(user)
+        self.users.append(user)
 
 
 class PrivateMatch(Match):
@@ -167,15 +169,15 @@ class PublicMatch(Match):
 class MatchManager:
     def __init__(self) -> None:
         # Cola de usuarios buscando una partida pública
-        self.users_waiting = deque()
+        self._users_waiting = deque()
         # Temporizador para el tiempo de pánico para generar una partida. Se
         # generará una partida con un número de jugadores menor a 6.
-        self.timer = None
+        self._timer = None
 
         # True si se ha realizado el check. Sirve para no acceder a la misma
         # zona de código dos veces seguidas.
-        self.checked = False
-        self.checked_lock = threading.Lock()
+        self._checked = False
+        self._checked_lock = threading.Lock()
 
     def wait_for_game(self, user: User) -> None:
         """
@@ -185,34 +187,34 @@ class MatchManager:
         # No añadimos al usuario si ya está esperando.
         # FIXME: podría dar error si no cambia el sid del usuario, habría que
         # actualizar el objeto usuario en tal caso.
-        if user in self.users_waiting:
+        if user in self._users_waiting:
             return
 
-        self.users_waiting.append(user)
+        self._users_waiting.append(user)
 
         # Si ya existía un timer, lo cancelamos -> además, esto asegura que no
         # entrará el callback a mitad de comprobación de crear partida
-        if self.timer:
-            self.timer.cancel()
+        if self._timer:
+            self._timer.cancel()
 
-        with self.checked_lock:
-            if self.checked:
-                self.checked = False
+        with self._checked_lock:
+            if self._checked:
+                self._checked = False
                 return
-            self.checked = True
+            self._checked = True
 
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
-        if len(self.users_waiting) >= MAX_MATCH_USERS:
+        if len(self._users_waiting) >= MAX_MATCH_USERS:
             self.create_public_game()
 
         # Si siguen quedando jugadores en la cola, configuramos el timer.
-        if len(self.users_waiting) > 0:
+        if len(self._users_waiting) > 0:
             # Creamos un timer
-            self.timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
-            self.timer.start()
+            self._timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
+            self._timer.start()
 
-        self.checked = False
+        self._checked = False
 
     def matchmaking_check(self):
         """
@@ -220,13 +222,13 @@ class MatchManager:
         (con menos jugadores que el máximo). La partida se crea si es posible.
         """
 
-        with self.checked_lock:
-            if self.checked:
-                self.checked = False
+        with self._checked_lock:
+            if self._checked:
+                self._checked = False
                 return
-            self.checked = True
+            self._checked = True
 
-        if len(self.users_waiting) >= MIN_MATCH_USERS:
+        if len(self._users_waiting) >= MIN_MATCH_USERS:
             self.create_public_game()
 
     def stop_waiting(self, user: User) -> None:
@@ -235,11 +237,11 @@ class MatchManager:
         por si un usuario se desconecta a mitad de la búsqueda.
         """
 
-        self.users_waiting.remove(user)
+        self._users_waiting.remove(user)
 
         # Si ya no hay mas jugadores esperando, cancelamos el timer
-        if len(self.users_waiting) == 0:
-            self.timer.cancel()
+        if len(self._users_waiting) == 0:
+            self._timer.cancel()
 
     def create_public_game(self) -> None:
         # Obtener los jugadores esperando
@@ -281,10 +283,10 @@ class MatchManager:
         """
 
         waiting = []
-        max_to_play = min(len(self.users_waiting), MAX_MATCH_USERS)
+        max_to_play = min(len(self._users_waiting), MAX_MATCH_USERS)
 
         for i in range(max_to_play):
-            waiting.append(self.users_waiting.popleft())
+            waiting.append(self._users_waiting.popleft())
 
         return waiting
 

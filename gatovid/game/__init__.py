@@ -18,7 +18,7 @@ class Player:
     def __init__(self, user_id: int) -> None:
         self.user_id = user_id
         self.position: Optional[int] = None
-        self.hand: List[int] = []
+        self._hand: List[int] = []
 
 
 class Game:
@@ -30,12 +30,21 @@ class Game:
     """
 
     def __init__(self, users: List[User]) -> None:
-        self.discarded: List[int] = []
-        self.deck: List[int] = []
-        self.players = [Player(user.email) for user in users]
-        self.turn = 0
-        self.paused = False
-        self.start_time = datetime.now()
+        self._players = [Player(user.email) for user in users]
+        self._discarded: List[int] = []
+        self._deck: List[int] = []
+        self._turn = 0
+        self._paused = False
+        self._start_time = datetime.now()
+        self._finished = False
+
+        # Por el momento, se hace como que se juega y se termina la partida.
+        for i, player in enumerate(self._players):
+            player.position = i + 1
+        self._finished = True
+
+    def is_finished(self) -> bool:
+        return self._finished
 
     def run_action(self, action: Action) -> None:
         """
@@ -47,7 +56,7 @@ class Game:
         Devuelve el tiempo de juego de la partida.
         """
 
-        elapsed = datetime.now() - self.start_time
+        elapsed = datetime.now() - self._start_time
         return int(elapsed.total_seconds() / 60)
 
     def winners(self) -> Dict[int, Dict]:
@@ -62,9 +71,9 @@ class Game:
         """
 
         winners = {}
-        N = len(self.players)
+        N = len(self._players)
 
-        for player in self.players:
+        for player in self._players:
             winners[player.user_id] = {
                 "position": player.position,
                 "coins": 10 * (N - player.position),

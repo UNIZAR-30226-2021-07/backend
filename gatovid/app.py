@@ -82,6 +82,7 @@ app = create_app()
 app.register_blueprint(api.data.mod)
 # app.register_blueprint(api.game.mod)
 
+
 @app.teardown_appcontext
 def shutdown_session(exception=None):
     """
@@ -89,6 +90,7 @@ def shutdown_session(exception=None):
     colgadas sin usarse (Ref: https://stackoverflow.com/a/53715116).
     """
     db.session.remove()
+
 
 @app.route("/")
 def index():

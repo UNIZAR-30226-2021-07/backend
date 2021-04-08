@@ -48,11 +48,12 @@ def choose_code() -> str:
 
 class Match:
     """
-    Información de una partida.
+    Información de una partida. La lógica del juego se guarda en la clase
+    `Game`, que estará inicializado únicamente si la partida ha comenzado.
     """
 
     def __init__(self) -> None:
-        self.players: Set[User] = set()
+        self.users: Set[User] = set()
         self._game: Optional[Game] = None
 
         # Todas las partidas requieren un código identificador por las salas de
@@ -80,15 +81,15 @@ class Match:
 
         elapsed = datetime.now() - self.start_time
         elapsed_mins = int(elapsed.total_seconds() / 60)
+        winners = self._game.winners()
 
-        for player in self.players:
-            position = 1  # TODO tras la implementación del juego
-            player.coins += self.calc_coins(position)
-            player.stats.playtime_mins += elapsed_mins
-            if position == 1:
-                player.stats.wins += 1
+        for user in self.users:
+            user.stats.playtime_mins += elapsed_mins
+            user.coins += winners[user.email]["coins"]
+            if winners[user.email]["position"] == 1:
+                user.stats.wins += 1
             else:
-                player.stats.losses += 1
+                user.stats.losses += 1
 
         db.session.commit()
 
@@ -105,10 +106,10 @@ class Match:
         if self.is_started():
             raise GameLogicException("La partida ya ha empezado")
 
-        if player in self.players:
+        if player in self.users:
             raise GameLogicException("El usuario ya está en la partida")
 
-        self.players.add(player)
+        self.users.add(player)
 
 
 class PrivateMatch(Match):
@@ -152,7 +153,7 @@ class PublicMatch(Match):
         los jugadores para que se conecten. Si es posible, la partida empezará.
         """
 
-        if len(self.players) >= MIN_MATCH_PLAYERS:
+        if len(self.users) >= MIN_MATCH_PLAYERS:
             # Empezamos la partida
             self.start()
 

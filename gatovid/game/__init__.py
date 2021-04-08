@@ -30,23 +30,27 @@ class Game:
         Llamado ante cualquier acción de un jugador en la partida (?).
         """
 
-    def calc_coins(self) -> Dict[User, int]:
+    def winners(self) -> Dict[int, Dict]:
         """
-        Calcula las monedas obtenidas para cada jugador según la posición final,
-        siguiendo la fórmula establecida:
+        Calcula los resultados de la partida, incluyendo las monedas obtenidas
+        para cada jugador según la posición final, siguiendo la fórmula
+        establecida:
 
-        Sea N el número de jugadores de la partida, el jugador en puesto i
-        ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo N
-        * 10, y el último 0.
+          Sea N el número de jugadores de la partida, el jugador en puesto i
+          ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo N
+          * 10, y el último 0.
         """
 
-        coins = {}
+        winners = {}
+        N = len(self.players)
 
         for player in self.players:
-            N = len(self.players)
-            coins[player] = 10 * (N - player.position)
+            winners[player.user_id] = {
+                "position": player.position,
+                "coins": 10 * (N - player.position),
+            }
 
-        return coins
+        return winners
 
 
 class Player:

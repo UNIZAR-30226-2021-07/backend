@@ -175,7 +175,7 @@ def start_game():
         # empezar la partida (ya se encarga el manager)
         return {"error": "La partida no es privada"}
 
-    if len(match.players) < 2:
+    if len(match.users) < 2:
         return {"error": "Se necesitan al menos dos jugadores"}
 
     match.start()
@@ -206,7 +206,7 @@ def join(game_code):
 
     # Restricciones para unirse a la sala
     match = MM.get_match(game_code)
-    if match is None or len(match.players) > MAX_MATCH_PLAYERS:
+    if match is None or len(match.users) > MAX_MATCH_PLAYERS:
         return {"error": "La partida no existe o está llena"}
 
     # Guardamos la partida actual en la sesión
@@ -224,13 +224,13 @@ def join(game_code):
     if isinstance(match, PrivateMatch):
         # Si es una partida privada, informamos a todos los de la sala del nuevo
         # número de jugadores. El lider decidirá cuando iniciarla.
-        emit("players_waiting", len(match.players), room=game_code)
+        emit("players_waiting", len(match.users), room=game_code)
     else:
         # Si es una partida pública, iniciamos la partida si ya están todos.
         # Si hay algún jugador que no se une a la partida, la partida acabará
         # empezando (si hay suficientes jugadores) debido al start_timer en
         # PublicMatch.
-        if len(match.players) == match.num_players:
+        if len(match.users) == match.num_players:
             match.start()
 
     emit(
@@ -272,20 +272,20 @@ def leave():
     del session["game"]
 
     match = MM.get_match(game_code)
-    match.players.remove(session["user"])
-    if len(match.players) == 0:
+    match.users.remove(session["user"])
+    if len(match.users) == 0:
         match.end()
         # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
     else:
-        emit("players_waiting", len(match.players), room=game_code)
+        emit("players_waiting", len(match.users), room=game_code)
 
     # Comprobar si hay que delegar el cargo de lider
     if isinstance(match, PrivateMatch):
         if match.owner == session["user"]:
             # Si él es el lider, delegamos el cargo de lider a otro jugador
-            match.owner = match.players[0]
+            match.owner = match.users[0]
             # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
 
@@ -339,7 +339,7 @@ def play_draw():
 
 @socket.on("play_pass")
 @requires_game(started=True)
-def play_discard(data):
+def play_pass(data):
     """
     Descarta una o más cartas.
     """
@@ -348,14 +348,6 @@ def play_discard(data):
 @socket.on("play_card")
 @requires_game(started=True)
 def play_card(data):
-    """
-    TODO
-    """
-
-
-@socket.on("play_discard")
-@requires_game(started=True)
-def play_discard(data):
     """
     TODO
     """

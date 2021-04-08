@@ -2,8 +2,8 @@
 Implementación de la lógica del juego.
 """
 
-from typing import List, Dict, Optional
 from datetime import datetime
+from typing import Dict, List, Optional
 
 from gatovid.game.actions import Action
 from gatovid.game.model import User

@@ -7,11 +7,11 @@ import string
 import threading
 from collections import deque
 from datetime import datetime
-from typing import Set, Optional
+from typing import Optional, Set
 
 from gatovid.exts import db, socket
-from gatovid.models import User
 from gatovid.game import Game
+from gatovid.models import User
 
 matches = dict()
 MIN_MATCH_PLAYERS = 2

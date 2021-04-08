@@ -72,11 +72,12 @@ class Match:
         más limitada que un setter.
         """
 
-        self._game = Game(self.users)
         with self.started_lock:
             if self.started:
                 return
             self.started = True
+
+        self._game = Game(self.users)
 
         socket.emit("start_game", room=self.code)
 

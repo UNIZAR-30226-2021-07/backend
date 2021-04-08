@@ -28,8 +28,8 @@ CARDS_PATH = os.path.join(CUR_DIR, "assets", "cards.json")
 BOARDS_PATH = os.path.join(CUR_DIR, "assets", "boards.json")
 
 PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
-CARDS = json.loads(open(CARDS_PATH, "r").read())
 BOARDS = json.loads(open(BOARDS_PATH, "r").read())
+CARDS = json.loads(open(CARDS_PATH, "r").read())
 
 
 class InvalidModelException(Exception):
@@ -262,23 +262,3 @@ class Purchase(db.Model):
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         del d["user_id"]
         return d
-
-
-class GameManager:
-    """"""
-
-
-class Game:
-    """"""
-
-
-class Player:
-    """"""
-
-
-class Card:
-    """"""
-
-
-class Message:
-    """"""

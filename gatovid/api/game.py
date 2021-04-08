@@ -319,3 +319,43 @@ def chat(msg):
         },
         room=session["game"],
     )
+
+
+@socket.on("play_discard")
+@requires_game(started=True)
+def play_discard(data):
+    """
+    TODO
+    """
+
+
+@socket.on("play_draw")
+@requires_game(started=True)
+def play_draw():
+    """
+    Roba tantas cartas como sean necesarias para que el usuario tenga 3.
+    """
+
+
+@socket.on("play_pass")
+@requires_game(started=True)
+def play_discard(data):
+    """
+    Descarta una o más cartas.
+    """
+
+
+@socket.on("play_card")
+@requires_game(started=True)
+def play_card(data):
+    """
+    TODO
+    """
+
+
+@socket.on("play_discard")
+@requires_game(started=True)
+def play_discard(data):
+    """
+    TODO
+    """

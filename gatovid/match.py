@@ -1,5 +1,5 @@
 """
-Módulo de los datos de las partidas.
+Módulo de los datos sobre las partidas actuales y el sistema de matchmaking.
 """
 
 import random
@@ -7,10 +7,11 @@ import string
 import threading
 from collections import deque
 from datetime import datetime
-from typing import Set
+from typing import Set, Optional
 
 from gatovid.exts import db, socket
 from gatovid.models import User
+from gatovid.game import Game
 
 matches = dict()
 MIN_MATCH_PLAYERS = 2
@@ -51,10 +52,8 @@ class Match:
     """
 
     def __init__(self) -> None:
-        self.start_time = 0
-        self.started = False
-        self.paused = False
         self.players: Set[User] = set()
+        self._game: Optional[Game] = None
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -62,21 +61,8 @@ class Match:
         # que sea necesario.
         self.code = choose_code()
 
-    def calc_coins(self, position: int) -> int:
-        """
-        Calcula las monedas obtenidos según la posición final, según la fórmula
-        establecida:
-
-        Sea N el número de jugadores de la partida, el jugador en puesto i
-        ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo N
-        * 10, y el último 0.
-        """
-
-        N = len(self.players)
-        return 10 * (N - 1)
-
     def is_started(self) -> bool:
-        return self._started
+        return self._game is not None
 
     def start(self) -> None:
         """
@@ -84,8 +70,7 @@ class Match:
         más limitada que un setter.
         """
 
-        self.started = True
-        self.start_time = datetime.now()
+        self._game = Game()
         socket.emit("start_game", room=self.code)
 
     def end(self) -> None:

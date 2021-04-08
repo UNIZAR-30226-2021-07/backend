@@ -6,7 +6,6 @@ import random
 import string
 import threading
 from collections import deque
-from datetime import datetime
 from typing import Optional, Set
 
 from gatovid.exts import db, socket

@@ -5,8 +5,8 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from gatovid.models import User
 from gatovid.game.cards import Action
+from gatovid.models import User
 
 
 class Player:

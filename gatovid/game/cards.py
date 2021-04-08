@@ -1,6 +1,9 @@
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import List
+from typing import TYPE_CHECKING, List
+
+if TYPE_CHECKING:
+    from gatovid.game import Game
 
 
 class Color(Enum):

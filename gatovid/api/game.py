@@ -50,7 +50,7 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
 from gatovid.exts import socket
-from gatovid.match import MAX_MATCH_PLAYERS, MM, GameLogicException, PrivateMatch
+from gatovid.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.models import User
 
 
@@ -192,7 +192,7 @@ def join(game_code):
     :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Si la partida es privada, un mensaje de tipo ``players_waiting``
+    :return: Si la partida es privada, un mensaje de tipo ``users_waiting``
         con un entero indicando el número de jugadores esperando a la partida
         (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
         en :meth:`chat`) indicando que el jugador se ha unido a la partida.
@@ -206,7 +206,7 @@ def join(game_code):
 
     # Restricciones para unirse a la sala
     match = MM.get_match(game_code)
-    if match is None or len(match.users) > MAX_MATCH_PLAYERS:
+    if match is None or len(match.users) > MAX_MATCH_USERS:
         return {"error": "La partida no existe o está llena"}
 
     # Guardamos la partida actual en la sesión
@@ -214,7 +214,7 @@ def join(game_code):
 
     # Guardamos al jugador en la partida
     try:
-        match.add_player(session["user"])
+        match.add_user(session["user"])
     except GameLogicException as e:
         return {"error": str(e)}
 
@@ -224,13 +224,13 @@ def join(game_code):
     if isinstance(match, PrivateMatch):
         # Si es una partida privada, informamos a todos los de la sala del nuevo
         # número de jugadores. El lider decidirá cuando iniciarla.
-        emit("players_waiting", len(match.users), room=game_code)
+        emit("users_waiting", len(match.users), room=game_code)
     else:
         # Si es una partida pública, iniciamos la partida si ya están todos.
         # Si hay algún jugador que no se une a la partida, la partida acabará
         # empezando (si hay suficientes jugadores) debido al start_timer en
         # PublicMatch.
-        if len(match.users) == match.num_players:
+        if len(match.users) == match.num_users:
             match.start()
 
     emit(
@@ -252,7 +252,7 @@ def leave():
     Si la partida se queda sin jugadores, se borra. Si la partida no ha
     comenzado y el jugador es el lider, se delega el cargo a otro jugador.
 
-    :return: Si la partida no se borra, un mensaje de tipo ``players_waiting``
+    :return: Si la partida no se borra, un mensaje de tipo ``users_waiting``
         con un entero indicando el número de jugadores esperando a la partida.
         Además, un mensaje de chat (ver formato en :meth:``chat``) indicando que
         el jugador se ha unido a la partida. Si se ha delegado el cargo de
@@ -279,7 +279,7 @@ def leave():
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
     else:
-        emit("players_waiting", len(match.users), room=game_code)
+        emit("users_waiting", len(match.users), room=game_code)
 
     # Comprobar si hay que delegar el cargo de lider
     if isinstance(match, PrivateMatch):

@@ -13,8 +13,8 @@ from gatovid.game import Game
 from gatovid.models import User
 
 matches = dict()
-MIN_MATCH_PLAYERS = 2
-MAX_MATCH_PLAYERS = 6
+MIN_MATCH_USERS = 2
+MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
 
@@ -136,12 +136,12 @@ class PublicMatch(Match):
     gestor de partidas.
     """
 
-    def __init__(self, num_players: int = 0) -> None:
+    def __init__(self, num_users: int = 0) -> None:
         super().__init__()
 
         # Número de jugadores a la hora de hacer el matchmaking. Para comprobar
         # si están todos los jugadores que se habían organizado.
-        self.num_players = num_players
+        self.num_users = num_users
 
         # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
         # han conectado todos los jugadores.
@@ -159,7 +159,7 @@ class PublicMatch(Match):
         los jugadores para que se conecten. Si es posible, la partida empezará.
         """
 
-        if len(self.users) >= MIN_MATCH_PLAYERS:
+        if len(self.users) >= MIN_MATCH_USERS:
             # Empezamos la partida
             self.start()
 
@@ -203,7 +203,7 @@ class MatchManager:
 
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
-        if len(self.users_waiting) >= MAX_MATCH_PLAYERS:
+        if len(self.users_waiting) >= MAX_MATCH_USERS:
             self.create_public_game()
 
         # Si siguen quedando jugadores en la cola, configuramos el timer.
@@ -226,7 +226,7 @@ class MatchManager:
                 return
             self.checked = True
 
-        if len(self.users_waiting) >= MIN_MATCH_PLAYERS:
+        if len(self.users_waiting) >= MIN_MATCH_USERS:
             self.create_public_game()
 
     def stop_waiting(self, user: User) -> None:
@@ -243,17 +243,17 @@ class MatchManager:
 
     def create_public_game(self) -> None:
         # Obtener los jugadores esperando
-        players = self.get_waiting()
+        users = self.get_waiting()
 
         # Creamos la partida
-        new_match = PublicMatch(num_players=len(players))
+        new_match = PublicMatch(num_users=len(users))
         code = new_match.code
         # Añadimos la partida a la lista de partidas
         matches[code] = new_match
 
         # Avisar a todos los jugadores de la partida
-        for player in players:
-            socket.emit("found_game", {"code": code}, room=player.sid)
+        for user in users:
+            socket.emit("found_game", {"code": code}, room=user.sid)
 
         # Ponemos un timer para empezar la partida, por si no se unen todos
         new_match.start_timer.start()
@@ -281,7 +281,7 @@ class MatchManager:
         """
 
         waiting = []
-        max_to_play = min(len(self.users_waiting), MAX_MATCH_PLAYERS)
+        max_to_play = min(len(self.users_waiting), MAX_MATCH_USERS)
 
         for i in range(max_to_play):
             waiting.append(self.users_waiting.popleft())

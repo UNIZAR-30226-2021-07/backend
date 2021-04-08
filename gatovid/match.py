@@ -71,7 +71,7 @@ class Match:
         más limitada que un setter.
         """
 
-        self._game = Game()
+        self._game = Game(self.users)
         socket.emit("start_game", room=self.code)
 
     def end(self) -> None:

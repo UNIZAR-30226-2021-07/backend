@@ -67,6 +67,13 @@ class Transplant(Treatment):
         super().__init__(id)
 
 
+class OrganThief(Treatment):
+    """"""
+
+    def __init__(self, id: int) -> None:
+        super().__init__(id)
+
+
 class Infection(Treatment):
     """"""
 

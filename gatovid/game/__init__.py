@@ -26,7 +26,7 @@ class Game:
     Información global sobre la partida y su estado.
 
     Los jugadores se guardan en una lista, y se sabe el turno actual con el
-    ínice en esta.
+    índice en esta.
     """
 
     def __init__(self, users: List[User]) -> None:

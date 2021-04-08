@@ -72,8 +72,6 @@ cliente básico para acceder a la API de datos:
            campo ``error``, por tanto.
 """
 
-import logging
-
 from flask import Blueprint, request
 from flask_jwt_extended import (
     create_access_token,
@@ -86,11 +84,10 @@ from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
 from gatovid.models import InvalidModelException, TokenBlacklist, User
-from gatovid.util import msg_err, msg_ok, route_get_or_post
+from gatovid.util import msg_err, msg_ok, route_get_or_post, get_logger
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
-logger = logging.getLogger(__name__)
-logger.info("please work i beg you")
+logger = get_logger(__name__)
 
 
 def revoke_token() -> bool:

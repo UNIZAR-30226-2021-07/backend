@@ -6,7 +6,9 @@ import sys
 
 from gatovid.app import app
 from gatovid.create_db import db_init, db_reset
-from gatovid.exts import logger
+from gatovid.util import get_logger
+
+logger = get_logger(__name__)
 
 # Creación inicial de los datos
 if len(sys.argv) > 1:

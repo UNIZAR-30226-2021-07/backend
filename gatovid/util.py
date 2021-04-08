@@ -52,6 +52,9 @@ def get_logger(name: str) -> logging.Logger:
     """
     El logger por defecto de Python no funciona con Flask, por lo que esta
     función ayuda a configurarlo para un módulo.
+
+    Es necesario también configurar un logger por cada módulo, dado que de esta
+    forma se sabe de dónde es el mensaje siempre.
     """
 
     logger = logging.getLogger(__name__)

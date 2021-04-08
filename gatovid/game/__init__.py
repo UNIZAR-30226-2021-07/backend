@@ -42,6 +42,14 @@ class Game:
         Llamado ante cualquier acción de un jugador en la partida (?).
         """
 
+    def playtime_mins(self) -> int:
+        """
+        Devuelve el tiempo de juego de la partida.
+        """
+
+        elapsed = datetime.now() - self.start_time
+        return int(elapsed.total_seconds() / 60)
+
     def winners(self) -> Dict[int, Dict]:
         """
         Calcula los resultados de la partida, incluyendo las monedas obtenidas

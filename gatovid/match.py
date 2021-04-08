@@ -55,6 +55,8 @@ class Match:
     def __init__(self) -> None:
         self.users: Set[User] = set()
         self._game: Optional[Game] = None
+        self.started = False
+        self.started_lock = threading.Lock()
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -72,6 +74,11 @@ class Match:
         """
 
         self._game = Game(self.users)
+        with self.started_lock:
+            if self.started:
+                return
+            self.started = True
+
         socket.emit("start_game", room=self.code)
 
     def end(self) -> None:
@@ -79,8 +86,7 @@ class Match:
         Termina la partida y guarda las estadísticas para todos los usuarios.
         """
 
-        elapsed = datetime.now() - self.start_time
-        elapsed_mins = int(elapsed.total_seconds() / 60)
+        elapsed_mins = self._game.playtime_mins()
         winners = self._game.winners()
 
         for user in self.users:
@@ -166,6 +172,11 @@ class MatchManager:
         # generará una partida con un número de jugadores menor a 6.
         self.timer = None
 
+        # True si se ha realizado el check. Sirve para no acceder a la misma
+        # zona de código dos veces seguidas.
+        self.checked = False
+        self.checked_lock = threading.Lock()
+
     def wait_for_game(self, user: User) -> None:
         """
         Añade al usuario a la cola de usuarios esperando partida.
@@ -184,6 +195,12 @@ class MatchManager:
         if self.timer:
             self.timer.cancel()
 
+        with self.checked_lock:
+            if self.checked:
+                self.checked = False
+                return
+            self.checked = True
+
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
         if len(self.users_waiting) >= MAX_MATCH_PLAYERS:
@@ -195,11 +212,19 @@ class MatchManager:
             self.timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
             self.timer.start()
 
+        self.checked = False
+
     def matchmaking_check(self):
         """
         Comprobación de si se puede crear una partida pública "de emergencia"
         (con menos jugadores que el máximo). La partida se crea si es posible.
         """
+
+        with self.checked_lock:
+            if self.checked:
+                self.checked = False
+                return
+            self.checked = True
 
         if len(self.users_waiting) >= MIN_MATCH_PLAYERS:
             self.create_public_game()

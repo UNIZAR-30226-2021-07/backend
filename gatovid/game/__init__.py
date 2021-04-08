@@ -5,8 +5,20 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from gatovid.game.actions import Action
-from gatovid.game.model import User
+from gatovid.models import User
+from gatovid.game.cards import Action
+
+
+class Player:
+    """
+    Información sobre un usuario ya unido a la partida, con sus cartas y
+    detalles sobre su estado.
+    """
+
+    def __init__(self, user_id: int) -> None:
+        self.user_id = user_id
+        self.position: Optional[int] = None
+        self.hand: List[int] = []
 
 
 class Game:
@@ -17,10 +29,10 @@ class Game:
     ínice en esta.
     """
 
-    def __init__(self, players: List[User]) -> None:
+    def __init__(self, users: List[User]) -> None:
         self.discarded: List[int] = []
         self.deck: List[int] = []
-        self.players: List[Player] = []
+        self.players = [Player(user.email) for user in users]
         self.turn = 0
         self.paused = False
         self.start_time = datetime.now()
@@ -51,15 +63,3 @@ class Game:
             }
 
         return winners
-
-
-class Player:
-    """
-    Información sobre un usuario ya unido a la partida, con sus cartas y
-    detalles sobre su estado.
-    """
-
-    def __init__(self, user_id: int) -> None:
-        self.user_id = user_id
-        self.position: Optional[int] = None
-        self.hand: List[int] = []

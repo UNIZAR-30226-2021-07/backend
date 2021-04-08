@@ -2,8 +2,6 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import List
 
-from gatovid.game import Game
-
 
 class Color(Enum):
     Red = "red"
@@ -17,7 +15,7 @@ class Action(ABC):
         """"""
 
     @abstractmethod
-    def apply(self, game: Game) -> None:
+    def apply(self, game: "Game") -> None:
         """"""
 
 
@@ -90,14 +88,14 @@ class MedicalError(Treatment):
 class Pass(Action):
     """"""
 
-    def apply(self, game: Game) -> None:
+    def apply(self, game: "Game") -> None:
         """"""
 
 
 class Draw(Action):
     """"""
 
-    def apply(self, game: Game) -> None:
+    def apply(self, game: "Game") -> None:
         """"""
 
 
@@ -107,5 +105,5 @@ class Discard(Action):
     def __init__(self, cards: List[Card]) -> None:
         self.cards = cards
 
-    def apply(self, game: Game) -> None:
+    def apply(self, game: "Game") -> None:
         """"""

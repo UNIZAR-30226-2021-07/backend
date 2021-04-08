@@ -101,7 +101,7 @@ class Match:
 
         socket.emit("game_ended", room=self.code)
 
-    def add_player(self, player: User) -> None:
+    def add_user(self, user: User) -> None:
         """
         Añade un usuario a la partida.
 
@@ -112,10 +112,10 @@ class Match:
         if self.is_started():
             raise GameLogicException("La partida ya ha empezado")
 
-        if player in self.users:
+        if user in self.users:
             raise GameLogicException("El usuario ya está en la partida")
 
-        self.users.add(player)
+        self.users.add(user)
 
 
 class PrivateMatch(Match):

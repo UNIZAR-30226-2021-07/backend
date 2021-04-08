@@ -52,6 +52,9 @@ from flask_socketio import emit, join_room, leave_room
 from gatovid.exts import socket
 from gatovid.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.models import User
+from gatovid.util import get_logger
+
+logger = get_logger(__name__)
 
 
 def requires_game(started=False):
@@ -104,6 +107,7 @@ def connect():
     session["user"] = User.query.get(email)
     session["user"].sid = request.sid
 
+    logger.info(f"New session with user {session['user'].name}")
     return True
 
 
@@ -111,6 +115,7 @@ def connect():
 def disconnect():
     # La sesión del usuario se limpia al reconectarse, aunque existen casos que
     # necesitan limpieza.
+    logger.info(f"Ending session with user {session['user'].name}")
 
     # Puede estar buscando una partida pública
     if session["user"] in MM.users_waiting:
@@ -132,6 +137,7 @@ def search_game():
         atributo ``code: str`` con el código de la partida.
     """
 
+    logger.info(f"User {session['user'].name} is waiting for a game")
     MM.wait_for_game(session["user"])
 
 
@@ -148,6 +154,8 @@ def create_game():
     game_code = MM.create_private_game(owner=session["user"])
     join(game_code)
     emit("create_game", {"code": game_code})
+
+    logger.info(f"User {session['user'].name} has created private game {game_code}")
 
 
 @socket.on("start_game")
@@ -179,6 +187,8 @@ def start_game():
         return {"error": "Se necesitan al menos dos jugadores"}
 
     match.start()
+
+    logger.info(f"User {session['user'].name} has started private game {game}")
 
 
 @socket.on("join")
@@ -242,6 +252,8 @@ def join(game_code):
         room=game_code,
     )
 
+    logger.info(f"User {session['user'].name} has joined the game {game_code}")
+
 
 @socket.on("leave")
 @requires_game()
@@ -289,6 +301,8 @@ def leave():
             # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
 
+    logger.info(f"User {session['user'].name} has left the game {game_code}")
+
 
 @socket.on("chat")
 @requires_game(started=True)
@@ -318,6 +332,10 @@ def chat(msg):
             "owner": session["user"].name,
         },
         room=session["game"],
+    )
+
+    logger.info(
+        f"New message at game {session['game']} from user {session['user'].name}"
     )
 
 

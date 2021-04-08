@@ -3,11 +3,15 @@ Módulo para la inicialización de la base de datos, y la inserción de datos de
 prueba.
 """
 
+import logging
+
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.app import app
-from gatovid.exts import db, logger
+from gatovid.exts import db
 from gatovid.models import PurchasableType, Purchase, Stats, User
+
+logger = logging.getLogger(__name__)
 
 
 def db_reset():

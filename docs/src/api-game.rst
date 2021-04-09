@@ -3,9 +3,7 @@
 .. automodule:: gatovid.api.game
     :members:
         chat,
-        connect,
         create_game,
-        disconnect,
         join,
         leave,
         play_card,

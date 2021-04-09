@@ -51,7 +51,8 @@ Creación de Partidas Públicas
 Las partidas públicas se administran de forma automática, por lo que el flujo es
 algo maś complejo. Se creará una partida para los jugadores que estén buscando
 una (con un timer que limite el tiempo de espera), y posteriormente tendrán que
-confirmar que se quieren unir.
+confirmar que se quieren unir (también con un timer para evitar esperas
+infinitas).
 
 .. uml::
     :align: center
@@ -63,17 +64,13 @@ confirmar que se quieren unir.
     participant Frontend
     participant Backend
 
-    loop
+    loop hasta que acabe el timer o hayan 6 usuarios buscando partida
         Usuario -> Frontend: Buscar Partida
         Frontend -> Backend: create_game
         Frontend <-- Backend: create_game("A18X")
 
-        opt no había nadie buscando partida
+        opt hay >= 2 usuarios buscando partida
             Frontend -> Frontend: start_timer(TIME_UNTIL_START)
-        end
-
-        opt timer termina y hay 2 usuarios buscando partida
-            break
         end
     end
 
@@ -81,7 +78,7 @@ confirmar que se quieren unir.
     Frontend -> Frontend: start_timer(TIME_UNTIL_START)
 
     loop hasta que el timer termine o todos los usuarios se hayan unido
-        Usuario -> Frontend: Entrar en Partida encontrada
+        Usuario -> Frontend: Confirmar
         Frontend -> Backend: join("8XA1")
         Frontend --> Backend: start_game
     end
@@ -94,8 +91,11 @@ confirmar que se quieren unir.
 
     @enduml
 
-Partida
-*******
+Transcurso de la Partida
+************************
+
+Una vez la partida haya comenzado, el transcurso de la partida será el
+siguiente:
 
 .. uml::
     :align: center
@@ -108,6 +108,29 @@ Partida
     participant Backend
 
     loop hasta que acabe la partida
+        opt chat
+            Usuario -> Frontend: Enviar Mensaje
+            Frontend -> Backend: chat(msg)
+            Frontend <-- Backend: chat(msg)
+        end
+
+        opt abandonar
+            Usuario -> Frontend: Abandonar Partida
+            Frontend -> Backend: leave
+
+            alt quedan usuarios
+                Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
+                alt es privada
+                    Frontend <-- Backend: chat("El usuario bar es el nuevo líder")
+                    Frontend <-- Backend: game_owner(bar), solo al nuevo líder
+                else es publica
+                    Backend -> Backend: enable_ia(usuario)
+                end
+            else no quedan usuarios
+                Frontend <-- Backend: game_cancelled
+            end
+        end
+
         alt descarte
             Usuario -> Frontend: Descartar
             Frontend -> Backend: play_discard
@@ -125,26 +148,15 @@ Partida
             Frontend -> Backend: play_draw
             Frontend <-- Backend: TODO
         end
-
-        opt un usuario sale de la partida
-            Usuario -> Frontend: Abandonar Partida
-            Frontend -> Backend: leave
-            alt quedan usuarios
-                Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
-                Frontend <-- Backend: chat("El usuario bar es el nuevo líder")
-                Frontend <-- Backend: game_owner(bar), solo al nuevo líder
-            else no quedan usuarios
-                Frontend <-- Backend: game_cancelled
-            end
-        end
     end
 
     Frontend <-- Backend: game_ended(winners)
-    Frontend -> Usuario: winners
+    Frontend -> Usuario: podio(winners)
 
     loop por cada usuario
         User -> Frontend: Salir de Partida
         Frontend -> Backend: leave
+        Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
     end
 
     @enduml

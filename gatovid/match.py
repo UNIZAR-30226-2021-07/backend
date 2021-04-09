@@ -6,7 +6,7 @@ import random
 import string
 import threading
 from collections import deque
-from typing import Optional, List
+from typing import List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Game

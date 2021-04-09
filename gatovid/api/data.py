@@ -84,7 +84,7 @@ from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
 from gatovid.models import InvalidModelException, TokenBlacklist, User
-from gatovid.util import msg_err, msg_ok, route_get_or_post, get_logger
+from gatovid.util import get_logger, msg_err, msg_ok, route_get_or_post
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 logger = get_logger(__name__)

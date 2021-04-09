@@ -6,9 +6,9 @@ prueba.
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.app import app
-from gatovid.util import get_logger
 from gatovid.exts import db
 from gatovid.models import PurchasableType, Purchase, Stats, User
+from gatovid.util import get_logger
 
 logger = get_logger(__name__)
 

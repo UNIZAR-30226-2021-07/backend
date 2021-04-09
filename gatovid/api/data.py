@@ -367,7 +367,7 @@ def user_stats(data):
 
     stats = user.stats
 
-    logger.info(f"User {get_jwt_identity()} has accessed to their stats")
+    logger.info(f"User {name} has been accessed to their stats")
     return {
         "games": stats.games,
         "losses": stats.losses,

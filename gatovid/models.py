@@ -122,7 +122,10 @@ class User(db.Model):
             raise InvalidModelException("Nombre vacío")
 
         if not User.NAME_REGEX.fullmatch(name):
-            raise InvalidModelException("Nombre no cumple con los requisitos")
+            raise InvalidModelException(
+                "Nombre inválido: debe tener de 4 a 12 caracteres alfanuméricos"
+                "o barra baja"
+            )
 
         return name
 
@@ -132,10 +135,16 @@ class User(db.Model):
             raise InvalidModelException("Contaseña vacía")
 
         if len(password) < User.MIN_PASSWORD_LENGTH:
-            raise InvalidModelException("Contraseña demasiado corta")
+            raise InvalidModelException(
+                "Contraseña demasiado corta, debe tener al menos"
+                f"{User.MIN_PASSWORD_LENGTH} caracteres"
+            )
 
         if len(password) > User.MAX_PASSWORD_LENGTH:
-            raise InvalidModelException("Contraseña demasiado larga")
+            raise InvalidModelException(
+                "Contraseña demasiado larga, debe tener como máximo"
+                f"{User.MAX_PASSWORD_LENGTH} caracteres"
+            )
 
         return password
 

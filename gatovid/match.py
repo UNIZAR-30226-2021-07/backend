@@ -77,7 +77,7 @@ class Match:
         """
 
         with self._started_lock:
-            if self._game is not None:
+            if self.is_started():
                 return
             self._game = Game(self.users)
 

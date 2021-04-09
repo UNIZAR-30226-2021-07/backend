@@ -15,6 +15,9 @@ mensajes consultar la :ref:`reference`.
 Creación de Partidas Privadas
 *****************************
 
+Las partidas privadas son las más simples porque su inicio se realiza de forma
+manual con el líder.
+
 .. uml::
     :align: center
 
@@ -45,19 +48,49 @@ Creación de Partidas Privadas
 Creación de Partidas Públicas
 *****************************
 
+Las partidas públicas se administran de forma automática, por lo que el flujo es
+algo maś complejo. Se creará una partida para los jugadores que estén buscando
+una (con un timer que limite el tiempo de espera), y posteriormente tendrán que
+confirmar que se quieren unir.
+
 .. uml::
     :align: center
 
     @startuml
     hide footbox
 
-    actor Usuario1
-    actor Usuario2
+    actor Usuario
     participant Frontend
     participant Backend
 
-    Usuario -> Frontend: uwu
-    Frontend -> Backend: uwu
+    loop
+        Usuario -> Frontend: Buscar Partida
+        Frontend -> Backend: create_game
+        Frontend <-- Backend: create_game("A18X")
+
+        opt no había nadie buscando partida
+            Frontend -> Frontend: start_timer(TIME_UNTIL_START)
+        end
+
+        opt timer termina y hay 2 usuarios buscando partida
+            break
+        end
+    end
+
+    Frontend <-- Backend: found_game("8XA1")
+    Frontend -> Frontend: start_timer(TIME_UNTIL_START)
+
+    loop hasta que el timer termine o todos los usuarios se hayan unido
+        Usuario -> Frontend: Entrar en Partida encontrada
+        Frontend -> Backend: join("8XA1")
+        Frontend --> Backend: start_game
+    end
+
+    alt hay >=2 usuarios
+        Frontend <-- Backend: start_game
+    else hay <2 usuarios
+        Frontend <-- Backend: game_cancelled
+    end
 
     @enduml
 

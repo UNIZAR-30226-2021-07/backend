@@ -5,7 +5,7 @@ from flask_testing import TestCase
 
 from gatovid.app import app
 from gatovid.create_db import db_reset, db_test_data
-from gatovid.exts import db
+from gatovid.exts import db, socket
 
 
 class BaseTestCase(TestCase):
@@ -110,3 +110,25 @@ class GatovidTestClient(BaseTestCase):
 
     def request_data(self, token: str) -> Dict[str, str]:
         return self.request("/data/user_data", headers=self.auth_headers(token))
+
+
+class WsTestClient(GatovidTestClient):
+    """
+    Clase para realizar tests, extendida con un cliente websocket para
+    realizar peticiones desde cualquier test de forma sencilla.
+    """
+
+    def create_app(self):
+        self.app = super().create_app()
+        return self.app
+
+    def create_client(self, user_data : Dict[str, str]):
+        resp = self.request_token(user_data)
+
+        self.assertRequestOk(resp)
+        self.assertIn("access_token", resp.json)
+
+        return socket.test_client(
+            self.app,
+            headers=self.auth_headers(resp.json['access_token'])
+        )

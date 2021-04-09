@@ -13,7 +13,7 @@ from gatovid.models import TokenBlacklist
 from gatovid.util import msg_err
 
 
-def register_extensions(app: Flask) -> None:
+def _register_extensions(app: Flask) -> None:
     """
     Inicializa las extensiones a partir de la aplicación.
     """
@@ -66,7 +66,7 @@ def create_app() -> Flask:
 
     app = Flask("gatovid")
     app.config.from_object(BaseConfig)
-    register_extensions(app)
+    _register_extensions(app)
 
     return app
 

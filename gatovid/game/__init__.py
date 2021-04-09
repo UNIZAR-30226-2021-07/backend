@@ -38,7 +38,8 @@ class Game:
         self._start_time = datetime.now()
         self._finished = False
 
-        # Por el momento, se hace como que se juega y se termina la partida.
+        # TODO: Por el momento, se hace como que se juega y se termina la
+        # partida.
         for i, player in enumerate(self._players):
             player.position = i + 1
         self._finished = True

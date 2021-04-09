@@ -25,7 +25,7 @@ class GameLogicException(Exception):
     """
 
 
-def gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
+def _gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
     """
     Devuelve un código de longitud N usando los caracteres especificados.
     """
@@ -38,9 +38,9 @@ def choose_code() -> str:
     Devuelve un código sin usar y lo registra para que no pueda ser reutilizado.
     """
 
-    code = gen_code()
+    code = _gen_code()
     while matches.get(code):
-        code = gen_code()
+        code = _gen_code()
 
     return code
 
@@ -54,7 +54,6 @@ class Match:
     def __init__(self) -> None:
         self.users: List[User] = []
         self._game: Optional[Game] = None
-        self._started = False
         self._started_lock = threading.Lock()
 
         # Todas las partidas requieren un código identificador por las salas de
@@ -64,6 +63,11 @@ class Match:
         self.code = choose_code()
 
     def is_started(self) -> bool:
+        """
+        La partida se considera iniciada cuando ya se ha inicializado el juego,
+        que se auto-administra en su clase y siempre se considera iniciado.
+        """
+
         return self._game is not None
 
     def start(self) -> None:
@@ -73,11 +77,9 @@ class Match:
         """
 
         with self._started_lock:
-            if self._started:
+            if self._game is not None:
                 return
-            self._started = True
-
-        self._game = Game(self.users)
+            self._game = Game(self.users)
 
         socket.emit("start_game", room=self.code)
 
@@ -87,21 +89,24 @@ class Match:
         caso de que haya terminado correctamente.
         """
 
-        if self.is_started() and self._game.is_finished():
-            elapsed_mins = self._game.playtime_mins()
-            winners = self._game.winners()
+        if not self.is_started() or not self._game.is_finished():
+            socket.emit("game_cancelled", room=self.code)
+            return
 
-            for user in self.users:
-                user.stats.playtime_mins += elapsed_mins
-                user.coins += winners[user.email]["coins"]
-                if winners[user.email]["position"] == 1:
-                    user.stats.wins += 1
-                else:
-                    user.stats.losses += 1
+        elapsed_mins = self._game.playtime_mins()
+        winners = self._game.winners()
 
-            db.session.commit()
+        for user in self.users:
+            user.stats.playtime_mins += elapsed_mins
+            user.coins += winners[user.email]["coins"]
+            if winners[user.email]["position"] == 1:
+                user.stats.wins += 1
+            else:
+                user.stats.losses += 1
 
-        socket.emit("game_ended", room=self.code)
+        db.session.commit()
+
+        socket.emit("game_ended", winners, room=self.code)
 
     def add_user(self, user: User) -> None:
         """

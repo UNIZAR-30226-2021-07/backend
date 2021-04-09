@@ -470,7 +470,7 @@ def leave():
         if match.owner == session["user"]:
             # Si él es el lider, delegamos el cargo de lider a otro jugador
             match.owner = match.users[0]
-            # Mensaje solo al nuevo dueño de la sala
+
             emit(
                 "chat",
                 {
@@ -479,6 +479,8 @@ def leave():
                 },
                 room=game_code,
             )
+
+            # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
 
     logger.info(f"User {session['user'].name} has left the game {game_code}")

@@ -50,51 +50,41 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
 from gatovid.exts import socket
-from gatovid.match import MAX_MATCH_PLAYERS, MM
+from gatovid.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.models import User
+from gatovid.util import get_logger
+
+logger = get_logger(__name__)
 
 
-def requires_game(f):
+def _requires_game(started=False):
     """
-    Decorador para comprobar si el usuario está en una partida.
-    """
-
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        game = session.get("game")
-        if not game:
-            return {"error": "No estás en una partida"}
-
-        if not MM.get_match(game):
-            return {"error": "La partida no existe"}
-
-        return f(*args, **kwargs)
-
-    return wrapper
-
-
-def requires_game_started(f):
-    """
-    Decorador para comprobar si el usuario está en una partida y esta ha
-    comenzado.
+    Decorador para comprobar si el usuario está en una partida. Si started es
+    True, se comprueba también que la partida ha empezado.
     """
 
-    @functools.wraps(f)
-    def wrapper(*args, **kwargs):
-        game = session.get("game")
-        if not game:
-            return {"error": "No estás en una partida"}
+    def deco(f):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            game = session.get("game")
+            if not game:
+                return {"error": "No estás en una partida"}
 
-        match = MM.get_match(game)
-        if not match:
-            return {"error": "La partida no existe"}
+            match = MM.get_match(game)
+            if not match:
+                # FIXME: creo que esto no podría llegar a pasar, porque para que
+                # la partida no exista, el usuario ha tenido que salir. Sino, se
+                # retiene la partida.
+                return {"error": "La partida no existe"}
 
-        if not match.started:
-            return {"error": "La partida no ha comenzado"}
+            if started and not match.is_started():
+                return {"error": "La partida no ha comenzado"}
 
-        return f(*args, **kwargs)
+            return f(*args, **kwargs)
 
-    return wrapper
+        return wrapper
+
+    return deco
 
 
 @socket.on("connect")
@@ -117,15 +107,38 @@ def connect():
     session["user"] = User.query.get(email)
     session["user"].sid = request.sid
 
+    logger.info(f"New session with user {session['user'].name}")
     return True
 
 
 @socket.on("disconnect")
 def disconnect():
-    # La sesión del usuario se limpia al reconectarse, pero puede estar metido
-    # en una partida.
+    # La sesión del usuario se limpia al reconectarse, aunque existen casos que
+    # necesitan limpieza.
+    logger.info(f"Ending session with user {session['user'].name}")
+
+    # Puede estar buscando una partida pública
+    if session["user"] in MM.users_waiting:
+        MM.stop_waiting(session["user"])
+
+    # Puede estar metido en una partida, tenemos que hacer que salga.
     if session.get("game"):
         leave()
+
+
+@socket.on("search_game")
+def search_game():
+    """
+    Unión a una partida pública organizada por el servidor.
+
+    :return: El cliente no recibirá respuesta hasta que el servidor haya
+        encontrado oponentes contra los que jugar. Una vez encontrada una partida,
+        recibirá un mensaje de tipo `found_game` con un objeto JSON que contiene un
+        atributo ``code: str`` con el código de la partida.
+    """
+
+    logger.info(f"User {session['user'].name} is waiting for a game")
+    MM.wait_for_game(session["user"])
 
 
 @socket.on("create_game")
@@ -137,13 +150,16 @@ def create_game():
 
         * ``game: str``
     """
+
     game_code = MM.create_private_game(owner=session["user"])
-    join({"game": game_code})
+    join(game_code)
     emit("create_game", {"code": game_code})
+
+    logger.info(f"User {session['user'].name} has created private game {game_code}")
 
 
 @socket.on("start_game")
-@requires_game
+@_requires_game()
 def start_game():
     """
     Puesta en marcha de una partida privada.
@@ -167,28 +183,29 @@ def start_game():
         # empezar la partida (ya se encarga el manager)
         return {"error": "La partida no es privada"}
 
-    if len(match.players) < 2:
+    if len(match.users) < 2:
         return {"error": "Se necesitan al menos dos jugadores"}
 
-    match.started = True
-    emit("start_game", room=game)
+    match.start()
+
+    logger.info(f"User {session['user'].name} has started private game {game}")
 
 
 @socket.on("join")
 def join(game_code):
     """
-    Unión a una partida privada proporcionando un código de partida.
+    Unión a una partida proporcionando un código de partida.
 
     Un jugador no se puede unir a una partida si ya está en otra o si ya está
     llena.
 
-    :param game_code: Código de partida privada
+    :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Un mensaje de tipo ``players_waiting`` con un entero indicando el
-        número de jugadores esperando a la partida (incluido él mismo). Además,
-        un mensaje de chat (ver formato en :meth:`chat`) indicando que el
-        jugador se ha unido a la partida.
+    :return: Si la partida es privada, un mensaje de tipo ``users_waiting``
+        con un entero indicando el número de jugadores esperando a la partida
+        (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
+        en :meth:`chat`) indicando que el jugador se ha unido a la partida.
     """
 
     if session.get("game"):
@@ -199,16 +216,32 @@ def join(game_code):
 
     # Restricciones para unirse a la sala
     match = MM.get_match(game_code)
-    if match is None or len(match.players) > MAX_MATCH_PLAYERS:
+    if match is None or len(match.users) > MAX_MATCH_USERS:
         return {"error": "La partida no existe o está llena"}
 
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
-    # y en la partida
-    match.add_player(session["user"])
 
-    # Lo unimos a la sesión de socketio
+    # Guardamos al jugador en la partida
+    try:
+        match.add_user(session["user"])
+    except GameLogicException as e:
+        return {"error": str(e)}
+
+    # Unimos al usuario a la sesión de socketio
     join_room(game_code)
+
+    if isinstance(match, PrivateMatch):
+        # Si es una partida privada, informamos a todos los de la sala del nuevo
+        # número de jugadores. El lider decidirá cuando iniciarla.
+        emit("users_waiting", len(match.users), room=game_code)
+    else:
+        # Si es una partida pública, iniciamos la partida si ya están todos.
+        # Si hay algún jugador que no se une a la partida, la partida acabará
+        # empezando (si hay suficientes jugadores) debido al start_timer en
+        # PublicMatch.
+        if len(match.users) == match.num_users:
+            match.start()
 
     emit(
         "chat",
@@ -219,11 +252,11 @@ def join(game_code):
         room=game_code,
     )
 
-    emit("players_waiting", len(match.players), room=game_code)
+    logger.info(f"User {session['user'].name} has joined the game {game_code}")
 
 
 @socket.on("leave")
-@requires_game
+@_requires_game()
 def leave():
     """
     Salir de la partida actual.
@@ -231,7 +264,7 @@ def leave():
     Si la partida se queda sin jugadores, se borra. Si la partida no ha
     comenzado y el jugador es el lider, se delega el cargo a otro jugador.
 
-    :return: Si la partida no se borra, un mensaje de tipo ``players_waiting``
+    :return: Si la partida no se borra, un mensaje de tipo ``users_waiting``
         con un entero indicando el número de jugadores esperando a la partida.
         Además, un mensaje de chat (ver formato en :meth:``chat``) indicando que
         el jugador se ha unido a la partida. Si se ha delegado el cargo de
@@ -251,31 +284,28 @@ def leave():
     del session["game"]
 
     match = MM.get_match(game_code)
-    match.players.remove(session["user"])
-
-    if len(match.players) == 0:
-        # Marcar la partida como finalizada
-        match.started = False
+    match.users.remove(session["user"])
+    if len(match.users) == 0:
+        match.end()
         # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
     else:
-        emit("players_waiting", len(match.players), room=game_code)
+        emit("users_waiting", len(match.users), room=game_code)
 
     # Comprobar si hay que delegar el cargo de lider
-    try:
+    if isinstance(match, PrivateMatch):
         if match.owner == session["user"]:
             # Si él es el lider, delegamos el cargo de lider a otro jugador
-            match.owner = match.players[0]
+            match.owner = match.users[0]
             # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
-    except (AttributeError, TypeError) as e:
-        # Si la partida es pública no tiene lider
-        return {"error": "La partida no es privada " + str(e)}
+
+    logger.info(f"User {session['user'].name} has left the game {game_code}")
 
 
 @socket.on("chat")
-@requires_game_started
+@_requires_game(started=True)
 def chat(msg):
     """
     Enviar un mensaje al chat de la partida.
@@ -303,3 +333,39 @@ def chat(msg):
         },
         room=session["game"],
     )
+
+    logger.info(
+        f"New message at game {session['game']} from user {session['user'].name}"
+    )
+
+
+@socket.on("play_discard")
+@_requires_game(started=True)
+def play_discard(data):
+    """
+    TODO
+    """
+
+
+@socket.on("play_draw")
+@_requires_game(started=True)
+def play_draw():
+    """
+    Roba tantas cartas como sean necesarias para que el usuario tenga 3.
+    """
+
+
+@socket.on("play_pass")
+@_requires_game(started=True)
+def play_pass(data):
+    """
+    Descarta una o más cartas.
+    """
+
+
+@socket.on("play_card")
+@_requires_game(started=True)
+def play_card(data):
+    """
+    TODO
+    """

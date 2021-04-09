@@ -38,7 +38,7 @@ extensions = [
 ]
 autosummary_generate = True
 
-plantuml = 'java -jar ../plantuml.jar'
+plantuml = "java -jar ../plantuml.jar"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

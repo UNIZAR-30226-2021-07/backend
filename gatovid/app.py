@@ -80,7 +80,6 @@ app = create_app()
 # Los "blueprint" sirven para que los endpoints de la página web sean más
 # modulares.
 app.register_blueprint(api.data.mod)
-# app.register_blueprint(api.game.mod)
 
 
 @app.route("/")

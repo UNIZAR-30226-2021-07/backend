@@ -84,9 +84,10 @@ from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
 from gatovid.models import InvalidModelException, TokenBlacklist, User
-from gatovid.util import msg_err, msg_ok, route_get_or_post
+from gatovid.util import get_logger, msg_err, msg_ok, route_get_or_post
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
+logger = get_logger(__name__)
 
 
 def _revoke_token() -> bool:
@@ -179,6 +180,8 @@ def signup(data):
         else:
             raise
 
+    logger.info(f"User {user.name} has signed up")
+
     return {
         "user": {
             "email": user.email,
@@ -208,6 +211,8 @@ def remove_user(data):
 
     db.session.delete(user)
     db.session.commit()
+
+    logger.info(f"User {user.name} has been removed")
 
     return msg_ok("Usuario eliminado con éxito")
 
@@ -260,6 +265,7 @@ def modify_user(data):
 
     db.session.commit()
 
+    logger.info(f"User {user.name} has modified their profile")
     return msg_ok("Usuario modificado con éxito")
 
 
@@ -291,6 +297,7 @@ def login(data):
         return msg_err("Contraseña incorrecta")
 
     access_token = create_access_token(identity=email)
+    logger.info(f"User {user.name} has logged in")
     return {"access_token": access_token}
 
 
@@ -304,6 +311,7 @@ def logout(data):
         un mensaje de error interno en caso contrario.
     """
 
+    logger.info(f"User {get_jwt_identity()} is logging out")
     if _revoke_token():
         return msg_ok("Sesión cerrada con éxito")
     else:
@@ -358,6 +366,7 @@ def user_stats(data):
 
     stats = user.stats
 
+    logger.info(f"User {name} has been accessed to their stats")
     return {
         "games": stats.games,
         "losses": stats.losses,

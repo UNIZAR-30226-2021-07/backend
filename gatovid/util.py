@@ -3,6 +3,7 @@ Algunas funciones útiles a lo largo de todo el programa.
 """
 
 import functools
+import logging
 from typing import Dict, Optional
 
 from flask import Blueprint, request
@@ -45,3 +46,21 @@ def route_get_or_post(blueprint: Blueprint, rule: str):
         return wrapped
 
     return decorator
+
+
+def get_logger(name: str) -> logging.Logger:
+    """
+    El logger por defecto de Python no funciona con Flask, por lo que esta
+    función ayuda a configurarlo para un módulo.
+
+    Es necesario también configurar un logger por cada módulo, dado que de esta
+    forma se sabe de dónde es el mensaje siempre.
+    """
+
+    logger = logging.getLogger(__name__)
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="[%(asctime)s] %(levelname)s in %(module)s: %(message)s",
+    )
+
+    return logger

@@ -53,48 +53,61 @@ Cliente Básico
 **************
 
 Dadas las restricciones anteriores, se describe a continuación cómo sería un
-cliente básico para acceder a la API de datos:
+cliente básico para acceder a la API de datos, que permite entender de forma
+sencilla el flujo de control de manejo de errores:
 
 .. uml::
 
     @startuml
+    !pragma useVerticalIf on
 
-    :Hacer petición:
-    :Comprobar si hay un error:
+    start
 
-    if (error) then
-        if (error == 401) then
-            :Refrescar el token y volver al punto 1:
-        elseif (error == 400)
-            if (fallo de usuario) then
-                :Error del usuario:
+    :Hacer petición;
 
+    if (se produjo un error?) then (sí)
+        if (error == 400) then (sí)
+            if (de quién es el fallo?) then (del usuario)
+                :Se le muestra el mensaje
+                de error del campo `error`;
+            else (del frontend)
+                stop
 
-                note left
-                    Si es fallo del usuario se le muestra el mensaje de error
-                    del campo ``error``.
-                end note
-            else (fallo de programador) then
-                :Error del frontend:
-
-                note left
-                    Si es fallo del programador, tendrá que hacerse debug en el
-                    cliente y solucionarlo, ya que no es esperado que suceda. Se
-                    puede usar el campo ``error`` para ello.
+                note right
+                    Debug en el cliente y
+                    solucionarlo, ya que no
+                    es esperado que suceda.
+                    Se puede usar el campo
+                    `error` para ello.
                 end note
             endif
-        elseif (error >= 500 && error <= 599)
-            :Error en el backend:
+        elseif (error == 401) then (sí)
+            :Refrescar el token;
 
-            note left
-                Tendrá que hacerse debug en el backend y solucionarlo, que será
-                donde se encuentre más información. En este caso no se puede
-                usar el campo ``error``, por tanto.
+            stop
+
+            note right
+                Reintentar petición
+            end note
+        elseif (error >= 500 && error <= 599) then (sí)
+            :Error en el backend;
+
+            stop
+
+            note right
+                Debug en el backend y
+                solucionarlo, que será
+                donde se encuentre más
+                información.
             end note
         endif
-    else (Se puede usar el valor devuelto)
-        stop
+    else (no)
+        :Se puede usar el valor devuelto;
     endif
+
+    stop
+
+    @enduml
 """
 
 from flask import Blueprint, request

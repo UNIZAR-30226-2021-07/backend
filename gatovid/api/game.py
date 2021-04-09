@@ -25,6 +25,8 @@ JSON cuando haya múltiples parámetros.
 Los parámetros devueltos se ajustarán a las descripciones de return de cada
 endpoint.
 
+.. _errores:
+
 Errores y Validación
 ####################
 
@@ -164,8 +166,9 @@ def start_game():
     """
     Puesta en marcha de una partida privada.
 
-    Se requieren mínimo 2 jugadores (contando al lider) esperando la partida
-    para empezarla. Además, solo el lider de la partida podrá iniciarla.
+    Requiere que el usuario esté en una partida y que sea el líder o se
+    devolverá un :ref:`error <errores>`. También deben haber al menos 2
+    jugadores en total esperando la partida para empezarla.
 
     :return: Un mensaje de tipo ``start_game`` a todos los jugadores esperando
         en la sala.
@@ -259,16 +262,24 @@ def join(game_code):
 @_requires_game()
 def leave():
     """
-    Salir de la partida actual.
+    Salir de la partida actual. Requiere que el usuario esté en una partida o se
+    devolverá un :ref:`error <errores>`.
 
-    Si la partida se queda sin jugadores, se borra. Si la partida no ha
-    comenzado y el jugador es el lider, se delega el cargo a otro jugador.
+    :return:
+        * Si la partida no se borra porque quedan jugadores:
 
-    :return: Si la partida no se borra, un mensaje de tipo ``users_waiting``
-        con un entero indicando el número de jugadores esperando a la partida.
-        Además, un mensaje de chat (ver formato en :meth:``chat``) indicando que
-        el jugador se ha unido a la partida. Si se ha delegado el cargo de
-        líder, el nuevo lider recibirá un mensaje de tipo ``game_owner``.
+          - Un mensaje de tipo ``users_waiting`` con un entero indicando el
+            número de jugadores esperando a la partida.
+          - Un mensaje de ``chat`` (ver formato en :meth:`chat`) indicando que
+            el jugador ha abandonado la partida.
+          - Si se ha delegado el cargo de líder, el nuevo líder recibirá un
+            mensaje de tipo ``game_owner``.
+        * Si la partida se borra porque no quedan jugadores:
+
+          - Si ya había terminado, un mensaje de tipo ``game_ended``, acompañado
+            por un objeto con información sobre los ganadores. TODO describir.
+          - Si no había terminado y se ha cancelado, un mensaje de tipo
+            ``game_cancelled``.
     """
 
     game_code = session["game"]
@@ -308,9 +319,8 @@ def leave():
 @_requires_game(started=True)
 def chat(msg):
     """
-    Enviar un mensaje al chat de la partida.
-
-    Se requiere que la partida esté ya comenzada.
+    Enviar un mensaje al chat de la partida. Requiere que el usuario esté en una
+    partida y que esté empezada o se devolverá un :ref:`error <errores>`.
 
     :param msg: Mensaje a enviar
     :type msg: ``str``
@@ -343,7 +353,10 @@ def chat(msg):
 @_requires_game(started=True)
 def play_discard(data):
     """
-    TODO
+    Descarta las cartas indicadas de la mano del usuario.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """
 
 
@@ -352,14 +365,20 @@ def play_discard(data):
 def play_draw():
     """
     Roba tantas cartas como sean necesarias para que el usuario tenga 3.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """
 
 
 @socket.on("play_pass")
 @_requires_game(started=True)
-def play_pass(data):
+def play_pass():
     """
-    Descarta una o más cartas.
+    Pasa el turno del usuario.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """
 
 
@@ -367,5 +386,8 @@ def play_pass(data):
 @_requires_game(started=True)
 def play_card(data):
     """
-    TODO
+    Juega una carta de su mano.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """

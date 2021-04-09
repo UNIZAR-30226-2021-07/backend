@@ -2,8 +2,15 @@
 
 .. automodule:: gatovid.api.game
     :members:
+        chat,
+        connect,
         create_game,
-        start_game,
+        disconnect,
         join,
         leave,
-        chat,
+        play_card,
+        play_discard,
+        play_draw,
+        play_pass,
+        search_game,
+        start_game,

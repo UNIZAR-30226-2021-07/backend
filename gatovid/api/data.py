@@ -57,6 +57,7 @@ cliente básico para acceder a la API de datos, que permite entender de forma
 sencilla el flujo de control de manejo de errores:
 
 .. uml::
+    :align: center
 
     @startuml
     !pragma useVerticalIf on
@@ -65,7 +66,7 @@ sencilla el flujo de control de manejo de errores:
 
     :Hacer petición;
 
-    if (se produjo un error?) then (sí)
+    if (¿se produjo un error?) then (sí)
         if (error == 400) then (sí)
             if (de quién es el fallo?) then (del usuario)
                 :Se le muestra el mensaje
@@ -108,6 +109,9 @@ sencilla el flujo de control de manejo de errores:
     stop
 
     @enduml
+
+Referencia
+##########
 """
 
 from flask import Blueprint, request

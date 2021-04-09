@@ -5,6 +5,7 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from gatovid.exts import db, socket
 from gatovid.game.cards import Action
 from gatovid.models import User
 
@@ -15,8 +16,8 @@ class Player:
     detalles sobre su estado.
     """
 
-    def __init__(self, user_id: int) -> None:
-        self.user_id = user_id
+    def __init__(self, user: User) -> None:
+        self.user = user
         self.position: Optional[int] = None
         self._hand: List[int] = []
 
@@ -30,7 +31,7 @@ class Game:
     """
 
     def __init__(self, users: List[User]) -> None:
-        self._players = [Player(user.email) for user in users]
+        self._players = [Player(user) for user in users]
         self._discarded: List[int] = []
         self._deck: List[int] = []
         self._turn = 0
@@ -42,17 +43,12 @@ class Game:
         # partida.
         for i, player in enumerate(self._players):
             player.position = i + 1
-        self._finished = True
+        self._finish()
 
     def is_finished(self) -> bool:
         return self._finished
 
-    def run_action(self, action: Action) -> None:
-        """
-        Llamado ante cualquier acción de un jugador en la partida (?).
-        """
-
-    def playtime_mins(self) -> int:
+    def _playtime_mins(self) -> int:
         """
         Devuelve el tiempo de juego de la partida.
         """
@@ -60,7 +56,7 @@ class Game:
         elapsed = datetime.now() - self._start_time
         return int(elapsed.total_seconds() / 60)
 
-    def winners(self) -> Dict[int, Dict]:
+    def _winners(self) -> Dict[int, Dict]:
         """
         Calcula los resultados de la partida, incluyendo las monedas obtenidas
         para cada jugador según la posición final, siguiendo la fórmula
@@ -75,9 +71,39 @@ class Game:
         N = len(self._players)
 
         for player in self._players:
-            winners[player.user_id] = {
+            winners[player.user.name] = {
                 "position": player.position,
                 "coins": 10 * (N - player.position),
             }
 
         return winners
+
+    def _finish(self) -> None:
+        """
+        Termina la partida, asigna las estadísticas a los jugadores y les
+        notifica.
+        """
+
+        if self.is_finished():
+            return
+
+        self._finished = True
+        mins = self._playtime_mins()
+        winners = self._winners()
+
+        for player in self._players:
+            player.stats.playtime_mins += mins
+            player.coins += winners[player.user.name]["coins"]
+            if winners[player.email]["position"] == 1:
+                player.stats.wins += 1
+            else:
+                player.stats.losses += 1
+
+        db.session.commit()
+
+        socket.emit("game_ended", winners, room=self.code)
+
+    def run_action(self, action: Action) -> None:
+        """
+        Llamado ante cualquier acción de un jugador en la partida (?).
+        """

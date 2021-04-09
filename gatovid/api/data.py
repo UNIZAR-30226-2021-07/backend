@@ -83,7 +83,7 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
-from gatovid.models import InvalidModelException, TokenBlacklist, User, Stats
+from gatovid.models import InvalidModelException, Stats, TokenBlacklist, User
 from gatovid.util import msg_err, msg_ok, route_get_or_post
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")

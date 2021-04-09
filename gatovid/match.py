@@ -174,7 +174,7 @@ class PublicMatch(Match):
 class MatchManager:
     def __init__(self) -> None:
         # Cola de usuarios buscando una partida pública
-        self._users_waiting = deque()
+        self.users_waiting = deque()
         # Temporizador para el tiempo de pánico para generar una partida. Se
         # generará una partida con un número de jugadores menor a 6.
         self._timer = None
@@ -192,10 +192,10 @@ class MatchManager:
         # No añadimos al usuario si ya está esperando.
         # FIXME: podría dar error si no cambia el sid del usuario, habría que
         # actualizar el objeto usuario en tal caso.
-        if user in self._users_waiting:
+        if user in self.users_waiting:
             return
 
-        self._users_waiting.append(user)
+        self.users_waiting.append(user)
 
         # Si ya existía un timer, lo cancelamos -> además, esto asegura que no
         # entrará el callback a mitad de comprobación de crear partida
@@ -210,11 +210,11 @@ class MatchManager:
 
         # Si la cola tiene el máximo de jugadores para una partida, se crea una
         # partida para todos.
-        if len(self._users_waiting) >= MAX_MATCH_USERS:
+        if len(self.users_waiting) >= MAX_MATCH_USERS:
             self.create_public_game()
 
         # Si siguen quedando jugadores en la cola, configuramos el timer.
-        if len(self._users_waiting) > 0:
+        if len(self.users_waiting) > 0:
             # Creamos un timer
             self._timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
             self._timer.start()
@@ -233,7 +233,7 @@ class MatchManager:
                 return
             self._checked = True
 
-        if len(self._users_waiting) >= MIN_MATCH_USERS:
+        if len(self.users_waiting) >= MIN_MATCH_USERS:
             self.create_public_game()
 
     def stop_waiting(self, user: User) -> None:
@@ -242,10 +242,10 @@ class MatchManager:
         por si un usuario se desconecta a mitad de la búsqueda.
         """
 
-        self._users_waiting.remove(user)
+        self.users_waiting.remove(user)
 
         # Si ya no hay mas jugadores esperando, cancelamos el timer
-        if len(self._users_waiting) == 0:
+        if len(self.users_waiting) == 0:
             self._timer.cancel()
 
     def create_public_game(self) -> None:
@@ -288,10 +288,10 @@ class MatchManager:
         """
 
         waiting = []
-        max_to_play = min(len(self._users_waiting), MAX_MATCH_USERS)
+        max_to_play = min(len(self.users_waiting), MAX_MATCH_USERS)
 
         for i in range(max_to_play):
-            waiting.append(self._users_waiting.popleft())
+            waiting.append(self.users_waiting.popleft())
 
         return waiting
 

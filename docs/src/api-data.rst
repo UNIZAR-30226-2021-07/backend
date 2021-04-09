@@ -2,12 +2,12 @@
 
 .. automodule:: gatovid.api.data
     :members:
-        signup,
         login,
         logout,
-        remove_user,
         modify_user,
+        protected,
+        remove_user,
+        signup,
+        test,
         user_data,
         user_stats,
-        test,
-        protected,

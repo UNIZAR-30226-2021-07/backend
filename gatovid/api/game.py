@@ -5,8 +5,164 @@ API de Juegos
 Módulo con el API de websockets para la comunicación en tiempo real con los
 clientes, como el juego mismo o el chat de la partida.
 
+Funcionamiento del juego
+########################
+
+En esta sección se incluyen diagramas sobre la comunicación entre el cliente y
+el servidor de forma más visual que textualmente. Para más detalles sobre los
+mensajes consultar la :ref:`reference`.
+
+Creación de Partidas Privadas
+*****************************
+
+Las partidas privadas son las más simples porque su inicio se realiza de forma
+manual con el líder.
+
+.. uml::
+    :align: center
+
+    @startuml
+    hide footbox
+
+    actor Usuario
+    actor Líder
+    participant Frontend
+    participant Backend
+
+    Líder -> Frontend: Crear Partida
+    Frontend -> Backend: create_game
+    Frontend <-- Backend: create_game("A18X")
+
+    loop hasta que N >= 2
+        Usuario -> Frontend: Unirse a Partida
+        Frontend -> Backend: join("A18X")
+        Frontend <-- Backend: users_waiting(N)
+    end
+
+    Líder -> Frontend: Iniciar partida
+    Frontend -> Backend: start_game
+    Frontend <-- Backend: start_game
+
+    @enduml
+
+Creación de Partidas Públicas
+*****************************
+
+Las partidas públicas se administran de forma automática, por lo que el flujo es
+algo maś complejo. Se creará una partida para los jugadores que estén buscando
+una (con un timer que limite el tiempo de espera), y posteriormente tendrán que
+confirmar que se quieren unir (también con un timer para evitar esperas
+infinitas).
+
+.. uml::
+    :align: center
+
+    @startuml
+    hide footbox
+
+    actor Usuario
+    participant Frontend
+    participant Backend
+
+    loop hasta que acabe el timer o hayan 6 usuarios buscando partida
+        Usuario -> Frontend: Buscar Partida
+        Frontend -> Backend: create_game
+        Frontend <-- Backend: create_game("A18X")
+
+        opt hay >= 2 usuarios buscando partida
+            Frontend -> Frontend: start_timer(TIME_UNTIL_START)
+        end
+    end
+
+    Frontend <-- Backend: found_game("8XA1")
+    Frontend -> Frontend: start_timer(TIME_UNTIL_START)
+
+    loop hasta que el timer termine o todos los usuarios se hayan unido
+        Usuario -> Frontend: Confirmar
+        Frontend -> Backend: join("8XA1")
+        Frontend --> Backend: start_game
+    end
+
+    alt hay >=2 usuarios
+        Frontend <-- Backend: start_game
+    else hay <2 usuarios
+        Frontend <-- Backend: game_cancelled
+    end
+
+    @enduml
+
+Transcurso de la Partida
+************************
+
+Una vez la partida haya comenzado, el transcurso de la partida será el
+siguiente:
+
+.. uml::
+    :align: center
+
+    @startuml
+    hide footbox
+
+    actor Usuario
+    participant Frontend
+    participant Backend
+
+    loop hasta que acabe la partida
+        opt chat
+            Usuario -> Frontend: Enviar Mensaje
+            Frontend -> Backend: chat(msg)
+            Frontend <-- Backend: chat(msg)
+        end
+
+        opt abandonar
+            Usuario -> Frontend: Abandonar Partida
+            Frontend -> Backend: leave
+
+            alt quedan usuarios
+                Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
+                alt es privada
+                    Frontend <-- Backend: chat("El usuario bar es el nuevo líder")
+                    Frontend <-- Backend: game_owner(bar), solo al nuevo líder
+                else es publica
+                    Backend -> Backend: enable_ia(usuario)
+                end
+            else no quedan usuarios
+                Frontend <-- Backend: game_cancelled
+            end
+        end
+
+        alt descarte
+            Usuario -> Frontend: Descartar
+            Frontend -> Backend: play_discard
+            Frontend <-- Backend: TODO
+        else jugar carta
+            Usuario -> Frontend: Jugar Carta
+            Frontend -> Backend: play_card
+            Frontend <-- Backend: TODO
+        else pasar
+            Usuario -> Frontend: Pasar
+            Frontend -> Backend: play_pass
+            Frontend <-- Backend: TODO
+        else robar
+            Usuario -> Frontend: Robar
+            Frontend -> Backend: play_draw
+            Frontend <-- Backend: TODO
+        end
+    end
+
+    Frontend <-- Backend: game_ended(winners)
+    Frontend -> Usuario: podio(winners)
+
+    loop por cada usuario
+        User -> Frontend: Salir de Partida
+        Frontend -> Backend: leave
+        Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
+    end
+
+    @enduml
+
 Mensajes Websockets
-####################
+###################
 
 Para el correcto funcionamiento de la comunicación, es necesario el uso de la
 librería SocketIO en el cliente.
@@ -16,14 +172,16 @@ ejemplo, si se quiere contactar con el endpoint de :meth:`create_game`, se debe
 emitir un mensaje de tipo ``create_game``.
 
 Parámetros
-####################
+##########
 
 El paso de parámetros será pasando directamente el valor en mensajes con solo un
-parámetro (y cuando no haya posibles parámetros opcionales) y pasando un objeto
+parámetro (y cuando no haya posibles parámetros opcionales), o con un objeto
 JSON cuando haya múltiples parámetros.
 
 Los parámetros devueltos se ajustarán a las descripciones de return de cada
 endpoint.
+
+.. _errores:
 
 Errores y Validación
 ####################
@@ -37,10 +195,15 @@ devuelto.
   :linenos:
 
   socket.emit('join', dataToEmit, function (data) {
-      if(data && data.error) {
+      if (data && data.error) {
           console.error(data.error);
       }
   });
+
+.. _reference:
+
+Referencia
+##########
 """
 
 import functools
@@ -132,9 +295,9 @@ def search_game():
     Unión a una partida pública organizada por el servidor.
 
     :return: El cliente no recibirá respuesta hasta que el servidor haya
-        encontrado oponentes contra los que jugar. Una vez encontrada una partida,
-        recibirá un mensaje de tipo `found_game` con un objeto JSON que contiene un
-        atributo ``code: str`` con el código de la partida.
+        encontrado oponentes contra los que jugar. Una vez encontrada una
+        partida, recibirá un mensaje de tipo `found_game` con un objeto JSON que
+        contiene un atributo ``code: str`` con el código de la partida.
     """
 
     logger.info(f"User {session['user'].name} is waiting for a game")
@@ -164,8 +327,9 @@ def start_game():
     """
     Puesta en marcha de una partida privada.
 
-    Se requieren mínimo 2 jugadores (contando al lider) esperando la partida
-    para empezarla. Además, solo el lider de la partida podrá iniciarla.
+    Requiere que el usuario esté en una partida y que sea el líder o se
+    devolverá un :ref:`error <errores>`. También deben haber al menos 2
+    jugadores en total esperando la partida para empezarla.
 
     :return: Un mensaje de tipo ``start_game`` a todos los jugadores esperando
         en la sala.
@@ -202,8 +366,8 @@ def join(game_code):
     :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Si la partida es privada, un mensaje de tipo ``users_waiting``
-        con un entero indicando el número de jugadores esperando a la partida
+    :return: Si la partida es privada, un mensaje de tipo ``users_waiting`` con
+        un entero indicando el número de jugadores esperando a la partida
         (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
         en :meth:`chat`) indicando que el jugador se ha unido a la partida.
     """
@@ -259,16 +423,24 @@ def join(game_code):
 @_requires_game()
 def leave():
     """
-    Salir de la partida actual.
+    Salir de la partida actual. Requiere que el usuario esté en una partida o se
+    devolverá un :ref:`error <errores>`.
 
-    Si la partida se queda sin jugadores, se borra. Si la partida no ha
-    comenzado y el jugador es el lider, se delega el cargo a otro jugador.
+    :return:
+        * Si la partida no se borra porque quedan jugadores:
 
-    :return: Si la partida no se borra, un mensaje de tipo ``users_waiting``
-        con un entero indicando el número de jugadores esperando a la partida.
-        Además, un mensaje de chat (ver formato en :meth:``chat``) indicando que
-        el jugador se ha unido a la partida. Si se ha delegado el cargo de
-        líder, el nuevo lider recibirá un mensaje de tipo ``game_owner``.
+          - Un mensaje de tipo ``users_waiting`` con un entero indicando el
+            número de jugadores esperando a la partida.
+          - Un mensaje de ``chat`` (ver formato en :meth:`chat`) indicando que
+            el jugador ha abandonado la partida.
+          - Si se ha delegado el cargo de líder, el nuevo líder recibirá un
+            mensaje de tipo ``game_owner``.
+        * Si la partida se borra porque no quedan jugadores:
+
+          - Si ya había terminado, un mensaje de tipo ``game_ended``, acompañado
+            por un objeto con información sobre los ganadores. TODO describir.
+          - Si no había terminado y se ha cancelado, un mensaje de tipo
+            ``game_cancelled``.
     """
 
     game_code = session["game"]
@@ -298,6 +470,16 @@ def leave():
         if match.owner == session["user"]:
             # Si él es el lider, delegamos el cargo de lider a otro jugador
             match.owner = match.users[0]
+
+            emit(
+                "chat",
+                {
+                    "msg": match.owner.name + " es el nuevo líder",
+                    "owner": "[GATOVID]",
+                },
+                room=game_code,
+            )
+
             # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
 
@@ -308,9 +490,8 @@ def leave():
 @_requires_game(started=True)
 def chat(msg):
     """
-    Enviar un mensaje al chat de la partida.
-
-    Se requiere que la partida esté ya comenzada.
+    Enviar un mensaje al chat de la partida. Requiere que el usuario esté en una
+    partida y que esté empezada o se devolverá un :ref:`error <errores>`.
 
     :param msg: Mensaje a enviar
     :type msg: ``str``
@@ -343,7 +524,10 @@ def chat(msg):
 @_requires_game(started=True)
 def play_discard(data):
     """
-    TODO
+    Descarta las cartas indicadas de la mano del usuario.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """
 
 
@@ -352,14 +536,20 @@ def play_discard(data):
 def play_draw():
     """
     Roba tantas cartas como sean necesarias para que el usuario tenga 3.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """
 
 
 @socket.on("play_pass")
 @_requires_game(started=True)
-def play_pass(data):
+def play_pass():
     """
-    Descarta una o más cartas.
+    Pasa el turno del usuario.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """
 
 
@@ -367,5 +557,8 @@ def play_pass(data):
 @_requires_game(started=True)
 def play_card(data):
     """
-    TODO
+    Juega una carta de su mano.
+
+    Requiere que el usuario esté en una partida y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
     """

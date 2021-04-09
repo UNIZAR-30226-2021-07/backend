@@ -8,7 +8,7 @@ import threading
 from collections import deque
 from typing import List, Optional
 
-from gatovid.exts import db, socket
+from gatovid.exts import socket
 from gatovid.game import Game
 from gatovid.models import User
 
@@ -77,7 +77,7 @@ class Match:
         """
 
         with self._started_lock:
-            if self._game is not None:
+            if self.is_started():
                 return
             self._game = Game(self.users)
 
@@ -85,28 +85,12 @@ class Match:
 
     def end(self) -> None:
         """
-        Finaliza la partida y guarda las estadísticas para todos los usuarios en
-        caso de que haya terminado correctamente.
+        Finaliza la partida en caso de que no haya terminado ya.
         """
 
         if not self.is_started() or not self._game.is_finished():
             socket.emit("game_cancelled", room=self.code)
             return
-
-        elapsed_mins = self._game.playtime_mins()
-        winners = self._game.winners()
-
-        for user in self.users:
-            user.stats.playtime_mins += elapsed_mins
-            user.coins += winners[user.email]["coins"]
-            if winners[user.email]["position"] == 1:
-                user.stats.wins += 1
-            else:
-                user.stats.losses += 1
-
-        db.session.commit()
-
-        socket.emit("game_ended", winners, room=self.code)
 
     def add_user(self, user: User) -> None:
         """

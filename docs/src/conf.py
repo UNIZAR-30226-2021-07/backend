@@ -30,11 +30,15 @@ author = "UNIZAR-30226-2021-07"
 extensions = [
     # Para ficheros en markdown como el README
     "myst_parser",
+    # Para diagramas
+    "sphinxcontrib.plantuml",
     # Documentación automática
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
 ]
 autosummary_generate = True
+
+plantuml = "java -jar ../plantuml.jar"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]

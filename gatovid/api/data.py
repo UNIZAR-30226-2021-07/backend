@@ -53,23 +53,65 @@ Cliente Básico
 **************
 
 Dadas las restricciones anteriores, se describe a continuación cómo sería un
-cliente básico para acceder a la API de datos:
+cliente básico para acceder a la API de datos, que permite entender de forma
+sencilla el flujo de control de manejo de errores:
 
-1. Hacer petición
-2. Comprobar si hay un error
-    1. Si no hay error se puede usar el valor devuelto
-    2. Si hay error:
-        1. Si es 401, será necesario refrescar el token y volver al punto 1.
-        2. Si el código es 400:
-            1. Si es fallo del usuario se le muestra el mensaje de error del campo
-               ``error``.
-            2. Si es fallo del programador, tendrá que hacerse debug en el cliente y
-               solucionarlo, ya que no es esperado que suceda. Se puede usar el
-               campo ``error`` para ello.
+.. uml::
+    :align: center
 
-        3. Si es 500, tendrá que hacerse debug en el backend y solucionarlo, que
-           será donde se encuentre más información. En este caso no se puede usar el
-           campo ``error``, por tanto.
+    @startuml
+    !pragma useVerticalIf on
+
+    start
+
+    :Hacer petición;
+
+    if (¿se produjo un error?) then (sí)
+        if (error == 400) then (sí)
+            if (de quién es el fallo?) then (del usuario)
+                :Se le muestra el mensaje
+                de error del campo `error`;
+            else (del frontend)
+                stop
+
+                note right
+                    Debug en el cliente y
+                    solucionarlo, ya que no
+                    es esperado que suceda.
+                    Se puede usar el campo
+                    `error` para ello.
+                end note
+            endif
+        elseif (error == 401) then (sí)
+            :Refrescar el token;
+
+            stop
+
+            note right
+                Reintentar petición
+            end note
+        elseif (error >= 500 && error <= 599) then (sí)
+            :Error en el backend;
+
+            stop
+
+            note right
+                Debug en el backend y
+                solucionarlo, que será
+                donde se encuentre más
+                información.
+            end note
+        endif
+    else (no)
+        :Se puede usar el valor devuelto;
+    endif
+
+    stop
+
+    @enduml
+
+Referencia
+##########
 """
 
 from flask import Blueprint, request

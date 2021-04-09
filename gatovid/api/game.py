@@ -57,7 +57,7 @@ from gatovid.util import get_logger
 logger = get_logger(__name__)
 
 
-def requires_game(started=False):
+def _requires_game(started=False):
     """
     Decorador para comprobar si el usuario está en una partida. Si started es
     True, se comprueba también que la partida ha empezado.
@@ -77,7 +77,7 @@ def requires_game(started=False):
                 # retiene la partida.
                 return {"error": "La partida no existe"}
 
-            if started and not match.started:
+            if started and not match.is_started():
                 return {"error": "La partida no ha comenzado"}
 
             return f(*args, **kwargs)
@@ -159,7 +159,7 @@ def create_game():
 
 
 @socket.on("start_game")
-@requires_game()
+@_requires_game()
 def start_game():
     """
     Puesta en marcha de una partida privada.
@@ -256,7 +256,7 @@ def join(game_code):
 
 
 @socket.on("leave")
-@requires_game()
+@_requires_game()
 def leave():
     """
     Salir de la partida actual.
@@ -305,7 +305,7 @@ def leave():
 
 
 @socket.on("chat")
-@requires_game(started=True)
+@_requires_game(started=True)
 def chat(msg):
     """
     Enviar un mensaje al chat de la partida.
@@ -340,7 +340,7 @@ def chat(msg):
 
 
 @socket.on("play_discard")
-@requires_game(started=True)
+@_requires_game(started=True)
 def play_discard(data):
     """
     TODO
@@ -348,7 +348,7 @@ def play_discard(data):
 
 
 @socket.on("play_draw")
-@requires_game(started=True)
+@_requires_game(started=True)
 def play_draw():
     """
     Roba tantas cartas como sean necesarias para que el usuario tenga 3.
@@ -356,7 +356,7 @@ def play_draw():
 
 
 @socket.on("play_pass")
-@requires_game(started=True)
+@_requires_game(started=True)
 def play_pass(data):
     """
     Descarta una o más cartas.
@@ -364,7 +364,7 @@ def play_pass(data):
 
 
 @socket.on("play_card")
-@requires_game(started=True)
+@_requires_game(started=True)
 def play_card(data):
     """
     TODO

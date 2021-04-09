@@ -90,7 +90,7 @@ mod = Blueprint("api_data", __name__, url_prefix="/data")
 logger = get_logger(__name__)
 
 
-def revoke_token() -> bool:
+def _revoke_token() -> bool:
     """
     Revoca un token, devolviendo verdadero en caso de que haya sido una
     operación exitosa, o falso en caso contrario.
@@ -206,7 +206,7 @@ def remove_user(data):
     email = get_jwt_identity()
     user = User.query.get(email)
 
-    if not revoke_token():
+    if not _revoke_token():
         return msg_err("No se pudo cerrar sesión")
 
     db.session.delete(user)
@@ -312,8 +312,7 @@ def logout(data):
     """
 
     logger.info(f"User {get_jwt_identity()} is logging out")
-
-    if revoke_token():
+    if _revoke_token():
         return msg_ok("Sesión cerrada con éxito")
     else:
         return msg_err("No se pudo cerrar sesión", code=500)

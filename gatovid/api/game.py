@@ -113,7 +113,7 @@ def disconnect():
     # necesitan limpieza.
 
     # Puede estar buscando una partida pública
-    if session["user"] in MM._users_waiting:
+    if session["user"] in MM.users_waiting:
         MM.stop_waiting(session["user"])
 
     # Puede estar metido en una partida, tenemos que hacer que salga.

@@ -5,8 +5,119 @@ API de Juegos
 Módulo con el API de websockets para la comunicación en tiempo real con los
 clientes, como el juego mismo o el chat de la partida.
 
+Funcionamiento del juego
+########################
+
+En esta sección se incluyen diagramas sobre la comunicación entre el cliente y
+el servidor de forma más visual que textualmente. Para más detalles sobre los
+mensajes consultar la :ref:`reference`.
+
+Creación de Partidas Privadas
+*****************************
+
+.. uml::
+    :align: center
+
+    @startuml
+    hide footbox
+
+    actor Usuario
+    actor Líder
+    participant Frontend
+    participant Backend
+
+    Líder -> Frontend: Crear Partida
+    Frontend -> Backend: create_game
+    Frontend <-- Backend: create_game("A18X")
+
+    loop hasta que N >= 2
+        Usuario -> Frontend: Unirse a Partida
+        Frontend -> Backend: join("A18X")
+        Frontend <-- Backend: users_waiting(N)
+    end
+
+    Líder -> Frontend: Iniciar partida
+    Frontend -> Backend: start_game
+    Frontend <-- Backend: start_game
+
+    @enduml
+
+Creación de Partidas Públicas
+*****************************
+
+.. uml::
+    :align: center
+
+    @startuml
+    hide footbox
+
+    actor Usuario1
+    actor Usuario2
+    participant Frontend
+    participant Backend
+
+    Usuario -> Frontend: uwu
+    Frontend -> Backend: uwu
+
+    @enduml
+
+Partida
+*******
+
+.. uml::
+    :align: center
+
+    @startuml
+    hide footbox
+
+    actor Usuario
+    participant Frontend
+    participant Backend
+
+    loop hasta que acabe la partida
+        alt descarte
+            Usuario -> Frontend: Descartar
+            Frontend -> Backend: play_discard
+            Frontend <-- Backend: TODO
+        else jugar carta
+            Usuario -> Frontend: Jugar Carta
+            Frontend -> Backend: play_card
+            Frontend <-- Backend: TODO
+        else pasar
+            Usuario -> Frontend: Pasar
+            Frontend -> Backend: play_pass
+            Frontend <-- Backend: TODO
+        else robar
+            Usuario -> Frontend: Robar
+            Frontend -> Backend: play_draw
+            Frontend <-- Backend: TODO
+        end
+
+        opt un usuario sale de la partida
+            Usuario -> Frontend: Abandonar Partida
+            Frontend -> Backend: leave
+            alt quedan usuarios
+                Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
+                Frontend <-- Backend: chat("El usuario bar es el nuevo líder")
+                Frontend <-- Backend: game_owner(bar), solo al nuevo líder
+            else no quedan usuarios
+                Frontend <-- Backend: game_cancelled
+            end
+        end
+    end
+
+    Frontend <-- Backend: game_ended(winners)
+    Frontend -> Usuario: winners
+
+    loop por cada usuario
+        User -> Frontend: Salir de Partida
+        Frontend -> Backend: leave
+    end
+
+    @enduml
+
 Mensajes Websockets
-####################
+###################
 
 Para el correcto funcionamiento de la comunicación, es necesario el uso de la
 librería SocketIO en el cliente.
@@ -16,10 +127,10 @@ ejemplo, si se quiere contactar con el endpoint de :meth:`create_game`, se debe
 emitir un mensaje de tipo ``create_game``.
 
 Parámetros
-####################
+##########
 
 El paso de parámetros será pasando directamente el valor en mensajes con solo un
-parámetro (y cuando no haya posibles parámetros opcionales) y pasando un objeto
+parámetro (y cuando no haya posibles parámetros opcionales), o con un objeto
 JSON cuando haya múltiples parámetros.
 
 Los parámetros devueltos se ajustarán a las descripciones de return de cada
@@ -39,10 +150,15 @@ devuelto.
   :linenos:
 
   socket.emit('join', dataToEmit, function (data) {
-      if(data && data.error) {
+      if (data && data.error) {
           console.error(data.error);
       }
   });
+
+.. _reference:
+
+Referencia
+##########
 """
 
 import functools
@@ -134,9 +250,9 @@ def search_game():
     Unión a una partida pública organizada por el servidor.
 
     :return: El cliente no recibirá respuesta hasta que el servidor haya
-        encontrado oponentes contra los que jugar. Una vez encontrada una partida,
-        recibirá un mensaje de tipo `found_game` con un objeto JSON que contiene un
-        atributo ``code: str`` con el código de la partida.
+        encontrado oponentes contra los que jugar. Una vez encontrada una
+        partida, recibirá un mensaje de tipo `found_game` con un objeto JSON que
+        contiene un atributo ``code: str`` con el código de la partida.
     """
 
     logger.info(f"User {session['user'].name} is waiting for a game")
@@ -205,8 +321,8 @@ def join(game_code):
     :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Si la partida es privada, un mensaje de tipo ``users_waiting``
-        con un entero indicando el número de jugadores esperando a la partida
+    :return: Si la partida es privada, un mensaje de tipo ``users_waiting`` con
+        un entero indicando el número de jugadores esperando a la partida
         (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
         en :meth:`chat`) indicando que el jugador se ha unido a la partida.
     """
@@ -310,6 +426,14 @@ def leave():
             # Si él es el lider, delegamos el cargo de lider a otro jugador
             match.owner = match.users[0]
             # Mensaje solo al nuevo dueño de la sala
+            emit(
+                "chat",
+                {
+                    "msg": match.owner.name + " es el nuevo líder",
+                    "owner": "[GATOVID]",
+                },
+                room=game_code,
+            )
             emit("game_owner", room=match.owner.sid)
 
     logger.info(f"User {session['user'].name} has left the game {game_code}")

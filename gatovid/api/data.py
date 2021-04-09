@@ -55,21 +55,46 @@ Cliente Básico
 Dadas las restricciones anteriores, se describe a continuación cómo sería un
 cliente básico para acceder a la API de datos:
 
-1. Hacer petición
-2. Comprobar si hay un error
-    1. Si no hay error se puede usar el valor devuelto
-    2. Si hay error:
-        1. Si es 401, será necesario refrescar el token y volver al punto 1.
-        2. Si el código es 400:
-            1. Si es fallo del usuario se le muestra el mensaje de error del campo
-               ``error``.
-            2. Si es fallo del programador, tendrá que hacerse debug en el cliente y
-               solucionarlo, ya que no es esperado que suceda. Se puede usar el
-               campo ``error`` para ello.
+.. uml::
 
-        3. Si es 500, tendrá que hacerse debug en el backend y solucionarlo, que
-           será donde se encuentre más información. En este caso no se puede usar el
-           campo ``error``, por tanto.
+    @startuml
+
+    :Hacer petición:
+    :Comprobar si hay un error:
+
+    if (error) then
+        if (error == 401) then
+            :Refrescar el token y volver al punto 1:
+        elseif (error == 400)
+            if (fallo de usuario) then
+                :Error del usuario:
+
+
+                note left
+                    Si es fallo del usuario se le muestra el mensaje de error
+                    del campo ``error``.
+                end note
+            else (fallo de programador) then
+                :Error del frontend:
+
+                note left
+                    Si es fallo del programador, tendrá que hacerse debug en el
+                    cliente y solucionarlo, ya que no es esperado que suceda. Se
+                    puede usar el campo ``error`` para ello.
+                end note
+            endif
+        elseif (error >= 500 && error <= 599)
+            :Error en el backend:
+
+            note left
+                Tendrá que hacerse debug en el backend y solucionarlo, que será
+                donde se encuentre más información. En este caso no se puede
+                usar el campo ``error``, por tanto.
+            end note
+        endif
+    else (Se puede usar el valor devuelto)
+        stop
+    endif
 """
 
 from flask import Blueprint, request

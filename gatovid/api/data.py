@@ -83,8 +83,9 @@ from psycopg2.errors import UniqueViolation
 from sqlalchemy.exc import IntegrityError
 
 from gatovid.exts import db
-from gatovid.models import InvalidModelException, TokenBlacklist, User
+from gatovid.models import InvalidModelException, TokenBlacklist, User, Stats
 from gatovid.util import get_logger, msg_err, msg_ok, route_get_or_post
+
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 logger = get_logger(__name__)
@@ -167,6 +168,7 @@ def signup(data):
             name=data.get("name"),
             password=data.get("password"),
         )
+        stats = Stats(user_id=user.email)
     except InvalidModelException as e:
         return msg_err(e)
 
@@ -180,6 +182,10 @@ def signup(data):
         else:
             raise
 
+    # Cuando el usuario ya existe se le puede añadir la tabla de estadísticas.
+    db.session.add(stats)
+    db.session.commit()
+    
     logger.info(f"User {user.name} has signed up")
 
     return {

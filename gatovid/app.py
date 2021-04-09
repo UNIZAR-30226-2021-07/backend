@@ -82,6 +82,15 @@ app = create_app()
 app.register_blueprint(api.data.mod)
 
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    """
+    Limpiar automáticamente las conexiones de SQLAlchemy para que no se queden
+    colgadas sin usarse (Ref: https://stackoverflow.com/a/53715116).
+    """
+    db.session.remove()
+
+
 @app.route("/")
 def index():
     return "This site is meant to be used as an API, not a web interface"

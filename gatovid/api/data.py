@@ -89,7 +89,7 @@ from gatovid.util import msg_err, msg_ok, route_get_or_post
 mod = Blueprint("api_data", __name__, url_prefix="/data")
 
 
-def revoke_token() -> bool:
+def _revoke_token() -> bool:
     """
     Revoca un token, devolviendo verdadero en caso de que haya sido una
     operación exitosa, o falso en caso contrario.
@@ -203,7 +203,7 @@ def remove_user(data):
     email = get_jwt_identity()
     user = User.query.get(email)
 
-    if not revoke_token():
+    if not _revoke_token():
         return msg_err("No se pudo cerrar sesión")
 
     db.session.delete(user)
@@ -304,7 +304,7 @@ def logout(data):
         un mensaje de error interno en caso contrario.
     """
 
-    if revoke_token():
+    if _revoke_token():
         return msg_ok("Sesión cerrada con éxito")
     else:
         return msg_err("No se pudo cerrar sesión", code=500)

@@ -140,6 +140,17 @@ class UserTest(GatovidTestClient):
         resp = self.request_signup(self.new_user)
         self.assertRequestErr(resp, 400)
 
+        # Y se habrán creado unas estadísticas vacías
+        expected_stats = {
+            "games": 0,
+            "losses": 0,
+            "wins": 0,
+            "playtime_mins": 0,
+        }
+        resp = self.request_stats(self.new_user["name"])
+        self.assertRequestOk(resp)
+        self.assertEqual(resp.json, expected_stats)
+
     def test_signup_length(self):
         """
         Tests de caja negra de valores límite para la longitud de campos como la

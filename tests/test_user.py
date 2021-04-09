@@ -413,7 +413,7 @@ class UserTest(GatovidTestClient):
 
     def test_modify_invalid(self):
         """
-        Comprueba que la validación también está activa para la modifiación del
+        Comprueba que la validación también está activa para la modificación del
         perfil.
         """
 
@@ -422,9 +422,13 @@ class UserTest(GatovidTestClient):
 
         initial = self.request_data(token).json
 
-        payload = {
-            "name": "This is an invalid name",
-        }
+        # Parámetros inválidos
+        payload = {"name": "This is an invalid name"}
+        modify_resp = self.request_modify(token, payload)
+        self.assertRequestErr(modify_resp, 400)
+
+        # Nombre no único
+        payload = {"name": "test_user2"}
         modify_resp = self.request_modify(token, payload)
         self.assertRequestErr(modify_resp, 400)
 

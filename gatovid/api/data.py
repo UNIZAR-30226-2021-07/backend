@@ -266,9 +266,14 @@ def modify_user(data):
         modified = True
 
     if not modified:
-        return msg_err("Ningún campo válido a modificar")
+        return msg_err("Ningún campo a modificar")
 
-    db.session.commit()
+    try:
+        db.session.commit()
+    except IntegrityError as e:
+        if isinstance(e.orig, UniqueViolation):
+            db.session.rollback()
+            return msg_err("Nombre ya en uso")
 
     logger.info(f"User {user.name} has modified their profile")
     return msg_ok("Usuario modificado con éxito")

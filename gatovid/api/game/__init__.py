@@ -10,7 +10,8 @@ Funcionamiento del juego
 
 En esta sección se incluyen diagramas sobre la comunicación entre el cliente y
 el servidor de forma más visual que textualmente. Para más detalles sobre los
-mensajes consultar la :ref:`game_reference`.
+mensajes consultar la :ref:`game_msg_reference`, y para los endpoints
+:ref:`game_reference`.
 
 Creación de Partidas Privadas
 *****************************
@@ -198,7 +199,7 @@ devuelto.
       }
   });
 
-.. _reference:
+.. _game_msgs_reference:
 
 Mensajes
 ########

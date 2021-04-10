@@ -4,17 +4,17 @@ Tests para la conexión básica de websockets
 
 from .base import WsTestClient
 
-_user_data = {
+user_data = {
     "email": "test_user1@gmail.com",
     "password": "whatever1",
 }
 
-_user2_data = {
+user2_data = {
     "email": "test_user2@gmail.com",
     "password": "whatever2",
 }
 
-_user3_data = {
+user3_data = {
     "email": "test_user3@gmail.com",
     "password": "whatever3",
 }
@@ -37,14 +37,14 @@ class SessionsTest(WsTestClient):
         return raw, args
 
     def test_connect(self):
-        client = self.create_client(_user_data)
+        client = self.create_client(user_data)
         self.assertIsNotNone(client)
 
-        client2 = self.create_client(_user2_data)
+        client2 = self.create_client(user2_data)
         self.assertIsNotNone(client2)
 
     def test_create_game(self):
-        client = self.create_client(_user_data)
+        client = self.create_client(user_data)
 
         # Creamos la partida y vemos si el servidor devuelve error
         callback_args = client.emit("create_game", callback=True)
@@ -61,7 +61,7 @@ class SessionsTest(WsTestClient):
         self.assertEqual(type(code), str)
 
     def test_join_private_game(self):
-        client = self.create_client(_user_data)
+        client = self.create_client(user_data)
 
         # Creamos la partida y vemos si el servidor devuelve error
         callback_args = client.emit("create_game", callback=True)
@@ -72,7 +72,7 @@ class SessionsTest(WsTestClient):
         code = args["code"]
 
         # Creamos el usuario que se unirá a la partida
-        client2 = self.create_client(_user2_data)
+        client2 = self.create_client(user2_data)
         self.assertIsNotNone(client2)
 
         # El cliente 2 se une a la partida
@@ -86,8 +86,8 @@ class SessionsTest(WsTestClient):
         self.assertEqual(users_waiting, 2)
 
     def test_start_private_game(self):
-        client = self.create_client(_user_data)
-        client2 = self.create_client(_user2_data)
+        client = self.create_client(user_data)
+        client2 = self.create_client(user2_data)
 
         # Creamos la partida
         client.emit("create_game", callback=True)
@@ -112,8 +112,8 @@ class SessionsTest(WsTestClient):
         self.assertNotIn("error", callback_args)
 
     def test_chat(self):
-        client = self.create_client(_user_data)
-        client2 = self.create_client(_user2_data)
+        client = self.create_client(user_data)
+        client2 = self.create_client(user2_data)
 
         # Creamos la partida
         callback_args = client.emit("create_game", callback=True)

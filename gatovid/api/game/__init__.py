@@ -311,7 +311,7 @@ def create_game():
 
     :return: Un mensaje de tipo ``create_game`` con un objeto JSON con el campo:
 
-        * ``game: str``
+        * ``code: str``
     """
 
     game_code = MM.create_private_game(owner=session["user"])

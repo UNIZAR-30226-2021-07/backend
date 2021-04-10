@@ -76,7 +76,6 @@ infinitas).
     Frontend -> Frontend: start_timer(TIME_UNTIL_START)
 
     loop hasta que el timer termine o todos los usuarios se hayan unido
-        Usuario -> Frontend: Confirmar
         Frontend -> Backend: join("8XA1")
         Frontend --> Backend: start_game
     end

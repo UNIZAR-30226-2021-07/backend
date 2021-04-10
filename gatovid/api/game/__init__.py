@@ -69,9 +69,7 @@ infinitas).
         Frontend -> Backend: create_game
         Frontend <-- Backend: create_game("A18X")
 
-        opt hay >= 2 usuarios buscando partida
-            Frontend -> Frontend: start_timer(TIME_UNTIL_START)
-        end
+        Frontend -> Frontend: start_timer(TIME_UNTIL_START)
     end
 
     Frontend <-- Backend: found_game("8XA1")
@@ -134,19 +132,19 @@ siguiente:
         alt descarte
             Usuario -> Frontend: Descartar
             Frontend -> Backend: play_discard
-            Frontend <-- Backend: TODO
+            Frontend <-- Backend: game_update
         else jugar carta
             Usuario -> Frontend: Jugar Carta
             Frontend -> Backend: play_card
-            Frontend <-- Backend: TODO
+            Frontend <-- Backend: game_update
         else pasar
             Usuario -> Frontend: Pasar
             Frontend -> Backend: play_pass
-            Frontend <-- Backend: TODO
+            Frontend <-- Backend: game_update
         else robar
             Usuario -> Frontend: Robar
             Frontend -> Backend: play_draw
-            Frontend <-- Backend: TODO
+            Frontend <-- Backend: game_update
         end
     end
 
@@ -201,6 +199,140 @@ devuelto.
   });
 
 .. _reference:
+
+Mensajes
+########
+
+Se listan en esta sección todos los tipos de mensajes, como referencia
+principal, para que se puedan serializar como objetos si se considera necesario:
+
+.. _msg_create_game:
+
+``create_game``
+***************
+
+.. code-block:: javascript
+
+    {
+        // Código de la partida, compuesto por caracteres alfanuméricos, con las
+        // letras en mayúsculas.
+        "code": "A83D",
+    }
+
+.. _msg_found_game:
+
+``found_game``
+**************
+
+.. code-block:: javascript
+
+    {
+        // Código de la partida, compuesto por caracteres alfanuméricos, con las
+        // letras en mayúsculas.
+        "code": "A83D",
+    }
+
+.. _msg_users_waiting:
+
+``users_waiting``
+*****************
+
+Mensaje cuyo contenido es únicamente un entero con el número de usuarios
+esperando, incluido el mismo que lo haya recibido.
+
+.. _msg_start_game:
+
+``start_game``
+**************
+
+Mensaje sin campos adicionales.
+
+.. _msg_game_owner:
+
+``game_owner``
+**************
+
+Mensaje sin campos adicionales.
+
+.. _msg_game_cancelled:
+
+``game_cancelled``
+******************
+
+Mensaje sin campos adicionales.
+
+.. _msg_chat:
+
+``chat``
+**************
+
+.. code-block:: javascript
+
+    {
+        // Mensaje enviado por el jugador
+        "msg": "Bona tarda",
+        // Nombre de usuario del jugador que envía el mensaje. Será
+        // ``[GATOVID]`` si es un mensaje del sistema, para indicar p.ej. que un
+        // usuario ha abandonado la partida.
+        "owner": "manolet22",
+    }
+
+.. _msg_game_update:
+
+``game_update``
+***************
+
+Como forma de optimización este tipo de mensaje no tiene por qué incluir todos
+los campos; solo se actualizará al frontend con lo que sea necesario.
+
+.. code-block:: javascript
+
+    {
+        // Terminación de la partida, opcional.
+        "finished": false,
+        // Nombre del usuario con el turno actual, opcional.
+        "current_turn": "manolo22",
+        // Manos de los jugadores, opcional.
+        // Solo se sabrá la mano completa del usuario que recibe el mensaje. Los
+        // demás únicamente tendrán el número de cartas.
+        "hands": {
+            // Jugador actual
+            "manolo22": {
+                "organs": [
+                    // TODO
+                ],
+                "effects": [
+                    // TODO
+                ],
+                "cards": [
+                    // TODO
+                ],
+            },
+            // Otro jugador
+            "juanma2000": {
+                "organs": [
+                    // TODO
+                ],
+                "effects": [
+                    // TODO
+                ],
+                "num_cards": 3,
+            },
+            // ...
+        },
+        // Tiempo de juego en minutos, opcional.
+        "playtime_mins": 4,
+        // Lista de ganadores, opcional.
+        // Se incluye la posición de cada jugador, comenzando desde el 1, y las
+        // monedas que ha ganado por ello.
+        "leaderboard": [
+            "manolo22": {
+                "position": 1,
+                "coins": 50,
+            },
+            // ...
+        ],
+    }
 
 Referencia
 ##########
@@ -295,13 +427,19 @@ def search_game():
     Unión a una partida pública organizada por el servidor.
 
     :return: El cliente no recibirá respuesta hasta que el servidor haya
-        encontrado oponentes contra los que jugar. Una vez encontrada una
-        partida, recibirá un mensaje de tipo `found_game` con un objeto JSON que
-        contiene un atributo ``code: str`` con el código de la partida.
+        encontrado oponentes contra los que jugar.
+
+        Una vez encontrada una partida, hará un broadcast de
+        :ref:`msg_found_game`.
+
+        Si ya está buscando partida, se devolverá un :ref:`error <errores>`.
     """
 
     logger.info(f"User {session['user'].name} is waiting for a game")
-    MM.wait_for_game(session["user"])
+    try:
+        MM.wait_for_game(session["user"])
+    except GameLogicException as e:
+        return {"error": str(e)}
 
 
 @socket.on("create_game")
@@ -309,12 +447,16 @@ def create_game():
     """
     Creación y unión automática a una partida privada.
 
-    :return: Un mensaje de tipo ``create_game`` con un objeto JSON con el campo:
+    :return: Un mensaje de tipo :ref:`msg_create_game`.
 
-        * ``code: str``
+        Si está buscando una partida pública, se devolverá un :ref:`error
+        <errores>`.
     """
 
-    game_code = MM.create_private_game(owner=session["user"])
+    try:
+        game_code = MM.create_private_game(owner=session["user"])
+    except GameLogicException as e:
+        return {"error": str(e)}
     join(game_code)
     emit("create_game", {"code": game_code})
 
@@ -327,12 +469,11 @@ def start_game():
     """
     Puesta en marcha de una partida privada.
 
-    Requiere que el usuario esté en una partida y que sea el líder o se
-    devolverá un :ref:`error <errores>`. También deben haber al menos 2
-    jugadores en total esperando la partida para empezarla.
+    :return: Broadcast de :ref:`msg_start_game`.
 
-    :return: Un mensaje de tipo ``start_game`` a todos los jugadores esperando
-        en la sala.
+        Requiere que el usuario esté en una partida y que sea el líder o se
+        devolverá un :ref:`error <errores>`. También deben haber al menos 2
+        jugadores en total esperando la partida para empezarla.
     """
 
     game = session["game"]
@@ -360,16 +501,17 @@ def join(game_code):
     """
     Unión a una partida proporcionando un código de partida.
 
-    Un jugador no se puede unir a una partida si ya está en otra o si ya está
-    llena.
-
     :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Si la partida es privada, un mensaje de tipo ``users_waiting`` con
-        un entero indicando el número de jugadores esperando a la partida
-        (incluido él mismo). En cualquier caso, un mensaje de chat (ver formato
-        en :meth:`chat`) indicando que el jugador se ha unido a la partida.
+    :return: Si la partida es privada, un mensaje de tipo
+        :ref:`msg_users_waiting`.
+
+        En cualquier caso, un broadcast de :ref:`msg_chat` indicando que el
+        jugador se ha unido a la partida.
+
+        Un jugador no se puede unir a una partida si ya está en otra o si ya
+        está llena. En caso contrario se devolverá un :ref:`error <errores>`.
     """
 
     if session.get("game"):
@@ -423,24 +565,24 @@ def join(game_code):
 @_requires_game()
 def leave():
     """
-    Salir de la partida actual. Requiere que el usuario esté en una partida o se
-    devolverá un :ref:`error <errores>`.
+    Salir de la partida actual.
 
     :return:
         * Si la partida no se borra porque quedan jugadores:
 
-          - Un mensaje de tipo ``users_waiting`` con un entero indicando el
-            número de jugadores esperando a la partida.
-          - Un mensaje de ``chat`` (ver formato en :meth:`chat`) indicando que
-            el jugador ha abandonado la partida.
+          - Un mensaje de tipo :ref:`msg_users_waiting`.
+          - Un broadcast de :ref:`msg_chat` indicando que el jugador ha
+            abandonado la partida.
           - Si se ha delegado el cargo de líder, el nuevo líder recibirá un
-            mensaje de tipo ``game_owner``.
+            mensaje de tipo :ref:`msg_game_owner`.
         * Si la partida se borra porque no quedan jugadores:
 
-          - Si ya había terminado, un mensaje de tipo ``game_ended``, acompañado
-            por un objeto con información sobre los ganadores. TODO describir.
+          - Si ya había terminado, un :ref:`error <errores>`.
           - Si no había terminado y se ha cancelado, un mensaje de tipo
-            ``game_cancelled``.
+            :ref:`msg_game_cancelled`.
+
+        Requiere que el usuario esté en una partida o se devolverá un
+        :ref:`error <errores>`.
     """
 
     game_code = session["game"]
@@ -496,11 +638,7 @@ def chat(msg):
     :param msg: Mensaje a enviar
     :type msg: ``str``
 
-    :return: Un mensaje de tipo ``chat`` con un objeto JSON que contiene los
-        campos:
-
-        * ``msg: str`` Mensaje enviado por el jugador
-        * ``owner: str`` Nombre de usuario del jugador que envía el mensaje
+    :return: Broadcast de un mensaje :ref:`msg_chat`.
     """
 
     if not isinstance(msg, str):
@@ -524,6 +662,8 @@ def chat(msg):
 @_requires_game(started=True)
 def play_discard(data):
     """
+    .. warning:: Este endpoint está en construcción aún.
+
     Descarta las cartas indicadas de la mano del usuario.
 
     Requiere que el usuario esté en una partida y que esté empezada o se
@@ -535,6 +675,8 @@ def play_discard(data):
 @_requires_game(started=True)
 def play_draw():
     """
+    .. warning:: Este endpoint está en construcción aún.
+
     Roba tantas cartas como sean necesarias para que el usuario tenga 3.
 
     Requiere que el usuario esté en una partida y que esté empezada o se
@@ -546,6 +688,8 @@ def play_draw():
 @_requires_game(started=True)
 def play_pass():
     """
+    .. warning:: Este endpoint está en construcción aún.
+
     Pasa el turno del usuario.
 
     Requiere que el usuario esté en una partida y que esté empezada o se
@@ -557,6 +701,8 @@ def play_pass():
 @_requires_game(started=True)
 def play_card(data):
     """
+    .. warning:: Este endpoint está en construcción aún.
+
     Juega una carta de su mano.
 
     Requiere que el usuario esté en una partida y que esté empezada o se

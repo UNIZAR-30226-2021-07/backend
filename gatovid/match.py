@@ -6,13 +6,13 @@ import random
 import string
 import threading
 from collections import deque
-from typing import List, Optional, Dict
-
-from gatovid.exts import socket, db
-from gatovid.game import Game, Action, GameLogicException
-from gatovid.models import User
+from typing import Dict, List, Optional
 
 from flask_socketio import emit
+
+from gatovid.exts import db, socket
+from gatovid.game import Action, Game, GameLogicException
+from gatovid.models import User
 
 matches = dict()
 MIN_MATCH_USERS = 2

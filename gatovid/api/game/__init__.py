@@ -212,8 +212,8 @@ from flask import request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
+from gatovid.api.game.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.exts import socket
-from gatovid.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.models import User
 from gatovid.util import get_logger
 

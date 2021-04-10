@@ -67,10 +67,7 @@ class Game:
             player.position = i + 1
         self._finished = True
 
-        status = []
-        for player in self.players:
-            status.append(self._generate_status(player))
-
+        status = [self._generate_status(player) for player in self._players]
         return status
 
     def _generate_status(self, player: Player) -> Dict:

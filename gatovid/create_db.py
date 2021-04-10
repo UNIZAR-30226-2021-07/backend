@@ -65,6 +65,20 @@ def db_test_data():
 
         # Compras iniciales para cada usuario
         purchases = [
+            # Compras de ítems por defecto
+            Purchase(item_id=0, user_id=users[0].email, type=PurchasableType.BOARD),
+            Purchase(
+                item_id=0, user_id=users[0].email, type=PurchasableType.PROFILE_PIC
+            ),
+            Purchase(item_id=0, user_id=users[1].email, type=PurchasableType.BOARD),
+            Purchase(
+                item_id=0, user_id=users[1].email, type=PurchasableType.PROFILE_PIC
+            ),
+            Purchase(item_id=0, user_id=users[2].email, type=PurchasableType.BOARD),
+            Purchase(
+                item_id=0, user_id=users[2].email, type=PurchasableType.PROFILE_PIC
+            ),
+            # Otras compras
             Purchase(item_id=1, user_id=users[0].email, type=PurchasableType.BOARD),
             Purchase(
                 item_id=2, user_id=users[0].email, type=PurchasableType.PROFILE_PIC

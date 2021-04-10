@@ -154,7 +154,7 @@ siguiente:
     Frontend -> Usuario: podio(winners)
 
     loop por cada usuario
-        User -> Frontend: Salir de Partida
+        Usuario -> Frontend: Salir de Partida
         Frontend -> Backend: leave
         Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
     end

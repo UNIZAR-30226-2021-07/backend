@@ -79,9 +79,35 @@ class Match:
         with self._started_lock:
             if self.is_started():
                 return
-            self._game = Game(self.users)
+            self._game = Game(self.code, self.users)
 
         socket.emit("start_game", room=self.code)
+
+    def run_action(self, action: Action) -> None:
+        """
+        Ejecuta una acción cualquiera del juego.
+        """
+
+        if not self.is_started():
+            raise GameLogicException("El juego no ha comenzado")
+
+        status = self._game.run_action(action)
+
+        if status = GameStatus.FINISHED:
+            mins = self._game.playtime_mins()
+            winners = self._game.winners()
+
+            for user in self.users:
+                user.stats.playtime_mins += mins
+                user.coins += winners[user.name]["coins"]
+                if winners[user.name]["position"] == 1:
+                    user.stats.wins += 1
+                else:
+                    user.stats.losses += 1
+
+            db.session.commit()
+
+            socket.emit("game_ended", winners, room=self.code)
 
     def end(self) -> None:
         """

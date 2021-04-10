@@ -67,8 +67,7 @@ infinitas).
 
     loop hasta que acabe el timer o hayan 6 usuarios buscando partida
         Usuario -> Frontend: Buscar Partida
-        Frontend -> Backend: create_game
-        Frontend <-- Backend: create_game("A18X")
+        Frontend -> Backend: search_game
 
         Frontend -> Frontend: start_timer(TIME_UNTIL_START)
     end

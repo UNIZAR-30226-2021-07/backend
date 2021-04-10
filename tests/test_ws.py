@@ -139,12 +139,12 @@ class SessionsTest(WsTestClient):
 
         # Comprobamos que los 2 reciben el mensaje de chat
         received = client.get_received()
-        msg, args = self.get_msg_in_received(received, "chat", json=True)
+        _, args = self.get_msg_in_received(received, "chat", json=True)
         self.assertIn("msg", args)
         self.assertIn("owner", args)
 
         received = client2.get_received()
-        msg, args2 = self.get_msg_in_received(received, "chat", json=True)
+        _, args2 = self.get_msg_in_received(received, "chat", json=True)
         self.assertIn("msg", args2)
         self.assertIn("owner", args2)
 

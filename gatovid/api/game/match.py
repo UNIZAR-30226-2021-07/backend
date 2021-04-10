@@ -205,7 +205,9 @@ class MatchManager:
         # FIXME: podría dar error si no cambia el sid del usuario, habría que
         # actualizar el objeto usuario en tal caso.
         if user in self.users_waiting:
-            raise GameLogicException("El usuario ya está esperando a una partida pública")
+            raise GameLogicException(
+                "El usuario ya está esperando a una partida pública"
+            )
 
         self.users_waiting.append(user)
 
@@ -279,7 +281,9 @@ class MatchManager:
 
     def create_private_game(self, owner: User) -> None:
         if owner in self.users_waiting:
-            raise GameLogicException("El usuario ya está esperando a una partida pública")
+            raise GameLogicException(
+                "El usuario ya está esperando a una partida pública"
+            )
 
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match

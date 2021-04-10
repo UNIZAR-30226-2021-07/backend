@@ -132,17 +132,16 @@ class WsTestClient(GatovidTestClient):
                 client.disconnect()
             except RuntimeError:
                 # Ignoramos si el cliente no se ha conectado
-                pass 
+                pass
 
-    def create_client(self, user_data : Dict[str, str]):
+    def create_client(self, user_data: Dict[str, str]):
         resp = self.request_token(user_data)
 
         self.assertRequestOk(resp)
         self.assertIn("access_token", resp.json)
-        
+
         client = socket.test_client(
-            self.app,
-            headers=self.auth_headers(resp.json['access_token'])
+            self.app, headers=self.auth_headers(resp.json["access_token"])
         )
 
         # Lo guardamos para poder "limpiarlo" más tarde

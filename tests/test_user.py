@@ -31,6 +31,14 @@ class UserTest(GatovidTestClient):
         "picture": 0,
         "purchases": [
             {
+                "item_id": 0,
+                "type": "board",
+            },
+            {
+                "item_id": 0,
+                "type": "profile_pic",
+            },
+            {
                 "item_id": 1,
                 "type": "board",
             },

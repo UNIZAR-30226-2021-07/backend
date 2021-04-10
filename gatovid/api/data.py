@@ -238,7 +238,7 @@ def signup(data):
     # demás relaciones.
     db.session.add(initial_stats)
     for purchase in initial_purchases:
-        db.session.add(initial_purchases)
+        db.session.add(purchase)
     db.session.commit()
 
     logger.info(f"User {user.name} has signed up")

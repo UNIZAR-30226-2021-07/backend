@@ -84,9 +84,6 @@ def db_test_data():
                 item_id=2, user_id=users[0].email, type=PurchasableType.PROFILE_PIC
             ),
             Purchase(item_id=3, user_id=users[1].email, type=PurchasableType.BOARD),
-            Purchase(
-                item_id=0, user_id=users[2].email, type=PurchasableType.PROFILE_PIC
-            ),
         ]
         for purchase in purchases:
             db.session.add(purchase)

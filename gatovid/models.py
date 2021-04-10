@@ -253,7 +253,7 @@ class Purchase(db.Model):
     """
 
     item_id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.Enum(PurchasableType), nullable=False)
+    type = db.Column(db.Enum(PurchasableType), nullable=False, primary_key=True)
 
     # Relación "Many to One" (N:1)
     user_id = db.Column(

@@ -45,6 +45,9 @@ class Game:
         self._paused = False
         self._finished = False
 
+    def is_finished(self) -> bool:
+        return self._finished
+
     def run_action(self, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el

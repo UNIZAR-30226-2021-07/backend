@@ -673,7 +673,7 @@ def play_discard(data):
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
-    :return: Un mensaje :ref:`game_msg_update` para cada jugador.
+    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
@@ -691,7 +691,7 @@ def play_draw():
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
-    :return: Un mensaje :ref:`game_msg_update` para cada jugador.
+    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
@@ -709,7 +709,7 @@ def play_pass():
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
-    :return: Un mensaje :ref:`game_msg_update` para cada jugador.
+    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
@@ -727,7 +727,7 @@ def play_card(data):
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
-    :return: Un mensaje :ref:`game_msg_update` para cada jugador.
+    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.

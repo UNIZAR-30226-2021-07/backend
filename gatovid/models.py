@@ -90,6 +90,9 @@ class User(db.Model):
     def __hash__(self):
         return hash(self.email)
 
+    def as_dict(self) -> Dict[str, str]:
+        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
+
     @property
     def password(self) -> str:
         return self._password

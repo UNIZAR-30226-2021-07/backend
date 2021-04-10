@@ -10,7 +10,7 @@ Funcionamiento del juego
 
 En esta sección se incluyen diagramas sobre la comunicación entre el cliente y
 el servidor de forma más visual que textualmente. Para más detalles sobre los
-mensajes consultar la :ref:`reference`.
+mensajes consultar la :ref:`game_reference`.
 
 Creación de Partidas Privadas
 *****************************
@@ -334,6 +334,8 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         ],
     }
 
+.. _game_reference:
+
 Referencia
 ##########
 """
@@ -469,7 +471,7 @@ def start_game():
     """
     Puesta en marcha de una partida privada.
 
-    :return: Broadcast de :ref:`msg_start_game`.
+    :return: Un broadcast de :ref:`msg_start_game`.
 
         Requiere que el usuario esté en una partida y que sea el líder o se
         devolverá un :ref:`error <errores>`. También deben haber al menos 2
@@ -504,8 +506,7 @@ def join(game_code):
     :param game_code: Código de partida
     :type game_code: ``str``
 
-    :return: Si la partida es privada, un mensaje de tipo
-        :ref:`msg_users_waiting`.
+    :return: Si la partida es privada, un broadcast de :ref:`msg_users_waiting`.
 
         En cualquier caso, un broadcast de :ref:`msg_chat` indicando que el
         jugador se ha unido a la partida.
@@ -632,13 +633,15 @@ def leave():
 @_requires_game(started=True)
 def chat(msg):
     """
-    Enviar un mensaje al chat de la partida. Requiere que el usuario esté en una
-    partida y que esté empezada o se devolverá un :ref:`error <errores>`.
+    Enviar un mensaje al chat de la partida.
 
     :param msg: Mensaje a enviar
     :type msg: ``str``
 
     :return: Broadcast de un mensaje :ref:`msg_chat`.
+
+        Si el usuario no está en una partida empezada se devolverá un
+        :ref:`error <errores>`.
     """
 
     if not isinstance(msg, str):

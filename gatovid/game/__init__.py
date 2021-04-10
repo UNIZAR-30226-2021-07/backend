@@ -10,14 +10,15 @@ from gatovid.game.cards import Action
 from gatovid.models import User
 
 
-class Player:
+class Player(User):
     """
     Información sobre un usuario ya unido a la partida, con sus cartas y
     detalles sobre su estado.
     """
 
-    def __init__(self, user: User) -> None:
-        self.user = user
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
         self.position: Optional[int] = None
         self._hand: List[int] = []
 
@@ -31,7 +32,7 @@ class Game:
     """
 
     def __init__(self, users: List[User]) -> None:
-        self._players = [Player(user) for user in users]
+        self._players = [Player(**user.as_dict()) for user in users]
         self._discarded: List[int] = []
         self._deck: List[int] = []
         self._turn = 0
@@ -71,7 +72,7 @@ class Game:
         N = len(self._players)
 
         for player in self._players:
-            winners[player.user.name] = {
+            winners[player.name] = {
                 "position": player.position,
                 "coins": 10 * (N - player.position),
             }
@@ -93,7 +94,7 @@ class Game:
 
         for player in self._players:
             player.stats.playtime_mins += mins
-            player.coins += winners[player.user.name]["coins"]
+            player.coins += winners[player.name]["coins"]
             if winners[player.email]["position"] == 1:
                 player.stats.wins += 1
             else:

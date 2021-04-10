@@ -154,7 +154,7 @@ siguiente:
     Frontend -> Usuario: podio(winners)
 
     loop por cada usuario
-        User -> Frontend: Salir de Partida
+        Usuario -> Frontend: Salir de Partida
         Frontend -> Backend: leave
         Frontend <-- Backend: chat("El usuario foo ha abandonado la partida")
     end
@@ -212,8 +212,8 @@ from flask import request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
+from gatovid.api.game.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.exts import socket
-from gatovid.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -311,7 +311,7 @@ def create_game():
 
     :return: Un mensaje de tipo ``create_game`` con un objeto JSON con el campo:
 
-        * ``game: str``
+        * ``code: str``
     """
 
     game_code = MM.create_private_game(owner=session["user"])

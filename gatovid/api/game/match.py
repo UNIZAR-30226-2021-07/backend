@@ -6,10 +6,12 @@ import random
 import string
 import threading
 from collections import deque
-from typing import List, Optional
+from typing import Dict, List, Optional
 
-from gatovid.exts import socket
-from gatovid.game import Game
+from flask_socketio import emit
+
+from gatovid.exts import db, socket
+from gatovid.game import Action, Game, GameLogicException
 from gatovid.models import User
 
 matches = dict()
@@ -17,12 +19,6 @@ MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
-
-
-class GameLogicException(Exception):
-    """
-    Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
-    """
 
 
 def _gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
@@ -83,6 +79,21 @@ class Match:
 
         socket.emit("start_game", room=self.code)
 
+    def run_action(self, action: Action) -> None:
+        """
+        Ejecuta una acción cualquiera del juego.
+        """
+
+        if not self.is_started():
+            raise GameLogicException("El juego no ha comenzado")
+
+        all_status = self._game.run_action(action)
+        for status in all_status:
+            if status.finished:
+                self.update_stats(status)
+
+            emit("game_update", status, room=self.user.sid)
+
     def end(self) -> None:
         """
         Finaliza la partida en caso de que no haya terminado ya.
@@ -91,6 +102,23 @@ class Match:
         if not self.is_started() or not self._game.is_finished():
             socket.emit("game_cancelled", room=self.code)
             return
+
+    def update_stats(self, user: User, status: Dict) -> None:
+        """
+        Una vez terminada la partida, se pueden actualizar las estadísticas de
+        cada usuario.
+        """
+
+        user.stats.playtime_mins += status["playtime_mins"]
+
+        leaderboard = status["leaderboard"][user.name]
+        user.coins += leaderboard["coins"]
+        if leaderboard["position"] == 1:
+            user.stats.wins += 1
+        else:
+            user.stats.losses += 1
+
+        db.session.commit()
 
     def add_user(self, user: User) -> None:
         """

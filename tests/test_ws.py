@@ -148,7 +148,7 @@ class SessionsTest(WsTestClient):
         self.assertIn("msg", args2)
         self.assertIn("owner", args2)
 
-        self.assertTrue(args["msg"] == msg)
-        self.assertTrue(args2["msg"] == msg)
-        self.assertTrue(args["owner"] == owner)
-        self.assertTrue(args2["owner"] == owner)
+        self.assertEqual(args["msg"], msg)
+        self.assertEqual(args2["msg"], msg)
+        self.assertEqual(args["owner"], owner)
+        self.assertEqual(args2["owner"], owner)

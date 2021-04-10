@@ -22,17 +22,18 @@ _user3_data = {
 
 class SessionsTest(WsTestClient):
 
-    def args_to_dict(self, args):
+    def parse_json_args(self, args):
         return dict((key, arg[key]) for arg in args for key in arg)        
 
-    def get_msg_in_received(self, received, msg_type : str):
+    def get_msg_in_received(self, received, msg_type : str, json : bool = False):
         """
         Devuelve la primera aparición de un mensaje de tipo `msg_type` en `received`.
         """
         raw = next(iter(filter(lambda msg: msg['name'] == msg_type, received)), None)
-        args = dict()
-        if raw:
-            args = self.args_to_dict(raw['args'])
+        args = raw['args']
+
+        if raw and raw.get('args') and json:
+            args = self.parse_json_args(raw['args'])
 
         return raw, args
 
@@ -50,7 +51,7 @@ class SessionsTest(WsTestClient):
 
         # Comprobamos que el servidor nos ha devuelto el código de partida
         received = client.get_received()
-        msg, args = self.get_msg_in_received(received, "create_game")
+        msg, args = self.get_msg_in_received(received, "create_game", json=True)
         self.assertIsNotNone(msg)
         self.assertIn('code', args)
 

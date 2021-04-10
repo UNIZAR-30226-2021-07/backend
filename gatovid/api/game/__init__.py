@@ -1,5 +1,5 @@
 """
-API de Juegos
+API del Juego
 =============
 
 Módulo con el API de websockets para la comunicación en tiempo real con los

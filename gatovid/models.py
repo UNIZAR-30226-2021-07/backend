@@ -90,9 +90,6 @@ class User(db.Model):
     def __hash__(self):
         return hash(self.email)
 
-    def as_dict(self) -> Dict[str, str]:
-        return {c.name: getattr(self, c.name) for c in self.__table__.columns}
-
     @property
     def password(self) -> str:
         return self._password
@@ -256,7 +253,7 @@ class Purchase(db.Model):
     """
 
     item_id = db.Column(db.Integer, primary_key=True)
-    type = db.Column(db.Enum(PurchasableType), nullable=False)
+    type = db.Column(db.Enum(PurchasableType), nullable=False, primary_key=True)
 
     # Relación "Many to One" (N:1)
     user_id = db.Column(

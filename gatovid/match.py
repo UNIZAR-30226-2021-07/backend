@@ -6,23 +6,19 @@ import random
 import string
 import threading
 from collections import deque
-from typing import List, Optional
+from typing import List, Optional, Dict
 
-from gatovid.exts import socket
-from gatovid.game import Game
+from gatovid.exts import socket, db
+from gatovid.game import Game, Action, GameLogicException
 from gatovid.models import User
+
+from flask_socketio import emit
 
 matches = dict()
 MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
-
-
-class GameLogicException(Exception):
-    """
-    Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
-    """
 
 
 def _gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
@@ -79,7 +75,7 @@ class Match:
         with self._started_lock:
             if self.is_started():
                 return
-            self._game = Game(self.code, self.users)
+            self._game = Game(self.users)
 
         socket.emit("start_game", room=self.code)
 
@@ -91,23 +87,12 @@ class Match:
         if not self.is_started():
             raise GameLogicException("El juego no ha comenzado")
 
-        status = self._game.run_action(action)
+        all_status = self._game.run_action(action)
+        for status in all_status:
+            if status.finished:
+                self.update_stats(status)
 
-        if status = GameStatus.FINISHED:
-            mins = self._game.playtime_mins()
-            winners = self._game.winners()
-
-            for user in self.users:
-                user.stats.playtime_mins += mins
-                user.coins += winners[user.name]["coins"]
-                if winners[user.name]["position"] == 1:
-                    user.stats.wins += 1
-                else:
-                    user.stats.losses += 1
-
-            db.session.commit()
-
-            socket.emit("game_ended", winners, room=self.code)
+            emit("game_update", status, room=self.user.sid)
 
     def end(self) -> None:
         """
@@ -117,6 +102,23 @@ class Match:
         if not self.is_started() or not self._game.is_finished():
             socket.emit("game_cancelled", room=self.code)
             return
+
+    def update_stats(self, user: User, status: Dict) -> None:
+        """
+        Una vez terminada la partida, se pueden actualizar las estadísticas de
+        cada usuario.
+        """
+
+        user.stats.playtime_mins += status["playtime_mins"]
+
+        leaderboard = status["leaderboard"][user.name]
+        user.coins += leaderboard["coins"]
+        if leaderboard["position"] == 1:
+            user.stats.wins += 1
+        else:
+            user.stats.losses += 1
+
+        db.session.commit()
 
     def add_user(self, user: User) -> None:
         """

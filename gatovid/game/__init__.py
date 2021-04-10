@@ -5,10 +5,14 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from gatovid.exts import db, socket
 from gatovid.game.cards import Action
 from gatovid.models import User
-from gatovid.match import GameLogicException
+
+
+class GameLogicException(Exception):
+    """
+    Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
+    """
 
 
 class Player:
@@ -20,7 +24,7 @@ class Player:
     def __init__(self, name: str) -> None:
         self.name = name
         self.position: Optional[int] = None
-        self._hand: List[int] = []
+        self.hand: List[int] = []
 
 
 class Game:
@@ -41,39 +45,11 @@ class Game:
         self._paused = False
         self._finished = False
 
-    def _playtime_mins(self) -> int:
+    def run_action(self, action: Action) -> [Dict]:
         """
-        Devuelve el tiempo de juego de la partida.
-        """
-
-        elapsed = datetime.now() - self._start_time
-        return int(elapsed.total_seconds() / 60)
-
-    def winners(self) -> Dict[int, Dict]:
-        """
-        Calcula los resultados de la partida, incluyendo las monedas obtenidas
-        para cada jugador según la posición final, siguiendo la fórmula
-        establecida:
-
-          Sea N el número de jugadores de la partida, el jugador en puesto i
-          ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo N
-          * 10, y el último 0.
-        """
-
-        winners = {}
-        N = len(self._players)
-
-        for player in self._players:
-            winners[player.name] = {
-                "position": player.position,
-                "coins": 10 * (N - player.position),
-            }
-
-        return winners
-
-    def run_action(self, action: Action) -> None:
-        """
-        Llamado ante cualquier acción de un jugador en la partida (?).
+        Llamado ante cualquier acción de un jugador en la partida. Devolverá el
+        nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
+        terminado anteriormente o estuviera pausada, un error.
         """
 
         if self._game._finished:
@@ -88,26 +64,77 @@ class Game:
             player.position = i + 1
         self._finished = True
 
-    def _finish(self) -> None:
+        status = []
+        for player in self.players:
+            status.append(self._generate_status(player))
+
+        return status
+
+    def _generate_status(self, player: Player) -> Dict:
         """
-        Termina la partida, asigna las estadísticas a los jugadores y les
-        notifica.
+        Genera el estado para uno de los jugadores. Cada uno de ellos puede
+        recibir uno diferente, dado que solo tendrán acceso a sus propias
+        cartas, por ejemplo.
         """
 
-        self._finished = True
-        mins = self._playtime_mins()
-        winners = self._winners()
+        return {
+            "finished": self._finished,
+            "current_turn": self._players[self._turn].name,
+            "hands": self._hands(),
+            "leaderboard": self._leaderboard(),
+            "playtime_mins": self._playtime_mins(),
+        }
+
+    def _playtime_mins(self) -> int:
+        """
+        Devuelve el tiempo de juego de la partida.
+        """
+
+        elapsed = datetime.now() - self._start_time
+        return int(elapsed.total_seconds() / 60)
+
+    def _leaderboard(self) -> Dict:
+        """
+        Calcula los resultados de la partida hasta el momento, incluyendo las
+        monedas obtenidas para cada jugador según la posición final, siguiendo
+        la fórmula establecida:
+
+          Sea N el número de jugadores de la partida, el jugador en puesto i
+          ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo
+          N * 10, y el último 0.
+        """
+
+        leaderboard = {}
+        N = len(self._players)
 
         for player in self._players:
-            user = User.query.filter_by(name=player.name).one()
+            if player.position is None:
+                continue
 
-            user.stats.playtime_mins += mins
-            user.coins += winners[user.name]["coins"]
-            if winners[user.name]["position"] == 1:
-                user.stats.wins += 1
+            leaderboard[player.name] = {
+                "position": player.position,
+                "coins": 10 * (N - player.position),
+            }
+
+        return leaderboard
+
+    def _hands(self, recipient: Player) -> Dict:
+        """
+        Genera un diccionario con las manos de todos los jugadores, de forma que
+        solo ellos tengan acceso a sus cartas.
+        """
+
+        hands = {}
+
+        for player in self._players:
+            hands[player.name] = {
+                "organs": [],
+                "effects": [],
+            }
+
+            if player == recipient:
+                hands[player.name]["hand"] = player.hand
             else:
-                user.stats.losses += 1
+                hands[player.name]["num_cards"] = len(player.hand)
 
-        db.session.commit()
-
-        socket.emit("game_ended", winners, room=self.code)
+        return hands

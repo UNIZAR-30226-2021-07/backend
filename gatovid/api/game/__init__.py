@@ -601,13 +601,14 @@ def leave():
 
     match = MM.get_match(game_code)
     match.users.remove(session["user"])
+    logger.info(f"User {session['user'].name} has left the game {game_code}")
     if len(match.users) == 0:
         match.end()
         # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
-    else:
-        emit("users_waiting", len(match.users), room=game_code)
+
+    emit("users_waiting", len(match.users), room=game_code)
 
     # Comprobar si hay que delegar el cargo de lider
     if isinstance(match, PrivateMatch):
@@ -626,8 +627,6 @@ def leave():
 
             # Mensaje solo al nuevo dueño de la sala
             emit("game_owner", room=match.owner.sid)
-
-    logger.info(f"User {session['user'].name} has left the game {game_code}")
 
 
 @socket.on("chat")

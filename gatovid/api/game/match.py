@@ -288,7 +288,7 @@ class MatchManager:
     def remove_game(self, code: str) -> None:
         del matches[code]
 
-    def get_match(self, code: str) -> Match:
+    def get_match(self, code: str) -> Optional[Match]:
         return matches.get(code)
 
     def remove_match(self, code: str) -> None:

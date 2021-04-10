@@ -438,6 +438,9 @@ def search_game():
         Si ya está buscando partida, se devolverá un :ref:`error <errores>`.
     """
 
+    if session.get("game") is not None:
+        return {"error": "El usuario ya está en una partida privada"}
+
     logger.info(f"User {session['user'].name} is waiting for a game")
     try:
         MM.wait_for_game(session["user"])
@@ -455,6 +458,9 @@ def create_game():
         Si está buscando una partida pública, se devolverá un :ref:`error
         <errores>`.
     """
+
+    if session.get("game") is not None:
+        return {"error": "El usuario ya está en una partida privada"}
 
     try:
         game_code = MM.create_private_game(owner=session["user"])

@@ -93,4 +93,8 @@ def shutdown_session(exception=None):
 
 @app.route("/")
 def index():
-    return "This site is meant to be used as an API, not a web interface"
+    return (
+        "This site is meant to be used as an API, not a web interface."
+        " Please visit <a href='https://gatovid-api.rtfd.io'>the docs</a> for"
+        " more information."
+    )

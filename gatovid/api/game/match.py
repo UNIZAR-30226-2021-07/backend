@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 
 from flask_socketio import emit
 
-from gatovid.exts import db, socket
+from gatovid.exts import db
 from gatovid.game import Action, Game, GameLogicException
 from gatovid.models import User
 
@@ -77,7 +77,7 @@ class Match:
                 return
             self._game = Game(self.users)
 
-        socket.emit("start_game", room=self.code)
+        emit("start_game", room=self.code)
 
     def run_action(self, action: Action) -> None:
         """
@@ -100,7 +100,7 @@ class Match:
         """
 
         if not self.is_started() or not self._game.is_finished():
-            socket.emit("game_cancelled", room=self.code)
+            emit("game_cancelled", room=self.code)
             return
 
     def update_stats(self, user: User, status: Dict) -> None:
@@ -205,7 +205,9 @@ class MatchManager:
         # FIXME: podría dar error si no cambia el sid del usuario, habría que
         # actualizar el objeto usuario en tal caso.
         if user in self.users_waiting:
-            return
+            raise GameLogicException(
+                "El usuario ya está esperando a una partida pública"
+            )
 
         self.users_waiting.append(user)
 
@@ -272,12 +274,17 @@ class MatchManager:
 
         # Avisar a todos los jugadores de la partida
         for user in users:
-            socket.emit("found_game", {"code": code}, room=user.sid)
+            emit("found_game", {"code": code}, room=user.sid)
 
         # Ponemos un timer para empezar la partida, por si no se unen todos
         new_match.start_timer.start()
 
     def create_private_game(self, owner: User) -> None:
+        if owner in self.users_waiting:
+            raise GameLogicException(
+                "El usuario ya está esperando a una partida pública"
+            )
+
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match
         return new_match.code
@@ -285,7 +292,7 @@ class MatchManager:
     def remove_game(self, code: str) -> None:
         del matches[code]
 
-    def get_match(self, code: str) -> Match:
+    def get_match(self, code: str) -> Optional[Match]:
         return matches.get(code)
 
     def remove_match(self, code: str) -> None:

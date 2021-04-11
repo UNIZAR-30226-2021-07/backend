@@ -85,6 +85,12 @@ class SessionsTest(WsTestClient):
         users_waiting = args[0]
         self.assertEqual(users_waiting, 2)
 
+        # Un intento de crear una partida debería devolver un error
+        callback_args = client.emit("create_game", callback=True)
+        self.assertIn("error", callback_args)
+        callback_args = client.emit("search_game", callback=True)
+        self.assertIn("error", callback_args)
+
     def test_start_private_game(self):
         client = self.create_client(user_data)
         client2 = self.create_client(user2_data)

@@ -8,12 +8,12 @@ import threading
 from collections import deque
 from typing import Dict, List, Optional
 
-from flask_socketio import emit
-
-from gatovid.exts import db
+from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException
 from gatovid.models import User
+from gatovid.util import get_logger
 
+logger = get_logger(__name__)
 matches = dict()
 MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
@@ -77,7 +77,9 @@ class Match:
                 return
             self._game = Game(self.users)
 
-        emit("start_game", room=self.code)
+        logger.info(f"Match {self.code} has started")
+
+        socket.emit("start_game", room=self.code)
 
     def run_action(self, action: Action) -> None:
         """
@@ -92,7 +94,7 @@ class Match:
             if status.finished:
                 self.update_stats(status)
 
-            emit("game_update", status, room=self.user.sid)
+            socket.emit("game_update", status, room=self.user.sid)
 
     def end(self) -> None:
         """
@@ -100,8 +102,9 @@ class Match:
         """
 
         if not self.is_started() or not self._game.is_finished():
-            emit("game_cancelled", room=self.code)
-            return
+            socket.emit("game_cancelled", room=self.code)
+
+        logger.info(f"Match {self.code} has ended")
 
     def update_stats(self, user: User, status: Dict) -> None:
         """
@@ -172,15 +175,26 @@ class PublicMatch(Match):
 
         super().start()
 
+    def end(self):
+        # Cancelamos el timer si sigue
+        self.start_timer.cancel()
+
+        super().end()
+
     def start_check(self):
         """
         Comprobación de si la partida puede comenzar tras haber dado un tiempo a
-        los jugadores para que se conecten. Si es posible, la partida empezará.
+        los jugadores para que se conecten. Si es posible, la partida empezará,
+        y sino se cancela la partida por esperar demasiado.
         """
 
         if len(self.users) >= MIN_MATCH_USERS:
             # Empezamos la partida
             self.start()
+        else:
+            # La cancelamos
+            logger.info(f"Public match {self.code} has been cancelled")
+            self.end()
 
 
 class MatchManager:
@@ -210,6 +224,7 @@ class MatchManager:
             )
 
         self.users_waiting.append(user)
+        logger.info(f"User {user.name} is waiting for a game")
 
         # Si ya existía un timer, lo cancelamos -> además, esto asegura que no
         # entrará el callback a mitad de comprobación de crear partida
@@ -274,9 +289,10 @@ class MatchManager:
 
         # Avisar a todos los jugadores de la partida
         for user in users:
-            emit("found_game", {"code": code}, room=user.sid)
+            socket.emit("found_game", {"code": code}, room=user.sid)
 
         # Ponemos un timer para empezar la partida, por si no se unen todos
+        logger.info(f"Public match {code} has been created")
         new_match.start_timer.start()
 
     def create_private_game(self, owner: User) -> None:
@@ -287,6 +303,7 @@ class MatchManager:
 
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match
+        logger.info(f"Private match {new_match.code} has been created by {owner.name}")
         return new_match.code
 
     def remove_game(self, code: str) -> None:

@@ -293,7 +293,7 @@ class MatchManager:
             emit("found_game", {"code": code}, room=user.sid)
 
         # Ponemos un timer para empezar la partida, por si no se unen todos
-        logger.info(f"Public match {self.code} has been created")
+        logger.info(f"Public match {code} has been created")
         new_match.start_timer.start()
 
     def create_private_game(self, owner: User) -> None:
@@ -304,7 +304,7 @@ class MatchManager:
 
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match
-        logger.info(f"Private match {self.code} has been created by {owner.name}")
+        logger.info(f"Private match {new_match.code} has been created by {owner.name}")
         return new_match.code
 
     def remove_game(self, code: str) -> None:

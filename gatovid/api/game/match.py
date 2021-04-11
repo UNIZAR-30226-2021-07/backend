@@ -13,7 +13,9 @@ from flask_socketio import emit
 from gatovid.exts import db
 from gatovid.game import Action, Game, GameLogicException
 from gatovid.models import User
+from gatovid.util import get_logger
 
+logger = get_logger(__name__)
 matches = dict()
 MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
@@ -77,6 +79,8 @@ class Match:
                 return
             self._game = Game(self.users)
 
+        logger.info(f"Match {self.code} has started")
+
         emit("start_game", room=self.code)
 
     def run_action(self, action: Action) -> None:
@@ -101,7 +105,8 @@ class Match:
 
         if not self.is_started() or not self._game.is_finished():
             emit("game_cancelled", room=self.code)
-            return
+
+        logger.info(f"Match {self.code} has ended")
 
     def update_stats(self, user: User, status: Dict) -> None:
         """
@@ -220,6 +225,7 @@ class MatchManager:
             )
 
         self.users_waiting.append(user)
+        logger.info(f"User {user.name} is waiting for a game")
 
         # Si ya existía un timer, lo cancelamos -> además, esto asegura que no
         # entrará el callback a mitad de comprobación de crear partida
@@ -287,6 +293,7 @@ class MatchManager:
             emit("found_game", {"code": code}, room=user.sid)
 
         # Ponemos un timer para empezar la partida, por si no se unen todos
+        logger.info(f"Public match {self.code} has been created")
         new_match.start_timer.start()
 
     def create_private_game(self, owner: User) -> None:
@@ -297,6 +304,7 @@ class MatchManager:
 
         new_match = PrivateMatch(owner=owner)
         matches[new_match.code] = new_match
+        logger.info(f"Private match {self.code} has been created by {owner.name}")
         return new_match.code
 
     def remove_game(self, code: str) -> None:

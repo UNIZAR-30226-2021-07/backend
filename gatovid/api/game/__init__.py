@@ -438,7 +438,6 @@ def search_game():
     if session.get("game") is not None:
         return {"error": "El usuario ya está en una partida privada"}
 
-    logger.info(f"User {session['user'].name} is waiting for a game")
     try:
         MM.wait_for_game(session["user"])
     except GameLogicException as e:
@@ -465,8 +464,6 @@ def create_game():
         return {"error": str(e)}
     join(game_code)
     emit("create_game", {"code": game_code})
-
-    logger.info(f"User {session['user'].name} has created private game {game_code}")
 
 
 @socket.on("start_game")
@@ -498,8 +495,6 @@ def start_game():
         return {"error": "Se necesitan al menos dos jugadores"}
 
     match.start()
-
-    logger.info(f"User {session['user'].name} has started private game {game}")
 
 
 @socket.on("join")

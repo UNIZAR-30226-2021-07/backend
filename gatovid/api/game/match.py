@@ -8,9 +8,7 @@ import threading
 from collections import deque
 from typing import Dict, List, Optional
 
-from flask_socketio import emit
-
-from gatovid.exts import db
+from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException
 from gatovid.models import User
 from gatovid.util import get_logger
@@ -81,7 +79,7 @@ class Match:
 
         logger.info(f"Match {self.code} has started")
 
-        emit("start_game", room=self.code)
+        socket.emit("start_game", room=self.code)
 
     def run_action(self, action: Action) -> None:
         """
@@ -96,7 +94,7 @@ class Match:
             if status.finished:
                 self.update_stats(status)
 
-            emit("game_update", status, room=self.user.sid)
+            socket.emit("game_update", status, room=self.user.sid)
 
     def end(self) -> None:
         """
@@ -104,7 +102,7 @@ class Match:
         """
 
         if not self.is_started() or not self._game.is_finished():
-            emit("game_cancelled", room=self.code)
+            socket.emit("game_cancelled", room=self.code)
 
         logger.info(f"Match {self.code} has ended")
 
@@ -195,6 +193,7 @@ class PublicMatch(Match):
             self.start()
         else:
             # La cancelamos
+            logger.info(f"Public match {self.code} has been cancelled")
             self.end()
 
 
@@ -290,7 +289,7 @@ class MatchManager:
 
         # Avisar a todos los jugadores de la partida
         for user in users:
-            emit("found_game", {"code": code}, room=user.sid)
+            socket.emit("found_game", {"code": code}, room=user.sid)
 
         # Ponemos un timer para empezar la partida, por si no se unen todos
         logger.info(f"Public match {code} has been created")

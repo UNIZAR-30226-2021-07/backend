@@ -54,3 +54,17 @@ jobs:
         run: python -m black . --check
       - name: Run isort
         run: python -m isort . --check
+
+  # Asegura que los docs compilen correctamente también
+  python-docs:
+    name: Python docs
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - name: Set up dependencies
+        run: pip install -e .[docs]
+      - name: Attempt to compile
+        # With warnings as errors
+        run: cd docs && make html SPHINXOPTS="-W"

@@ -172,15 +172,25 @@ class PublicMatch(Match):
 
         super().start()
 
+    def end(self):
+        # Cancelamos el timer si sigue
+        self.start_timer.cancel()
+
+        super().end()
+
     def start_check(self):
         """
         Comprobación de si la partida puede comenzar tras haber dado un tiempo a
-        los jugadores para que se conecten. Si es posible, la partida empezará.
+        los jugadores para que se conecten. Si es posible, la partida empezará,
+        y sino se cancela la partida por esperar demasiado.
         """
 
         if len(self.users) >= MIN_MATCH_USERS:
             # Empezamos la partida
             self.start()
+        else:
+            # La cancelamos
+            self.end()
 
 
 class MatchManager:

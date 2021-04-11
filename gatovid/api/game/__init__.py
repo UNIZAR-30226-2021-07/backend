@@ -75,9 +75,8 @@ infinitas).
     Frontend <-- Backend: found_game("8XA1")
     Frontend -> Frontend: start_timer(TIME_UNTIL_START)
 
-    loop hasta que el timer termine o todos los usuarios se hayan unido
+    loop hasta que acabe el timer o todos los usuarios se hayan unido
         Frontend -> Backend: join("8XA1")
-        Frontend --> Backend: start_game
     end
 
     alt hay >=2 usuarios

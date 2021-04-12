@@ -289,7 +289,7 @@ class Purchase(db.Model):
         los precios anteriores si el precio del objeto cambia.
         """
         item_list = self.get_item_list(self.type)
-        return item_list[self.item_id]['cost']
+        return item_list[self.item_id]["cost"]
 
     @validates("item_id", "type")
     def validate_item_id(self, key: str, val) -> None:

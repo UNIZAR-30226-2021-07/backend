@@ -65,3 +65,13 @@ class ShopTests(GatovidTestClient):
         self.assertRequestOk(resp)
         resp = self.request_shop_buy(item_id=2, item_type="board", token=token)
         self.assertRequestErr(resp, 400)
+
+    def test_not_spending_if_couldnt_buy(self):
+        resp = self.request_token(self.user_data)
+        token = resp.json["access_token"]
+
+        start_coins = self.request_coins(token)
+        resp = self.request_shop_buy(item_id=4, item_type="board", token=token)
+        self.assertRequestErr(resp, 400)
+        end_coins = self.request_coins(token)
+        self.assertEqual(start_coins, end_coins)

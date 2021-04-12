@@ -314,7 +314,7 @@ class Purchase(db.Model):
         # Hacemos la comprobación en las dos iteraciones
         item_id = val if key == "item_id" else self.item_id
         item_type = val if key == "type" else self.type
-        if item_id is None or item_type is None:
+        if None in (item_id, item_type):
             return val  # No validamos hasta la siguiente iteración
 
         item_list = self.get_item_list(item_type)

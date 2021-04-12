@@ -355,7 +355,6 @@ def shop_buy(data):
         return msg_err("No tienes suficientes patitas")
 
     try:
-        user.coins -= price
         db.session.add(purchase)
         db.session.commit()
     except IntegrityError as e:
@@ -364,6 +363,9 @@ def shop_buy(data):
             return msg_err("Objeto ya comprado")
         else:
             raise
+
+    user.coins -= price
+    db.session.commit()
 
     logger.info(f"User {user.name} has bought a shop item")
     return msg_ok("Objeto comprado con éxito")

@@ -350,7 +350,12 @@ def shop_buy(data):
     except InvalidModelException as e:
         return msg_err(e)
 
+    price = purchase.get_price()
+    if user.coins < price:
+        return msg_err("No tienes suficientes patitas")
+
     try:
+        user.coins -= price
         db.session.add(purchase)
         db.session.commit()
     except IntegrityError as e:

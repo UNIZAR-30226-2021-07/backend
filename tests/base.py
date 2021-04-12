@@ -111,6 +111,10 @@ class GatovidTestClient(BaseTestCase):
     def request_data(self, token: str) -> Dict[str, str]:
         return self.request("/data/user_data", headers=self.auth_headers(token))
 
+    def request_coins(self, token: str) -> int:
+        data = self.request("/data/user_data", headers=self.auth_headers(token))
+        return int(data.json["coins"])
+
     def request_shop_buy(
         self, item_id: int, item_type: str, token: str
     ) -> Dict[str, str]:

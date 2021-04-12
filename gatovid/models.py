@@ -271,3 +271,39 @@ class Purchase(db.Model):
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         del d["user_id"]
         return d
+
+    @validates("item_id", "type")
+    def validate_item_id(self, key: str, val) -> None:
+        # Necesitamos validar los dos porque item_id depende del tipo.
+        # Aún así, no podemos validar los dos de vez, se hace
+        # "iterativamente".
+
+        # Evitamos valores vacíos de entrada
+        if val is None:
+            raise InvalidModelException(f"Parámetro {key} vacío")
+
+        if key == "item_id":
+            try:
+                val = int(val)
+            except ValueError:
+                raise InvalidModelException("El ID de objeto debe ser un número")
+        else:
+            try:
+                val = PurchasableType(val)
+            except ValueError:
+                raise InvalidModelException("Tipo de objeto inválido")
+
+        # Hacemos la comprobación en las dos iteraciones
+        item_id = val if key == "item_id" else self.item_id
+        item_type = val if key == "type" else self.type
+        if item_id is None or item_type is None:
+            return val  # No validamos hasta la siguiente iteración
+
+        item_list = PROFILE_PICS
+        if item_type == PurchasableType.BOARD:
+            item_list = BOARDS
+
+        if item_id < 0 or item_id >= len(item_list):
+            raise InvalidModelException("ID de objeto inválido")
+
+        return val

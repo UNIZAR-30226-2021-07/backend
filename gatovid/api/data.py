@@ -323,3 +323,42 @@ def user_stats(data):
         "wins": stats.wins,
         "playtime_mins": stats.playtime_mins,
     }
+
+
+@route_get_or_post(mod, "/shop_buy")
+@jwt_required()
+def shop_buy(data):
+    """
+    Endpoint para comprar un objeto en la tienda.
+
+    :param id: Identificador del objeto
+    :type id: ``int``
+    :param type: Tipo del objeto ("board" | "profile_pic")
+    :type type: ``str``
+
+    :return:
+    """
+
+    email = get_jwt_identity()
+    user = User.query.get(email)
+
+    item_id = data.get("id")
+    item_type = data.get("type")
+
+    try:
+        purchase = Purchase(user_id=email, item_id=item_id, type=item_type)
+    except InvalidModelException as e:
+        return msg_err(e)
+
+    try:
+        db.session.add(purchase)
+        db.session.commit()
+    except IntegrityError as e:
+        if isinstance(e.orig, UniqueViolation):
+            db.session.rollback()
+            return msg_err("Objeto ya comprado")
+        else:
+            raise
+
+    logger.info(f"User {user.name} has bought a shop item")
+    return msg_ok("Objeto comprado con éxito")

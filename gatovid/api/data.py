@@ -354,6 +354,7 @@ def shop_buy(data):
     if user.coins < price:
         return msg_err("No tienes suficientes patitas")
 
+    user.coins -= price
     try:
         db.session.add(purchase)
         db.session.commit()
@@ -363,9 +364,6 @@ def shop_buy(data):
             return msg_err("Objeto ya comprado")
         else:
             raise
-
-    user.coins -= price
-    db.session.commit()
 
     logger.info(f"User {user.name} has bought a shop item")
     return msg_ok("Objeto comprado con éxito")

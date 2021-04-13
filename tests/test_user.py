@@ -485,6 +485,9 @@ class UserTest(GatovidTestClient):
                 },
                 True,
             ),
+            # Campos nulos
+            ({"name": self.existing_user["name"], "password": None}, False),
+            ({"name": None, "password": self.existing_user["password"]}, False),
         ]
 
         token_resp = self.request_token(self.existing_user)

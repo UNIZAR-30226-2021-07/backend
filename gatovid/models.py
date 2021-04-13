@@ -16,7 +16,7 @@ import json
 import os
 import re
 from enum import Enum
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 
 from sqlalchemy.orm import validates
 
@@ -271,3 +271,55 @@ class Purchase(db.Model):
         d = {c.name: getattr(self, c.name) for c in self.__table__.columns}
         del d["user_id"]
         return d
+
+    @staticmethod
+    def get_item_list(item_type: PurchasableType) -> List[Dict[str, str]]:
+        """
+        Dado el tipo de objeto, devuelve la lista de objetos (JSON) con la
+        información como el nombre o el precio.
+        """
+        if item_type == PurchasableType.PROFILE_PIC:
+            return PROFILE_PICS
+        if item_type == PurchasableType.BOARD:
+            return BOARDS
+
+    def get_price(self) -> int:
+        """
+        Devuelve el precio actual de esta compra. NOTE: no se tienen en cuenta
+        los precios anteriores si el precio del objeto cambia.
+        """
+        item_list = self.get_item_list(self.type)
+        return item_list[self.item_id]["cost"]
+
+    @validates("item_id", "type")
+    def validate_item_id(self, key: str, val) -> None:
+        # Necesitamos validar los dos porque item_id depende del tipo.  Aún así,
+        # no podemos validar los dos de vez, se hace "iterativamente".
+
+        # Evitamos valores vacíos de entrada
+        if val is None:
+            raise InvalidModelException(f"Parámetro {key} vacío")
+
+        if key == "item_id":
+            try:
+                val = int(val)
+            except ValueError:
+                raise InvalidModelException("El ID de objeto debe ser un número")
+        else:
+            try:
+                val = PurchasableType(val)
+            except ValueError:
+                raise InvalidModelException("Tipo de objeto inválido")
+
+        # Hacemos la comprobación en las dos iteraciones
+        item_id = val if key == "item_id" else self.item_id
+        item_type = val if key == "type" else self.type
+        if None in (item_id, item_type):
+            return val  # No validamos hasta la siguiente iteración
+
+        item_list = self.get_item_list(item_type)
+
+        if item_id < 0 or item_id >= len(item_list):
+            raise InvalidModelException("ID de objeto inválido")
+
+        return val

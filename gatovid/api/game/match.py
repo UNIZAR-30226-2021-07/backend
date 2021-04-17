@@ -19,9 +19,26 @@ MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
+"""
+Caracteres permitidos para los códigos de partidas. Se evitan aquellas
+combinaciones consideradas ambigüas:
+
+* 'O', '0'
+* 'I', '1'
+* 'B', '8'
+* '2', 'Z'
+
+Con los demás caracteres se siguen teniendo 28^4 = 614.656 combinaciones,
+suficiente para lo que se necesita.
+
+Fuentes:
+- https://ux.stackexchange.com/a/53345.
+- https://sam-rogers.medium.com/an-unambigious-id-code-character-set-b0fc63f3c0d7
+"""
+CODE_ALLOWED_CHARS = 'ACDEFGHJKLMNPQRSTUVWXY345679'
 
 
-def _gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
+def _gen_code(chars=CODE_ALLOWED_CHARS, N=4) -> str:
     """
     Devuelve un código de longitud N usando los caracteres especificados.
     """

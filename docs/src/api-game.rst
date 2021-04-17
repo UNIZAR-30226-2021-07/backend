@@ -14,6 +14,22 @@ el servidor de forma más visual que textualmente. Para más detalles sobre los
 mensajes consultar la :ref:`game_msgs_reference`, y para los endpoints
 :ref:`game_reference`.
 
+Códigos de Partida
+******************
+
+Una partida se representa por una combinación de 4 caracteres alfanuméricos,
+excluyendo aquellas combinaciones consideradas ambigüas [#f1]_ [#f2]_:
+
+* 'O', '0'
+* 'I', '1'
+* 'B', '8'
+* '2', 'Z'
+
+Resultando en el siguiente set de caracteres, con el que se siguen teniendo
+:math:`28^4 = 614.656` combinaciones, suficiente para lo que se necesita.
+
+.. autoattribute:: gatovid.api.game.match.CODE_ALLOWED_CHARS
+
 Creación de Partidas Privadas
 *****************************
 
@@ -350,3 +366,10 @@ Referencia
         play_pass,
         search_game,
         start_game,
+
+---
+
+.. rubric:: Anotaciones
+
+.. [#f1] https://ux.stackexchange.com/a/53345
+.. [#f2] https://sam-rogers.medium.com/an-unambigious-id-code-character-set-b0fc63f3c0d7

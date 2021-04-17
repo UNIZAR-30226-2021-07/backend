@@ -3,7 +3,6 @@ Módulo de los datos sobre las partidas actuales y el sistema de matchmaking.
 """
 
 import random
-import string
 import threading
 from collections import deque
 from typing import Dict, List, Optional
@@ -19,9 +18,11 @@ MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
+# Caracteres permitidos para los códigos de las partidas.
+CODE_ALLOWED_CHARS = "ACDEFGHJKLMNPQRSTUVWXY345679"
 
 
-def _gen_code(chars=string.ascii_uppercase + string.digits, N=4) -> str:
+def _gen_code(chars=CODE_ALLOWED_CHARS, N=4) -> str:
     """
     Devuelve un código de longitud N usando los caracteres especificados.
     """

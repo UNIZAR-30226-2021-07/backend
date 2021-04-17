@@ -25,8 +25,10 @@ excluyendo aquellas combinaciones consideradas ambigüas [#f1]_ [#f2]_:
 * 'B', '8'
 * '2', 'Z'
 
-Con los demás caracteres se siguen teniendo :math:`28^4 = 614.656`
-combinaciones, suficiente para lo que se necesita.
+Resultando en el siguiente set de caracteres, con el que se siguen teniendo
+:math:`28^4 = 614.656` combinaciones, suficiente para lo que se necesita.
+
+.. autoattribute:: gatovid.api.game.match.CODE_ALLOWED_CHARS
 
 Creación de Partidas Privadas
 *****************************

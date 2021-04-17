@@ -20,7 +20,7 @@ MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
 # Caracteres permitidos para los códigos de las partidas.
-CODE_ALLOWED_CHARS = 'ACDEFGHJKLMNPQRSTUVWXY345679'
+CODE_ALLOWED_CHARS = "ACDEFGHJKLMNPQRSTUVWXY345679"
 
 
 def _gen_code(chars=CODE_ALLOWED_CHARS, N=4) -> str:

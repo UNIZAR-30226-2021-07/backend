@@ -12,6 +12,9 @@ from gatovid.util import get_logger
 logger = get_logger(__name__)
 
 
+MAX_CHAT_MSG_LEN = 240
+
+
 def _requires_game(started=False):
     """
     Decorador para comprobar si el usuario está en una partida. Si started es
@@ -300,10 +303,18 @@ def chat(msg):
 
         Si el usuario no está en una partida empezada se devolverá un
         :ref:`error <errores>`.
+
+        Se devolverá un :ref:`error <errores>` también en caso de que el mensaje
+        supere la longitud máxima de caracteres establecida:
+
+        .. autoattribute:: gatovid.api.game.MAX_CHAT_MSG_LEN
     """
 
     if not isinstance(msg, str):
         return {"error": "Tipo incorrecto para el mensaje"}
+
+    if len(msg) > MAX_CHAT_MSG_LEN:
+        return {"error": "Mensaje demasiado largo"}
 
     emit(
         "chat",

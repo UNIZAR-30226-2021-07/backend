@@ -77,7 +77,7 @@ class SessionsTest(WsTestClient):
 
         # El cliente 2 se une a la partida. Probamos primero que se puede unir
         # con un código en minúsculas.
-        callback_args = client2.emit("join", code, callback=True)
+        callback_args = client2.emit("join", code.lower(), callback=True)
         self.assertNotIn("error", callback_args)
         callback_args = client2.emit("leave", code, callback=True)
         self.assertNotIn("error", callback_args)

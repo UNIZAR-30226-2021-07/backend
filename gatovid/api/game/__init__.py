@@ -165,6 +165,9 @@ def join(game_code):
     """
     Unión a una partida proporcionando un código de partida.
 
+    Si se proporciona un código con minúsculas se intentará con el equivalente
+    en mayúsculas.
+
     :param game_code: Código de partida
     :type game_code: ``str``
 
@@ -182,6 +185,9 @@ def join(game_code):
 
     if not isinstance(game_code, str):
         return {"error": "Tipo incorrecto para el código de partida"}
+
+    # No importa si es minúsculas
+    game_code = game_code.upper()
 
     # Restricciones para unirse a la sala
     match = MM.get_match(game_code)

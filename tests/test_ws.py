@@ -79,7 +79,7 @@ class SessionsTest(WsTestClient):
         # con un código en minúsculas.
         callback_args = client2.emit("join", code.lower(), callback=True)
         self.assertNotIn("error", callback_args)
-        callback_args = client2.emit("leave", code, callback=True)
+        callback_args = client2.emit("leave", callback=True)
         self.assertNotIn("error", callback_args)
 
         # El cliente 2 se une a la partida por segunda vez, con un código en

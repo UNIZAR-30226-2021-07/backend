@@ -307,7 +307,8 @@ def chat(msg):
         :ref:`error <errores>`.
 
         Se devolverá un :ref:`error <errores>` también en caso de que el mensaje
-        supere la longitud máxima de caracteres establecida:
+        supere la longitud máxima de caracteres establecida, o si es vacío tras
+        quitar los espacios innecesarios:
 
         .. autoattribute:: gatovid.api.game.MAX_CHAT_MSG_LEN
     """

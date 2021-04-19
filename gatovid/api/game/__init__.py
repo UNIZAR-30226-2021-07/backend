@@ -305,17 +305,24 @@ def chat(msg):
 
     :return: Broadcast de un mensaje :ref:`msg_chat`.
 
+        Se borrarán en el mensaje todos los espacios anteriores y posteriores.
+
         Si el usuario no está en una partida empezada se devolverá un
         :ref:`error <errores>`.
 
         Se devolverá un :ref:`error <errores>` también en caso de que el mensaje
-        supere la longitud máxima de caracteres establecida:
+        supere la longitud máxima de caracteres establecida, o si es vacío tras
+        quitar los espacios innecesarios:
 
         .. autoattribute:: gatovid.api.game.MAX_CHAT_MSG_LEN
     """
 
     if not isinstance(msg, str):
         return {"error": "Tipo incorrecto para el mensaje"}
+
+    msg = msg.strip()
+    if len(msg) == 0:
+        return {"error": "Mensaje vacío"}
 
     if len(msg) > MAX_CHAT_MSG_LEN:
         return {"error": "Mensaje demasiado largo"}

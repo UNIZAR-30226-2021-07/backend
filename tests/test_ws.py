@@ -158,3 +158,13 @@ class SessionsTest(WsTestClient):
         self.assertEqual(args2["msg"], msg)
         self.assertEqual(args["owner"], owner)
         self.assertEqual(args2["owner"], owner)
+
+        # Mensaje vacío falla
+        msg = "          "
+        callback_args = client2.emit("chat", msg, callback=True)
+        self.assertIn("error", callback_args)
+
+        # Mensaje demasiado largo falla
+        msg = "test" * 1000
+        callback_args = client2.emit("chat", msg, callback=True)
+        self.assertIn("error", callback_args)

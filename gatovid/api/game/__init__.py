@@ -190,6 +190,10 @@ def join(game_code):
 
     # Guardamos la partida actual en la sesión
     session["game"] = game_code
+    # Actualizamos los datos del usuario. NOTE: estos ya serán los
+    # definitivos, no los puede modificar a mitad de partida.
+    session["user"] = User.query.get(session["user"].email)
+    session["user"].sid = request.sid
 
     # Guardamos al jugador en la partida
     try:

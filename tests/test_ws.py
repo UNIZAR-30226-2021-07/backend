@@ -2,6 +2,9 @@
 Tests para la conexión básica de websockets
 """
 
+import time
+from typing import Dict, Optional, List
+
 from .base import WsTestClient
 
 user_data = {
@@ -20,13 +23,32 @@ user3_data = {
 }
 
 
-class SessionsTest(WsTestClient):
+class WsTest(WsTestClient):
+    matchmaking_delay = 0.0
+
+    def set_matchmaking_time(self, delay: float):
+        """
+        Para los tests se parchea el tiempo de espera para el inicio de la
+        partida, evitando que se tenga que esperar a que acabe.
+        """
+
+        import gatovid.api.game.match
+
+        gatovid.api.game.match.TIME_UNTIL_START = delay
+        self.matchmaking_delay = delay
+
+    def wait_matchmaking_time(self):
+        time.sleep(self.matchmaking_delay * 1.2)
+
     def parse_json_args(self, args):
         return dict((key, arg[key]) for arg in args for key in arg)
 
-    def get_msg_in_received(self, received, msg_type: str, json: bool = False):
+    def get_msg_in_received(
+        self, received: List, msg_type: str, json: bool = False
+    ) -> (Optional[Dict], Optional[List[Dict]]):
         """
-        Devuelve la primera aparición de un mensaje de tipo `msg_type` en `received`.
+        Devuelve la primera aparición de un mensaje de tipo `msg_type` en
+        `received`.
         """
         raw = next(iter(filter(lambda msg: msg["name"] == msg_type, received)), None)
         args = raw["args"]
@@ -176,3 +198,27 @@ class SessionsTest(WsTestClient):
         msg = "test" * 1000
         callback_args = client2.emit("chat", msg, callback=True)
         self.assertIn("error", callback_args)
+
+    def test_matchmaking(self):
+        self.set_matchmaking_time(0.5)
+
+        client = self.create_client(user_data)
+        client2 = self.create_client(user2_data)
+
+        # El primer usuario puede entrar y esperar, pero no comenzará la partida
+        # hasta que hayan al menos dos.
+        callback_args = client.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+        received = client.get_received()
+        self.assertEqual(len(received), 0)
+
+        # Se une un segundo usuario y espera el tiempo necesario. Ahora sí que
+        # se encontrará una partida.
+        callback_args = client2.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+        for client in (client, client2):
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)

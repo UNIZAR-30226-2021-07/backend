@@ -261,8 +261,9 @@ class MatchManager:
         with self._public_lock:
             self.users_waiting.remove(user)
 
-            # Si ya no hay suficientes jugadores esperando, se cancela el timer.
-            if len(self.users_waiting) < MIN_MATCH_USERS:
+            not_enough_users = len(self.users_waiting) < MIN_MATCH_USERS
+            timer_running = self._public_timer is not None
+            if not_enough_users and timer_running:
                 self._public_timer.cancel()
                 self._public_timer = None
 

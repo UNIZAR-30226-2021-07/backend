@@ -264,11 +264,16 @@ class WsTest(WsTestClient):
         callback_args = client2.emit("stop_searching", callback=True)
         self.assertNotIn("error", callback_args)
 
-        # Ninguno de ellos habrá encontrado partida
         self.wait_matchmaking_time()
-        for client in (client, client2):
-            received = client.get_received()
-            self.assertEqual(len(received), 0)
+
+        # El primero de ellos no habrá encontrado partida
+        received = client.get_received()
+        self.assertEqual(len(received), 0)
+
+        # Y el segundo solo habrá recibido la confirmación de que
+        # stop_searching.
+        received = client2.get_received()
+        _, args = self.get_msg_in_received(received, "stop_searching", json=True)
 
     def test_matchmaking_total(self):
         """

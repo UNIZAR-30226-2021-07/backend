@@ -9,7 +9,7 @@ from gatovid.exts import socket
 from gatovid.models import User
 from gatovid.util import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger("api.game.__init__")
 
 
 MAX_CHAT_MSG_LEN = 240

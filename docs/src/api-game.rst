@@ -278,6 +278,13 @@ Mensaje sin campos adicionales.
 
 Mensaje sin campos adicionales.
 
+.. _msg_stop_searching:
+
+``stop_searching``
+******************
+
+Mensaje sin campos adicionales.
+
 .. _msg_chat:
 
 ``chat``
@@ -367,6 +374,7 @@ Referencia
         play_draw,
         play_pass,
         search_game,
+        stop_searching,
         start_game,
 
 ---

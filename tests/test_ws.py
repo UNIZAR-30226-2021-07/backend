@@ -261,3 +261,52 @@ class WsTest(WsTestClient):
             self.assertIn("code", args)
         received = client.get_received()
         self.assertEqual(len(received), 0)
+
+
+    def test_troll_user(self):
+        """
+        Comprueba que 2 usuarios encontrarán partida aunque haya un "troll"
+        buscando y cancelando.
+        """
+
+        clients = []
+        for i in range(2):
+            clients.append(self.create_client(users_data[i]))
+
+        troll = self.create_client(users_data[2])
+
+        # Establecemos un tiempo de inicio de partida ínfimo.
+        self.set_matchmaking_time(0.5)
+
+        # Los 2 usuarios con buena intención buscarán partida normalmente.
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+
+        for i in range(2):
+            print(i)
+            callback_args = troll.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+            time.sleep(0.1)
+            callback_args = troll.emit("stop_searching", callback=True)
+            self.assertNotIn("error", callback_args)
+            time.sleep(0.1)
+
+        # Esperamos un tiempo adicional hasta que se complete el
+        # tiempo de creación; pero no dejándole tiempo a que cree otro
+        # timer (por si en algún futuro se toca el matchmaking).
+        time.sleep(0.3)
+
+        code = None
+        for client in clients:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+            if code: # Comprobamos que han entrado a la misma partida
+                self.assertEqual(code, args["code"])
+
+        # Comprobamos que el troll no ha encontrado partida (porque finalmente
+        # ha cancelado).
+        received = client.get_received()
+        msg = self.get_msg_in_received(received, "found_game", json=True)
+        self.assertIsNone(msg)

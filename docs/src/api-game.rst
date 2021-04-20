@@ -276,6 +276,13 @@ Mensaje sin campos adicionales.
 
 Mensaje sin campos adicionales.
 
+.. _msg_stop_searching:
+
+``stop_searching``
+**************
+
+Mensaje sin campos adicionales.
+
 .. _msg_chat:
 
 ``chat``

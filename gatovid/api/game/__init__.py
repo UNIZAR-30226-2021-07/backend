@@ -107,6 +107,25 @@ def search_game():
         return {"error": str(e)}
 
 
+@socket.on("stop_searching")
+def stop_searching():
+    """
+    Parar de buscar una partida pública organizada por el servidor.
+
+    :return: Devuelve un mensaje de tipo :ref:`msg_stop_searching` si se ha
+        podido cancelar la búsqueda.
+
+        Si se produce cualquier error (por ejemplo, que el usuario no esté
+        buscando partida) se devolverá un :ref:`error <errores>`.
+    """
+
+    if session["user"] in MM.users_waiting:
+        MM.stop_waiting(session["user"])
+        emit("stop_searching")
+    else:
+        return {"error": "No estás buscando partida"}
+
+
 @socket.on("create_game")
 def create_game():
     """

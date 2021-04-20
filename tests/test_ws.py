@@ -307,7 +307,6 @@ class WsTest(WsTestClient):
         received = clients[-1].get_received()
         self.assertEqual(len(received), 0)
 
-
     def test_troll_user(self):
         """
         Comprueba que 2 usuarios encontrarán partida aunque haya un "troll"
@@ -346,7 +345,7 @@ class WsTest(WsTestClient):
             received = client.get_received()
             _, args = self.get_msg_in_received(received, "found_game", json=True)
             self.assertIn("code", args)
-            if code: # Comprobamos que han entrado a la misma partida
+            if code:  # Comprobamos que han entrado a la misma partida
                 self.assertEqual(code, args["code"])
 
         # Comprobamos que el troll no ha encontrado partida (porque finalmente

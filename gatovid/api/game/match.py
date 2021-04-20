@@ -233,7 +233,6 @@ class MatchManager:
             # una partida para todos.
             if len(self.users_waiting) >= MAX_MATCH_USERS:
                 self.create_public_game()
-
                 return
 
             # En caso contrario, si se ha llegado al mínimo de usuarios se
@@ -256,8 +255,7 @@ class MatchManager:
 
     def stop_waiting(self, user: User) -> None:
         """
-        Elimina al usuario de la cola de usuarios esperando partida. Se necesita
-        por si un usuario se desconecta a mitad de la búsqueda.
+        Elimina al usuario de la cola de usuarios esperando partida.
         """
 
         with self._public_lock:

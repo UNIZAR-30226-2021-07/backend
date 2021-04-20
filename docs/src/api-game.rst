@@ -86,7 +86,9 @@ infinitas).
         Usuario -> Frontend: Buscar Partida
         Frontend -> Backend: search_game
 
-        Frontend -> Frontend: start_timer(TIME_UNTIL_START)
+        opt hay 2 usuarios
+            Frontend -> Frontend: start_timer(TIME_UNTIL_START)
+        end
     end
 
     Frontend <-- Backend: found_game("8XA1")

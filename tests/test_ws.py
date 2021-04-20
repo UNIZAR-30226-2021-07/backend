@@ -2,33 +2,64 @@
 Tests para la conexión básica de websockets
 """
 
+import time
+from typing import Dict, List, Optional
+
+from gatovid.create_db import (
+    GENERIC_USERS_EMAIL,
+    GENERIC_USERS_NAME,
+    GENERIC_USERS_PASSWORD,
+    NUM_GENERIC_USERS,
+)
+
 from .base import WsTestClient
 
-user_data = {
-    "email": "test_user1@gmail.com",
-    "password": "whatever1",
-}
-
-user2_data = {
-    "email": "test_user2@gmail.com",
-    "password": "whatever2",
-}
-
-user3_data = {
-    "email": "test_user3@gmail.com",
-    "password": "whatever3",
-}
+users_data = []
+for i in range(NUM_GENERIC_USERS):
+    users_data.append(
+        {
+            "email": GENERIC_USERS_EMAIL.format(i),
+            "password": GENERIC_USERS_PASSWORD,
+        }
+    )
 
 
-class SessionsTest(WsTestClient):
+class WsTest(WsTestClient):
+    matchmaking_delay = 0.0
+
+    def set_matchmaking_time(self, delay: float):
+        """
+        Para los tests se parchea el tiempo de espera para el inicio de la
+        partida, evitando que se tenga que esperar a que acabe.
+        """
+
+        import gatovid.api.game.match
+
+        gatovid.api.game.match.TIME_UNTIL_START = delay
+        self.matchmaking_delay = delay
+
+    def wait_matchmaking_time(self):
+        """
+        Espera el tiempo de inicio de una partida, con un pequeño margen para el
+        procesamiento en el backend.
+        """
+
+        time.sleep(self.matchmaking_delay * 1.2)
+
     def parse_json_args(self, args):
         return dict((key, arg[key]) for arg in args for key in arg)
 
-    def get_msg_in_received(self, received, msg_type: str, json: bool = False):
+    def get_msg_in_received(
+        self, received: List, msg_type: str, json: bool = False
+    ) -> (Optional[Dict], Optional[List[Dict]]):
         """
-        Devuelve la primera aparición de un mensaje de tipo `msg_type` en `received`.
+        Devuelve la primera aparición de un mensaje de tipo `msg_type` en
+        `received`.
         """
         raw = next(iter(filter(lambda msg: msg["name"] == msg_type, received)), None)
+        if raw is None:
+            return None, None
+
         args = raw["args"]
 
         if raw and raw.get("args") and json:
@@ -37,14 +68,14 @@ class SessionsTest(WsTestClient):
         return raw, args
 
     def test_connect(self):
-        client = self.create_client(user_data)
+        client = self.create_client(users_data[0])
         self.assertIsNotNone(client)
 
-        client2 = self.create_client(user2_data)
+        client2 = self.create_client(users_data[1])
         self.assertIsNotNone(client2)
 
     def test_create_game(self):
-        client = self.create_client(user_data)
+        client = self.create_client(users_data[0])
 
         # Creamos la partida y vemos si el servidor devuelve error
         callback_args = client.emit("create_game", callback=True)
@@ -61,7 +92,7 @@ class SessionsTest(WsTestClient):
         self.assertEqual(type(code), str)
 
     def test_join_private_game(self):
-        client = self.create_client(user_data)
+        client = self.create_client(users_data[0])
 
         # Creamos la partida y vemos si el servidor devuelve error
         callback_args = client.emit("create_game", callback=True)
@@ -72,7 +103,7 @@ class SessionsTest(WsTestClient):
         code = args["code"]
 
         # Creamos el usuario que se unirá a la partida
-        client2 = self.create_client(user2_data)
+        client2 = self.create_client(users_data[1])
         self.assertIsNotNone(client2)
 
         # El cliente 2 se une a la partida. Probamos primero que se puede unir
@@ -100,8 +131,8 @@ class SessionsTest(WsTestClient):
         self.assertIn("error", callback_args)
 
     def test_start_private_game(self):
-        client = self.create_client(user_data)
-        client2 = self.create_client(user2_data)
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
 
         # Creamos la partida
         client.emit("create_game", callback=True)
@@ -126,8 +157,8 @@ class SessionsTest(WsTestClient):
         self.assertNotIn("error", callback_args)
 
     def test_chat(self):
-        client = self.create_client(user_data)
-        client2 = self.create_client(user2_data)
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
 
         # Creamos la partida
         callback_args = client.emit("create_game", callback=True)
@@ -147,7 +178,7 @@ class SessionsTest(WsTestClient):
 
         # Emitimos un mensaje de chat desde el cliente 2
         msg = "Hola buenas"
-        owner = "test_user2"
+        owner = GENERIC_USERS_NAME.format(1)
         callback_args = client2.emit("chat", msg, callback=True)
         self.assertNotIn("error", callback_args)
 
@@ -176,3 +207,149 @@ class SessionsTest(WsTestClient):
         msg = "test" * 1000
         callback_args = client2.emit("chat", msg, callback=True)
         self.assertIn("error", callback_args)
+
+    def test_matchmaking_time_limited(self):
+        """
+        Comprueba que el timer funciona para asignar partidas una vez pasado el
+        tiempo máximo.
+        """
+
+        self.set_matchmaking_time(0.5)
+
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
+        client3 = self.create_client(users_data[2])
+
+        # El primer usuario puede entrar y esperar, pero no comenzará la partida
+        # hasta que hayan al menos dos.
+        callback_args = client.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+        received = client.get_received()
+        self.assertEqual(len(received), 0)
+
+        # Se une un segundo usuario y espera el tiempo necesario. Ahora sí que
+        # se encontrará una partida.
+        callback_args = client2.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+        for client in (client, client2):
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+
+        # Si otro usuario comienza a buscar partida tampoco encontrará porque ya
+        # no hay disponibles.
+        callback_args = client3.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+        received = client3.get_received()
+        self.assertEqual(len(received), 0)
+
+    def test_matchmaking_timer_cancel(self):
+        """
+        Comprueba que no hay problemas al cancelar el timer por no tenerse
+        suficientes usuarios de nuevo.
+        """
+
+        self.set_matchmaking_time(0.5)
+
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
+
+        # Se unen dos usuarios, por lo que comenzará el timer.
+        callback_args = client.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        callback_args = client2.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Rápidamente se sale un usuario
+        callback_args = client2.emit("stop_searching", callback=True)
+        self.assertNotIn("error", callback_args)
+
+        self.wait_matchmaking_time()
+
+        # El primero de ellos no habrá encontrado partida
+        received = client.get_received()
+        self.assertEqual(len(received), 0)
+
+        # Y el segundo solo habrá recibido la confirmación de que
+        # stop_searching.
+        received = client2.get_received()
+        _, args = self.get_msg_in_received(received, "stop_searching", json=True)
+        self.assertEqual(args, [])
+        _, args = self.get_msg_in_received(received, "found_game", json=True)
+        self.assertEqual(args, None)
+
+    def test_matchmaking_total(self):
+        """
+        Comprueba que al llegar a 6 usuarios se inicia una partida
+        automáticamente.
+        """
+
+        self.set_matchmaking_time(0.5)
+
+        clients = []
+        for i in range(7):
+            clients.append(self.create_client(users_data[i]))
+
+        # Encontrarán partida todos menos el último, que ya es el séptimo y se
+        # queda fuera.
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+
+        for client in clients[:-1]:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+        received = clients[-1].get_received()
+        self.assertEqual(len(received), 0)
+
+    def test_troll_user(self):
+        """
+        Comprueba que 2 usuarios encontrarán partida aunque haya un "troll"
+        buscando y cancelando.
+        """
+
+        clients = []
+        for i in range(2):
+            clients.append(self.create_client(users_data[i]))
+
+        troll = self.create_client(users_data[2])
+
+        # Establecemos un tiempo de inicio de partida ínfimo.
+        self.set_matchmaking_time(0.5)
+
+        # Los 2 usuarios con buena intención buscarán partida normalmente.
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+
+        for i in range(2):
+            callback_args = troll.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+            time.sleep(0.1)
+            callback_args = troll.emit("stop_searching", callback=True)
+            self.assertNotIn("error", callback_args)
+            time.sleep(0.1)
+
+        # Esperamos un tiempo adicional hasta que se complete el
+        # tiempo de creación; pero no dejándole tiempo a que cree otro
+        # timer (por si en algún futuro se toca el matchmaking).
+        time.sleep(0.3)
+
+        code = None
+        for client in clients:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+            if code:  # Comprobamos que han entrado a la misma partida
+                self.assertEqual(code, args["code"])
+
+        # Comprobamos que el troll no ha encontrado partida (porque finalmente
+        # ha cancelado).
+        received = troll.get_received()
+        msg, _ = self.get_msg_in_received(received, "found_game", json=True)
+        self.assertIsNone(msg)

@@ -201,10 +201,16 @@ class WsTest(WsTestClient):
         self.assertIn("error", callback_args)
 
     def test_matchmaking_time_limited(self):
+        """
+        Comprueba que el timer funciona para asignar partidas una vez pasado el
+        tiempo máximo.
+        """
+
         self.set_matchmaking_time(0.5)
 
         client = self.create_client(users_data[0])
         client2 = self.create_client(users_data[1])
+        client3 = self.create_client(users_data[2])
 
         # El primer usuario puede entrar y esperar, pero no comenzará la partida
         # hasta que hayan al menos dos.
@@ -223,3 +229,35 @@ class WsTest(WsTestClient):
             received = client.get_received()
             _, args = self.get_msg_in_received(received, "found_game", json=True)
             self.assertIn("code", args)
+
+        # Si otro usuario comienza a buscar partida tampoco encontrará porque ya
+        # no hay disponibles.
+        callback_args = client3.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+        received = client3.get_received()
+        self.assertEqual(len(received), 0)
+
+    def test_matchmaking_total(self):
+        """
+        Comprueba que al llegar a 6 usuarios se inicia una partida
+        automáticamente.
+        """
+
+        clients = []
+        for i in range(7):
+            clients.append(self.create_client(users_data[i]))
+
+        # Encontrarán partida todos menos el último, que ya es el séptimo y se
+        # queda fuera.
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+
+        for client in clients[:-1]:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+        received = client.get_received()
+        self.assertEqual(len(received), 0)

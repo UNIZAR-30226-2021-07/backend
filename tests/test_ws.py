@@ -11,8 +11,12 @@ from gatovid.create_db import (
     GENERIC_USERS_PASSWORD,
     NUM_GENERIC_USERS,
 )
+from gatovid.util import get_logger
 
 from .base import WsTestClient
+
+
+logger = get_logger(__name__)
 
 users_data = []
 for i in range(NUM_GENERIC_USERS):
@@ -353,3 +357,73 @@ class WsTest(WsTestClient):
         received = troll.get_received()
         msg, _ = self.get_msg_in_received(received, "found_game", json=True)
         self.assertIsNone(msg)
+
+    def test_match_management_full(self):
+        """
+        Prueba un caso en el que se busca partida repetidamente siguiendo el
+        proceso completo:
+
+        Públicas:
+
+        1. Iniciar sesión
+        2. Buscar juego
+        3. Encontrar juego
+        4. Unirse a juego
+        5. Salir de juego
+        6. Cerrar sesión
+
+        Privadas:
+
+        1. Iniciar sesión
+        2. Crear juego o unirse al existente
+        3. Salir de juego
+        4. Cerrar sesión
+        """
+
+        self.set_matchmaking_time(0.5)
+
+        def new_public_game(client1, client2):
+            logger.info(">> Joining public game")
+
+            # Encuentran una partida
+            for client in (client1, client2):
+                callback_args = client.emit("search_game", callback=True)
+                self.assertNotIn("error", callback_args)
+            self.wait_matchmaking_time()
+
+            # Se unen a la partida
+            for client in (client1, client2):
+                received = client.get_received()
+                _, args = self.get_msg_in_received(received, "found_game", json=True)
+                self.assertIn("code", args)
+                callback_args = client.emit("join", args["code"], callback=True)
+                self.assertNotIn("error", callback_args)
+
+        def new_private_game(client1, client2):
+            logger.info(">> Joining private game")
+
+            # Uno de ellos crea una partida una partida
+            callback_args = client1.emit("create_game", callback=True)
+            self.assertNotIn("error", callback_args)
+            received = client1.get_received()
+            _, args = self.get_msg_in_received(received, "create_game", json=True)
+            code = args["code"]
+
+            # El otro se une a la partida
+            callback_args = client2.emit("join", code, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        for new_game in (new_public_game, new_private_game):
+            for i in range(5):
+                client1 = self.create_client(users_data[0])
+                client2 = self.create_client(users_data[1])
+
+                new_game(client1, client2)
+
+                # Se salen de la partida. En este caso sí que puede haber un error,
+                # en caso de que se cancele la partida automáticamente y se intente
+                # salir de ella de nuevo.
+                for client in (client1, client2):
+                    client1.emit("leave", callback=True)
+
+                del client1, client2

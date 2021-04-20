@@ -39,6 +39,11 @@ class WsTest(WsTestClient):
         self.matchmaking_delay = delay
 
     def wait_matchmaking_time(self):
+        """
+        Espera el tiempo de inicio de una partida, con un pequeño margen para el
+        procesamiento en el backend.
+        """
+
         time.sleep(self.matchmaking_delay * 1.2)
 
     def parse_json_args(self, args):

@@ -20,7 +20,7 @@ from gatovid.models import (
 from gatovid.util import get_logger, msg_err, msg_ok, route_get_or_post
 
 mod = Blueprint("api_data", __name__, url_prefix="/data")
-logger = get_logger(__name__)
+logger = get_logger("api.data.__init__")
 
 
 def _revoke_token() -> bool:

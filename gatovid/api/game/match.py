@@ -260,6 +260,7 @@ class MatchManager:
 
         with self._public_lock:
             self.users_waiting.remove(user)
+            logger.info(f"User {user.name} has stopped searching")
 
             not_enough_users = len(self.users_waiting) < MIN_MATCH_USERS
             timer_running = self._public_timer is not None

@@ -15,7 +15,6 @@ from gatovid.util import get_logger
 
 from .base import WsTestClient
 
-
 logger = get_logger(__name__)
 
 users_data = []

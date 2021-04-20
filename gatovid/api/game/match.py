@@ -203,68 +203,49 @@ class MatchManager:
         # Cola de usuarios buscando una partida pública
         self.users_waiting = deque()
         # Temporizador para el tiempo de pánico para generar una partida. Se
-        # generará una partida con un número de jugadores menor a 6.
-        self._timer = None
-        # El "Panic Mode" es una estrategia que garantiza que se encuentre una
-        # partida. Con él se evitan casos de inanición, en los que el timer se
-        # estaría reiniciando al entrar/salir usuarios de la cola de partidas
-        # públicas, y por tanto no comenzaría una partida nunca.
-        #
-        # Una vez termine el timer, se activará el Panic Mode y se parará el
-        # timer. A partir de entonces, la próxima vez que se pueda iniciar la
-        # partida se hará, en vez de iniciar un timer para esperar.
-        self._panic_mode = False
-
-        # True si se ha realizado el check. Sirve para no acceder a la misma
-        # zona de código dos veces seguidas.
-        self._checked = False
-        self._checked_lock = threading.Lock()
+        # generará una partida con un número de jugadores menor a 6. Será
+        # activado únicamente cuando se tengan suficientes usuarios para
+        # comenzar una partida.
+        self._public_timer = None
+        # El servidor es secuencial, excepto en el caso de las partidas
+        # públicas, que tienen timers que pueden modificar el estado desde un
+        # thread distinto.
+        self._public_lock = threading.Lock()
 
     def wait_for_game(self, user: User) -> None:
         """
         Añade al usuario a la cola de usuarios esperando partida.
         """
 
-        # No añadimos al usuario si ya está esperando.
-        # FIXME: podría dar error si no cambia el sid del usuario, habría que
-        # actualizar el objeto usuario en tal caso.
-        if user in self.users_waiting:
-            raise GameLogicException(
-                "El usuario ya está esperando a una partida pública"
-            )
+        with self._public_lock:
+            # No añadimos al usuario si ya está esperando.
+            # FIXME: podría dar error si no cambia el sid del usuario, habría
+            # que actualizar el objeto usuario en tal caso.
+            if user in self.users_waiting:
+                raise GameLogicException(
+                    "El usuario ya está esperando a una partida pública"
+                )
 
-        self.users_waiting.append(user)
-        logger.info(f"User {user.name} is waiting for a game")
+            self.users_waiting.append(user)
+            logger.info(f"User {user.name} is waiting for a game")
 
-        # Si ya existía un timer, lo cancelamos -> además, esto asegura que no
-        # entrará el callback a mitad de comprobación de crear partida
-        if self._timer:
-            self._timer.cancel()
+            # Si la cola tiene el máximo de jugadores para una partida, se crea
+            # una partida para todos.
+            if len(self.users_waiting) >= MAX_MATCH_USERS:
+                self.create_public_game()
 
-        with self._checked_lock:
-            if self._checked:
-                self._checked = False
+                # Se cancela el timer si es necesario.
+                if self._public_timer is not None:
+                    self._public_timer.cancel()
+                    self._public_timer = None
+
                 return
-            self._checked = True
 
-        # Si la cola tiene el máximo de jugadores para una partida, se crea una
-        # partida para todos.
-        if len(self.users_waiting) >= MAX_MATCH_USERS:
-            self.create_public_game()
-
-        # Se creará también una partida si está activado el Panic Mode y hay
-        # suficientes jugadores.
-        if len(self.users_waiting) >= MIN_MATCH_USERS and self._panic_mode:
-            self._panic_mode = False
-            self.create_public_game()
-
-        # Si siguen quedando jugadores en la cola, configuramos el timer.
-        if len(self.users_waiting) > 0:
-            # Creamos un timer
-            self._timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
-            self._timer.start()
-
-        self._checked = False
+            # En caso contrario, si se ha llegado al mínimo de usuarios se
+            # inicia el timer.
+            if len(self.users_waiting) == MIN_MATCH_USERS:
+                self._public_timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
+                self._public_timer.start()
 
     def matchmaking_check(self):
         """
@@ -273,16 +254,11 @@ class MatchManager:
         en caso contrario se activa el Panic Mode.
         """
 
-        with self._checked_lock:
-            if self._checked:
-                self._checked = False
-                return
-            self._checked = True
+        with self._public_lock:
+            self._public_timer = None
 
-        if len(self.users_waiting) >= MIN_MATCH_USERS:
-            self.create_public_game()
-        else:
-            self._panic_mode = True
+            if len(self.users_waiting) >= MIN_MATCH_USERS:
+                self.create_public_game()
 
     def stop_waiting(self, user: User) -> None:
         """
@@ -290,11 +266,13 @@ class MatchManager:
         por si un usuario se desconecta a mitad de la búsqueda.
         """
 
-        self.users_waiting.remove(user)
+        with self._public_lock:
+            self.users_waiting.remove(user)
 
-        # Si ya no hay mas jugadores esperando, cancelamos el timer
-        if len(self.users_waiting) == 0:
-            self._timer.cancel()
+            # Si ya no hay suficientes jugadores esperando, se cancela el timer.
+            if len(self.users_waiting) < MIN_MATCH_USERS:
+                self._public_timer.cancel()
+                self._public_timer = None
 
     def create_public_game(self) -> None:
         # Obtener los jugadores esperando

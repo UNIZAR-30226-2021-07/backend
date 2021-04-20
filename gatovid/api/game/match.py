@@ -205,6 +205,15 @@ class MatchManager:
         # Temporizador para el tiempo de pánico para generar una partida. Se
         # generará una partida con un número de jugadores menor a 6.
         self._timer = None
+        # El "Panic Mode" es una estrategia que garantiza que se encuentre una
+        # partida. Con él se evitan casos de inanición, en los que el timer se
+        # estaría reiniciando al entrar/salir usuarios de la cola de partidas
+        # públicas, y por tanto no comenzaría una partida nunca.
+        #
+        # Una vez termine el timer, se activará el Panic Mode y se parará el
+        # timer. A partir de entonces, la próxima vez que se pueda iniciar la
+        # partida se hará, en vez de iniciar un timer para esperar.
+        self._panic_mode = False
 
         # True si se ha realizado el check. Sirve para no acceder a la misma
         # zona de código dos veces seguidas.
@@ -243,6 +252,12 @@ class MatchManager:
         if len(self.users_waiting) >= MAX_MATCH_USERS:
             self.create_public_game()
 
+        # Se creará también una partida si está activado el Panic Mode y hay
+        # suficientes jugadores.
+        if len(self.users_waiting) >= MIN_MATCH_USERS and self._panic_mode:
+            self._panic_mode = False
+            self.create_public_game()
+
         # Si siguen quedando jugadores en la cola, configuramos el timer.
         if len(self.users_waiting) > 0:
             # Creamos un timer
@@ -254,7 +269,8 @@ class MatchManager:
     def matchmaking_check(self):
         """
         Comprobación de si se puede crear una partida pública "de emergencia"
-        (con menos jugadores que el máximo). La partida se crea si es posible.
+        (con menos jugadores que el máximo). La partida se crea si es posible, y
+        en caso contrario se activa el Panic Mode.
         """
 
         with self._checked_lock:
@@ -265,6 +281,8 @@ class MatchManager:
 
         if len(self.users_waiting) >= MIN_MATCH_USERS:
             self.create_public_game()
+        else:
+            self._panic_mode = True
 
     def stop_waiting(self, user: User) -> None:
         """
@@ -317,7 +335,7 @@ class MatchManager:
         # Eliminar con seguridad (para evitar crashes)
         matches.pop(code, None)
 
-    def get_waiting(self):
+    def get_waiting(self) -> List[User]:
         """
         Devuelve el máximo de jugadores (y los elimina de la cola de espera)
         intentando completar una partida. Si no hay suficientes jugadores para

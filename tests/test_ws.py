@@ -293,5 +293,5 @@ class WsTest(WsTestClient):
             received = client.get_received()
             _, args = self.get_msg_in_received(received, "found_game", json=True)
             self.assertIn("code", args)
-        received = client.get_received()
+        received = clients[-1].get_received()
         self.assertEqual(len(received), 0)

@@ -234,11 +234,6 @@ class MatchManager:
             if len(self.users_waiting) >= MAX_MATCH_USERS:
                 self.create_public_game()
 
-                # Se cancela el timer si es necesario.
-                if self._public_timer is not None:
-                    self._public_timer.cancel()
-                    self._public_timer = None
-
                 return
 
             # En caso contrario, si se ha llegado al mínimo de usuarios se
@@ -256,8 +251,6 @@ class MatchManager:
         """
 
         with self._public_lock:
-            self._public_timer = None
-
             if len(self.users_waiting) >= MIN_MATCH_USERS:
                 self.create_public_game()
 
@@ -276,6 +269,11 @@ class MatchManager:
                 self._public_timer = None
 
     def create_public_game(self) -> None:
+        # Se cancela el timer si es necesario.
+        if self._public_timer is not None:
+            self._public_timer.cancel()
+            self._public_timer = None
+
         # Obtener los jugadores esperando
         users = self.get_waiting()
 

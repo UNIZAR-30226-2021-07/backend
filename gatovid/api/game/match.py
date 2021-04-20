@@ -250,8 +250,7 @@ class MatchManager:
     def matchmaking_check(self):
         """
         Comprobación de si se puede crear una partida pública "de emergencia"
-        (con menos jugadores que el máximo). La partida se crea si es posible, y
-        en caso contrario se activa el Panic Mode.
+        (con menos jugadores que el máximo). La partida se crea si es posible.
         """
 
         with self._public_lock:

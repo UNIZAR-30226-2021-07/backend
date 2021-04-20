@@ -277,6 +277,7 @@ class WsTest(WsTestClient):
         # stop_searching.
         received = client2.get_received()
         _, args = self.get_msg_in_received(received, "stop_searching", json=True)
+        self.assertEqual(args, [])
 
     def test_matchmaking_total(self):
         """

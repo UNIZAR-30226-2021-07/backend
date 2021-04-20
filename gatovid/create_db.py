@@ -13,6 +13,14 @@ from gatovid.util import get_logger
 logger = get_logger(__name__)
 
 
+# Usuarios genéricos creados para por ejemplo hacer tests de matchmaking, donde
+# se necesitan al menos 6 en total.
+NUM_GENERIC_USERS = 10
+GENERIC_USERS_EMAIL = "generic_user{0}@gmail.com"
+GENERIC_USERS_NAME = "genuser{0}"
+GENERIC_USERS_PASSWORD = "12341234"
+
+
 def db_reset():
     """
     Resetea la base de datos desde cero para poder insertar filas nuevas.
@@ -33,7 +41,7 @@ def db_test_data():
     """
 
     with app.app_context():
-        # Usuarios iniciales
+        # Se insertan tanto los usuarios personalizados como los genéricos
         users = [
             User(
                 email="test_user1@gmail.com",
@@ -49,6 +57,15 @@ def db_test_data():
             ),
             User(email="test_user3@gmail.com", name="test_user3", password="whatever3"),
         ]
+        for i in range(NUM_GENERIC_USERS):
+            users.append(
+                User(
+                    email=GENERIC_USERS_EMAIL.format(i),
+                    name=GENERIC_USERS_NAME.format(i),
+                    password=GENERIC_USERS_PASSWORD,
+                )
+            )
+
         for user in users:
             db.session.add(user)
         db.session.commit()
@@ -63,7 +80,7 @@ def db_test_data():
             db.session.add(stat)
         db.session.commit()
 
-        # Compras iniciales para cada usuario
+        # Compras iniciales para cada usuario personalizado
         purchases = [
             # Compras de ítems por defecto
             Purchase(item_id=0, user_id=users[0].email, type=PurchasableType.BOARD),

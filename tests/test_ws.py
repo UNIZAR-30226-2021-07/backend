@@ -3,24 +3,25 @@ Tests para la conexión básica de websockets
 """
 
 import time
-from typing import Dict, Optional, List
+from typing import Dict, List, Optional
+
+from gatovid.create_db import (
+    GENERIC_USERS_EMAIL,
+    GENERIC_USERS_NAME,
+    GENERIC_USERS_PASSWORD,
+    NUM_GENERIC_USERS,
+)
 
 from .base import WsTestClient
 
-user_data = {
-    "email": "test_user1@gmail.com",
-    "password": "whatever1",
-}
-
-user2_data = {
-    "email": "test_user2@gmail.com",
-    "password": "whatever2",
-}
-
-user3_data = {
-    "email": "test_user3@gmail.com",
-    "password": "whatever3",
-}
+users_data = []
+for i in range(NUM_GENERIC_USERS):
+    users_data.append(
+        {
+            "email": GENERIC_USERS_EMAIL.format(i),
+            "password": GENERIC_USERS_PASSWORD,
+        }
+    )
 
 
 class WsTest(WsTestClient):
@@ -59,14 +60,14 @@ class WsTest(WsTestClient):
         return raw, args
 
     def test_connect(self):
-        client = self.create_client(user_data)
+        client = self.create_client(users_data[0])
         self.assertIsNotNone(client)
 
-        client2 = self.create_client(user2_data)
+        client2 = self.create_client(users_data[1])
         self.assertIsNotNone(client2)
 
     def test_create_game(self):
-        client = self.create_client(user_data)
+        client = self.create_client(users_data[0])
 
         # Creamos la partida y vemos si el servidor devuelve error
         callback_args = client.emit("create_game", callback=True)
@@ -83,7 +84,7 @@ class WsTest(WsTestClient):
         self.assertEqual(type(code), str)
 
     def test_join_private_game(self):
-        client = self.create_client(user_data)
+        client = self.create_client(users_data[0])
 
         # Creamos la partida y vemos si el servidor devuelve error
         callback_args = client.emit("create_game", callback=True)
@@ -94,7 +95,7 @@ class WsTest(WsTestClient):
         code = args["code"]
 
         # Creamos el usuario que se unirá a la partida
-        client2 = self.create_client(user2_data)
+        client2 = self.create_client(users_data[1])
         self.assertIsNotNone(client2)
 
         # El cliente 2 se une a la partida. Probamos primero que se puede unir
@@ -122,8 +123,8 @@ class WsTest(WsTestClient):
         self.assertIn("error", callback_args)
 
     def test_start_private_game(self):
-        client = self.create_client(user_data)
-        client2 = self.create_client(user2_data)
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
 
         # Creamos la partida
         client.emit("create_game", callback=True)
@@ -148,8 +149,8 @@ class WsTest(WsTestClient):
         self.assertNotIn("error", callback_args)
 
     def test_chat(self):
-        client = self.create_client(user_data)
-        client2 = self.create_client(user2_data)
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
 
         # Creamos la partida
         callback_args = client.emit("create_game", callback=True)
@@ -169,7 +170,7 @@ class WsTest(WsTestClient):
 
         # Emitimos un mensaje de chat desde el cliente 2
         msg = "Hola buenas"
-        owner = "test_user2"
+        owner = GENERIC_USERS_NAME.format(1)
         callback_args = client2.emit("chat", msg, callback=True)
         self.assertNotIn("error", callback_args)
 
@@ -199,11 +200,11 @@ class WsTest(WsTestClient):
         callback_args = client2.emit("chat", msg, callback=True)
         self.assertIn("error", callback_args)
 
-    def test_matchmaking(self):
+    def test_matchmaking_time_limited(self):
         self.set_matchmaking_time(0.5)
 
-        client = self.create_client(user_data)
-        client2 = self.create_client(user2_data)
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
 
         # El primer usuario puede entrar y esperar, pero no comenzará la partida
         # hasta que hayan al menos dos.

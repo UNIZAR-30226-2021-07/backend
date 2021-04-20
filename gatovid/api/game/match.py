@@ -244,7 +244,9 @@ class MatchManager:
             # En caso contrario, si se ha llegado al mínimo de usuarios se
             # inicia el timer.
             if len(self.users_waiting) == MIN_MATCH_USERS:
-                self._public_timer = threading.Timer(TIME_UNTIL_START, self.matchmaking_check)
+                self._public_timer = threading.Timer(
+                    TIME_UNTIL_START, self.matchmaking_check
+                )
                 self._public_timer.start()
 
     def matchmaking_check(self):

@@ -372,6 +372,7 @@ Referencia
         play_draw,
         play_pass,
         search_game,
+        stop_searching,
         start_game,
 
 ---

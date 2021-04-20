@@ -243,11 +243,40 @@ class WsTest(WsTestClient):
         received = client3.get_received()
         self.assertEqual(len(received), 0)
 
+    def test_matchmaking_timer_cancel(self):
+        """
+        Comprueba que no hay problemas al cancelar el timer por no tenerse
+        suficientes usuarios de nuevo.
+        """
+
+        self.set_matchmaking_time(0.5)
+
+        client = self.create_client(users_data[0])
+        client2 = self.create_client(users_data[1])
+
+        # Se unen dos usuarios, por lo que comenzará el timer.
+        callback_args = client.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        callback_args = client2.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Rápidamente se sale un usuario
+        callback_args = client2.emit("stop_searching", callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Ninguno de ellos habrá encontrado partida
+        self.wait_matchmaking_time()
+        for client in (client, client2):
+            received = client.get_received()
+            self.assertEqual(len(received), 0)
+
     def test_matchmaking_total(self):
         """
         Comprueba que al llegar a 6 usuarios se inicia una partida
         automáticamente.
         """
+
+        self.set_matchmaking_time(0.5)
 
         clients = []
         for i in range(7):

@@ -278,6 +278,8 @@ class WsTest(WsTestClient):
         received = client2.get_received()
         _, args = self.get_msg_in_received(received, "stop_searching", json=True)
         self.assertEqual(args, [])
+        _, args = self.get_msg_in_received(received, "found_game", json=True)
+        self.assertEqual(args, None)
 
     def test_matchmaking_total(self):
         """

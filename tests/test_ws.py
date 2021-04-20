@@ -57,6 +57,9 @@ class WsTest(WsTestClient):
         `received`.
         """
         raw = next(iter(filter(lambda msg: msg["name"] == msg_type, received)), None)
+        if raw is None:
+            return None, None
+
         args = raw["args"]
 
         if raw and raw.get("args") and json:
@@ -323,7 +326,6 @@ class WsTest(WsTestClient):
             self.assertNotIn("error", callback_args)
 
         for i in range(2):
-            print(i)
             callback_args = troll.emit("search_game", callback=True)
             self.assertNotIn("error", callback_args)
             time.sleep(0.1)
@@ -346,6 +348,6 @@ class WsTest(WsTestClient):
 
         # Comprobamos que el troll no ha encontrado partida (porque finalmente
         # ha cancelado).
-        received = client.get_received()
-        msg = self.get_msg_in_received(received, "found_game", json=True)
+        received = troll.get_received()
+        msg, _ = self.get_msg_in_received(received, "found_game", json=True)
         self.assertIsNone(msg)

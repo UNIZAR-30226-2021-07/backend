@@ -388,7 +388,7 @@ def play_discard(data):
     name = session["user"].name
 
     try:
-        match.run_action(name, Discard())
+        match.run_action(name, Discard(data))
     except GameLogicException as e:
         return {"error": str(e)}
 

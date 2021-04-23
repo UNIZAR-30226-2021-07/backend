@@ -9,12 +9,8 @@ from gatovid.game.body import Body
 from gatovid.game.cards import Action, Card
 from gatovid.models import User
 
-
-class GameLogicException(Exception):
-    """
-    Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
-    """
-
+# Exportamos GameLogicException
+from gatovid.game.common import GameLogicException
 
 class Player:
     """

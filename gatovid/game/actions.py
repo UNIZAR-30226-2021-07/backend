@@ -3,6 +3,7 @@ Implementación de los objetos que almacenan los cuerpos de los jugadores y las
 pilas de cartas dentro de los cuerpos.
 """
 
+from gatovid.game.common import GameLogicException
 from typing import TYPE_CHECKING, List
 
 if TYPE_CHECKING:
@@ -33,7 +34,17 @@ class Discard(Action):
 
 
 class PlayCard(Action):
-    def apply(self, game: "Game") -> None:
+    def __init__(self, data) -> None:
+        # Slot de la mano con la carta que queremos jugar.
+        self.slot = data.get("slot")
+        # Todos los datos pasados por el usuario
+        self.data = data
+
+        if self.slot is None:
+            raise GameLogicException("Slot vacío")
+        
+    def apply(self, caller: str, game: "Game") -> None:
         """"""
+        player = game.get_player(caller)
         card = player.get_card(slot)
-        card.action(data)
+        card.apply(self, game)

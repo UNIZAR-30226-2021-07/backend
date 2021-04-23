@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException
+
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -85,7 +86,7 @@ class Match:
 
         socket.emit("start_game", room=self.code)
 
-    def run_action(self, action: Action) -> None:
+    def run_action(self, caller: str, action: Action) -> None:
         """
         Ejecuta una acción cualquiera del juego.
         """
@@ -93,7 +94,7 @@ class Match:
         if not self.is_started():
             raise GameLogicException("El juego no ha comenzado")
 
-        all_status = self._game.run_action(action)
+        all_status = self._game.run_action(caller, action)
         for status in all_status:
             if status.finished:
                 self.update_stats(status)

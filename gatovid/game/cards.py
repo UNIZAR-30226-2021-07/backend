@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, List
+from gatovid.game.common import GameLogicException
 
 if TYPE_CHECKING:
     from gatovid.game import Game

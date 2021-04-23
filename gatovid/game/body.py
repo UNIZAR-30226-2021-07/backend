@@ -1,6 +1,12 @@
-#!/usr/bin/env python3
+"""
+Implementación de los objetos que almacenan los cuerpos de los jugadores y las
+pilas de cartas dentro de los cuerpos.
+"""
 
-from gatovid.game.cards import *
+from typing import List, Optional
+
+from gatovid.game.cards import Color, Medicine, Organ, SimpleCard, Virus
+
 
 class OrganPile:
     """
@@ -29,19 +35,24 @@ class OrganPile:
         return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Medicine)
 
     def is_immune(self) -> bool:
-        return (len(self.modifiers) > 1 and
-                isinstance(self.modifiers[0], Medicine) and
-                isinstance(self.modifiers[1], Medicine))
+        return (
+            len(self.modifiers) > 1
+            and isinstance(self.modifiers[0], Medicine)
+            and isinstance(self.modifiers[1], Medicine)
+        )
 
     def can_place(self, card: SimpleCard) -> bool:
-        return (self.organ.color == card.color or
-                Color.Any in [self.organ.color, card.color])
+        return self.organ.color == card.color or Color.Any in [
+            self.organ.color,
+            card.color,
+        ]
 
 
 class Body:
     """
     Información relativa al cuerpo de un jugador.
     """
+
     def __init__(self):
         self.piles: List[OrganPile] = [OrganPile() for i in range(4)]
 

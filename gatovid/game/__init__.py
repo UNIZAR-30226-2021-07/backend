@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from gatovid.game.body import Body
-from gatovid.game.cards import Card, Action
+from gatovid.game.cards import Action, Card
 from gatovid.models import User
 
 
@@ -14,6 +14,7 @@ class GameLogicException(Exception):
     """
     Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
     """
+
 
 class Player:
     """

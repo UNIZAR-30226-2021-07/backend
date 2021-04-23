@@ -29,6 +29,7 @@ class Card(Action):
     def __init__(self) -> None:
         """"""
 
+
 class SimpleCard(Card):
     """
     Clase abstracta para órganos, virus y medicinas. Estos tres tienen
@@ -37,7 +38,7 @@ class SimpleCard(Card):
     """
 
     def __init__(self, color: Color) -> None:
-        self.color = color 
+        self.color = color
 
 
 class Organ(SimpleCard):

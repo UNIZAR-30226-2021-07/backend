@@ -398,7 +398,7 @@ def play_discard(data):
 def play_draw():
     """
     .. warning:: Este endpoint está en construcción aún y puede que no
-    se construya.
+        se construya.
 
     Roba tantas cartas como sean necesarias para que el usuario tenga 3.
 
@@ -410,6 +410,8 @@ def play_draw():
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
     """
+
+    pass
 
 
 @socket.on("play_pass")

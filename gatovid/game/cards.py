@@ -41,7 +41,7 @@ class SimpleCard(Card):
         # Pila de órgano donde se va a colocar la carta (dentro de dicho cuerpo).
         organ_pile_slot = action.data.get("organ_pile")
 
-        if None in [self.target, self.organ_pile]:
+        if None in (self.target, self.organ_pile):
             raise GameLogicException("Parámetro vacío")
 
         self.target = game.get_player(target_name)
@@ -56,7 +56,7 @@ class Organ(SimpleCard):
     """"""
 
     def apply(self, action: "PlayCard", game: "Game") -> None:
-        super().get_action_data(action, game)
+        self.get_action_data(action, game)
 
         self.organ_pile.set_organ(self)
 

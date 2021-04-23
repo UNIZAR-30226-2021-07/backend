@@ -5,11 +5,12 @@ pilas de cartas dentro de los cuerpos.
 
 from gatovid.game.common import GameLogicException
 from typing import TYPE_CHECKING, List
+from abc import ABC, abstractmethod
 
 if TYPE_CHECKING:
     from gatovid.game import Game
 
-class Action:
+class Action(ABC):
     @abstractmethod
     def apply(self, game: "Game") -> None:
         """"""

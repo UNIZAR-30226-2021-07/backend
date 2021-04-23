@@ -30,7 +30,7 @@ class SimpleCard(Card):
 
     color: Color
 
-    def get_action_data(self, action: PlayCard, game: Game) -> None:
+    def get_action_data(self, action: "PlayCard", game: "Game") -> None:
         """
         Extraer la información común para las cartas simples y
         realizar las comprobaciones correspondientes.
@@ -55,7 +55,7 @@ class SimpleCard(Card):
 class Organ(SimpleCard):
     """"""
 
-    def apply(self, action: PlayCard, game: Game) -> None:
+    def apply(self, action: "PlayCard", game: "Game") -> None:
         super().get_action_data(action, game)
 
         self.organ_pile.set_organ(self)
@@ -64,7 +64,7 @@ class Organ(SimpleCard):
 class Virus(SimpleCard):
     """"""
 
-    def apply(self, action: PlayCard, game: Game) -> None:
+    def apply(self, action: "PlayCard", game: "Game") -> None:
         super().get_action_data(action, game)
 
         # Comprobamos si hay que extirpar o destruir vacuna
@@ -81,7 +81,7 @@ class Virus(SimpleCard):
 class Medicine(SimpleCard):
     """"""
 
-    def apply(self, action: PlayCard, game: Game) -> None:
+    def apply(self, action: "PlayCard", game: "Game") -> None:
         super().get_action_data(action, game)
 
         # Comprobamos si hay que destruir un virus

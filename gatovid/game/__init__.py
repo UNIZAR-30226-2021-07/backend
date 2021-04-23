@@ -54,20 +54,23 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def run_action(self, action: Action) -> [Dict]:
+    def run_action(self, caller: str, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
         nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
         terminado anteriormente o estuviera pausada, un error.
         """
 
-        if self._game._finished:
+        if self._finished:
             raise GameLogicException("El juego ya ha terminado")
 
-        if self._game._paused:
+        if self._paused:
             raise GameLogicException("El juego está pausado")
 
-        action.apply(self)
+        if self._players[self._turn].name == caller:
+            raise GameLogicException("No es tu turno")
+
+        return action.apply(self)
 
     def end_turn(self) -> [Dict]:
         # TODO: Por el momento, se hace como que se juega y se termina la

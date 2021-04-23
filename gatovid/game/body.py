@@ -16,8 +16,9 @@ class OrganPile:
     def __init__(self):
         # Órgano base de la pila sobre el que se añadirán modificadores.
         self._organ: Optional[Organ] = None
-        # Modificadores (cartas simples) que infectan, protejen o inmunizan.
-        self.modifiers: List[SimpleCard] = []
+        # Modificadores (cartas simples) que infectan, protejen o inmunizan al
+        # órgano.
+        self._modifiers: List[SimpleCard] = []
 
     def set_organ(self, organ: Organ):
         """
@@ -29,23 +30,37 @@ class OrganPile:
         return not self._organ
 
     def is_infected(self) -> bool:
-        return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Virus)
+        return len(self._modifiers) > 0 and isinstance(self._modifiers[0], Virus)
 
     def is_protected(self) -> bool:
-        return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Medicine)
+        return len(self._modifiers) > 0 and isinstance(self._modifiers[0], Medicine)
 
     def is_immune(self) -> bool:
         return (
-            len(self.modifiers) > 1
-            and isinstance(self.modifiers[0], Medicine)
-            and isinstance(self.modifiers[1], Medicine)
+            len(self._modifiers) > 1
+            and isinstance(self._modifiers[0], Medicine)
+            and isinstance(self._modifiers[1], Medicine)
         )
 
     def can_place(self, card: SimpleCard) -> bool:
-        return self._organ.color == card.color or Color.Any in [
-            self._organ.color,
-            card.color,
-        ]
+        # Solo se puede colocar un órgano en un montón vacío
+        if isinstance(card, Organ):
+            return self.is_empty()
+        elif self.is_empty(): 
+            # No podemos añadir modificadores si no hay órgano.
+            return False
+
+        # Comprobamos si los colores son iguales o alguna de las dos es un color
+        # comodín.
+        if (self._organ.color != card.color and
+            Color.Any not in [self._organ.color, card.color]):
+            return False
+
+        # Si el órgano ya está inmunizado, no se pueden colocar más cartas.
+        if self.is_immune():
+            return False
+
+        return True
 
 
 class Body:

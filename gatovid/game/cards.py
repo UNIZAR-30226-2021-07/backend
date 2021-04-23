@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, List
 
@@ -14,118 +14,69 @@ class Color(Enum):
     Any = "any"
 
 
-class Action(ABC):
-    def __init__(self) -> None:
-        """"""
+@dataclass
+class Card():
+    pass
 
-    @abstractmethod
-    def apply(self, game: "Game") -> None:
-        """"""
-
-
-class Card(Action):
-    """"""
-
-    def __init__(self) -> None:
-        """"""
-
-
+@dataclass
 class SimpleCard(Card):
     """
     Clase abstracta para órganos, virus y medicinas. Estos tres tienen
     un comportamiento similar, ya que actúan solo sobre una pila de
     cartas (en el cuerpo de un jugador).
     """
-
-    def __init__(self, color: Color) -> None:
-        self.color = color
+    color: Color
 
 
+@dataclass
 class Organ(SimpleCard):
     """"""
+    pass
 
-    def __init__(self, color: Color) -> None:
-        super().__init__(color)
-
-
+@dataclass
 class Virus(SimpleCard):
     """"""
-
-    def __init__(self, color: Color) -> None:
-        super().__init__(color)
+    pass
 
 
+@dataclass
 class Medicine(SimpleCard):
     """"""
+    pass
 
-    def __init__(self, color: Color) -> None:
-        super().__init__(color)
-
-
+@dataclass
 class Treatment(Card):
     """
     Clase abstracta que contiene las cartas especiales (cartas de
     tratamiento). Estas realizan acciones muy variadas.
     """
+    pass
 
-    def __init__(self) -> None:
-        super().__init__()
-
-
+@dataclass
 class Transplant(Treatment):
     """"""
+    pass
 
-    def __init__(self) -> None:
-        super().__init__()
-
-
+@dataclass
 class OrganThief(Treatment):
     """"""
-
-    def __init__(self) -> None:
-        super().__init__()
+    pass
 
 
+@dataclass
 class Infection(Treatment):
     """"""
+    pass
 
-    def __init__(self) -> None:
-        super().__init__()
-
-
+@dataclass
 class LatexGlove(Treatment):
     """"""
+    pass
 
-    def __init__(self) -> None:
-        super().__init__()
-
-
+@dataclass
 class MedicalError(Treatment):
     """"""
 
     def __init__(self) -> None:
         super().__init__()
 
-
-class Pass(Action):
-    """"""
-
-    def apply(self, game: "Game") -> None:
-        """"""
-
-
-class Draw(Action):
-    """"""
-
-    def apply(self, game: "Game") -> None:
-        """"""
-
-
-class Discard(Action):
-    """"""
-
-    def __init__(self, cards: List[Card]) -> None:
-        self.cards = cards
-
-    def apply(self, game: "Game") -> None:
-        """"""

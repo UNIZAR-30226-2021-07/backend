@@ -15,7 +15,7 @@ class OrganPile:
 
     def __init__(self):
         # Órgano base de la pila sobre el que se añadirán modificadores.
-        self.organ: Optional[Organ] = None
+        self._organ: Optional[Organ] = None
         # Modificadores (cartas simples) que infectan, protejen o inmunizan.
         self.modifiers: List[SimpleCard] = []
 
@@ -23,10 +23,10 @@ class OrganPile:
         """
         Establece el órgano como base de la pila.
         """
-        self.organ = organ
+        self._organ = organ
 
     def is_empty(self) -> bool:
-        return not self.organ
+        return not self._organ
 
     def is_infected(self) -> bool:
         return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Virus)
@@ -42,8 +42,8 @@ class OrganPile:
         )
 
     def can_place(self, card: SimpleCard) -> bool:
-        return self.organ.color == card.color or Color.Any in [
-            self.organ.color,
+        return self._organ.color == card.color or Color.Any in [
+            self._organ.color,
             card.color,
         ]
 

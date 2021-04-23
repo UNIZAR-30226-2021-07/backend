@@ -50,6 +50,14 @@ class Game:
     def is_finished(self) -> bool:
         return self._finished
 
+    def get_player(self, user: User) -> Player:
+        name = user.name
+        for player in self._players:
+            if player.name == name:
+                return player
+
+        raise GameLogicException("El jugador no está en la partida")
+
     def run_action(self, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
@@ -63,6 +71,9 @@ class Game:
         if self._game._paused:
             raise GameLogicException("El juego está pausado")
 
+        action.apply(self)
+
+    def end_turn(self) -> [Dict]:
         # TODO: Por el momento, se hace como que se juega y se termina la
         # partida.
         for i, player in enumerate(self._players):

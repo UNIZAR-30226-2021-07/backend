@@ -5,6 +5,7 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from gatovid.game.body import Body
 from gatovid.game.cards import Card, Action
 from gatovid.models import User
 
@@ -13,7 +14,6 @@ class GameLogicException(Exception):
     """
     Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
     """
-
 
 class Player:
     """
@@ -25,6 +25,7 @@ class Player:
         self.name = name
         self.position: Optional[int] = None
         self.hand: List[Card] = []
+        self.body: Body = Body()
 
 
 class Game:

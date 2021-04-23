@@ -11,6 +11,7 @@ class Color(Enum):
     Green = "green"
     Blue = "blue"
     Yellow = "yellow"
+    Any = "any"
 
 
 class Action(ABC):

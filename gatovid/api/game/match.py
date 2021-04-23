@@ -9,7 +9,6 @@ from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException
-
 from gatovid.models import User
 from gatovid.util import get_logger
 

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
+
 from gatovid.game.common import GameLogicException
 
 if TYPE_CHECKING:
@@ -17,8 +18,9 @@ class Color(Enum):
 
 
 @dataclass
-class Card():
+class Card:
     pass
+
 
 @dataclass
 class SimpleCard(Card):
@@ -51,6 +53,7 @@ class SimpleCard(Card):
         if not self.organ_pile.can_place(self):
             raise GameLogicException("No se puede colocar la carta ahí")
 
+
 @dataclass
 class Organ(SimpleCard):
     """"""
@@ -59,6 +62,7 @@ class Organ(SimpleCard):
         self.get_action_data(action, game)
 
         self.organ_pile.set_organ(self)
+
 
 @dataclass
 class Virus(SimpleCard):
@@ -74,8 +78,9 @@ class Virus(SimpleCard):
         elif self.organ_pile.is_protected():
             # Si está protegido -> se destruye la vacuna
             self.organ_pile.pop_modifiers()
-        else: # Se infecta el órgano (se añade el virus a los modificadores)
+        else:  # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
+
 
 @dataclass
 class Medicine(SimpleCard):
@@ -92,36 +97,45 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
+
 @dataclass
 class Treatment(Card):
     """
     Clase abstracta que contiene las cartas especiales (cartas de
     tratamiento). Estas realizan acciones muy variadas.
     """
+
     pass
+
 
 @dataclass
 class Transplant(Treatment):
     """"""
+
     pass
+
 
 @dataclass
 class OrganThief(Treatment):
     """"""
+
     pass
 
 
 @dataclass
 class Infection(Treatment):
     """"""
+
     pass
+
 
 @dataclass
 class LatexGlove(Treatment):
     """"""
+
     pass
+
 
 @dataclass
 class MedicalError(Treatment):
     """"""
-

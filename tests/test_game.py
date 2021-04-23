@@ -2,12 +2,8 @@
 Tests para la lógica del juego
 """
 
-import time
-from typing import Dict, List, Optional
-
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
-    GENERIC_USERS_NAME,
     GENERIC_USERS_PASSWORD,
     NUM_GENERIC_USERS,
 )
@@ -28,12 +24,11 @@ for i in range(NUM_GENERIC_USERS):
 
 
 class GameTest(WsTestClient):
-
     def create_game(self, players=6):
         clients = []
         for i in range(players):
             clients.append(self.create_client(users_data[i]))
-        
+
         # Creamos la partida
         callback_args = clients[0].emit("create_game", callback=True)
 
@@ -45,7 +40,7 @@ class GameTest(WsTestClient):
         for client in clients[1:]:
             callback_args = client.emit("join", code, callback=True)
             self.assertNotIn("error", callback_args)
-        
+
         # Empezamos la partida
         callback_args = clients[0].emit("start_game", callback=True)
         self.assertNotIn("error", callback_args)
@@ -53,5 +48,4 @@ class GameTest(WsTestClient):
         return clients
 
     def test_play_card(self):
-        clients = self.create_game()
-
+        _ = self.create_game()

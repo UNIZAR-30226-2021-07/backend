@@ -60,14 +60,16 @@ class OrganPile:
         # Solo se puede colocar un órgano en un montón vacío
         if isinstance(card, Organ):
             return self.is_empty()
-        elif self.is_empty(): 
+        elif self.is_empty():
             # No podemos añadir modificadores si no hay órgano.
             return False
 
         # Comprobamos si los colores son iguales o alguna de las dos es un color
         # comodín.
-        if (self._organ.color != card.color and
-            Color.Any not in (self._organ.color, card.color)):
+        if self._organ.color != card.color and Color.Any not in (
+            self._organ.color,
+            card.color,
+        ):
             return False
 
         # Si el órgano ya está inmunizado, no se pueden colocar más cartas.

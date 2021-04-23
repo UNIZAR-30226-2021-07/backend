@@ -4,8 +4,6 @@ Tests para la conexión básica de websockets
 
 import time
 
-from typing import Dict, List, Optional
-
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
     GENERIC_USERS_NAME,

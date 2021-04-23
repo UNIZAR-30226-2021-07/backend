@@ -3,17 +3,20 @@ Implementación de los objetos que almacenan los cuerpos de los jugadores y las
 pilas de cartas dentro de los cuerpos.
 """
 
-from gatovid.game.common import GameLogicException
-from typing import TYPE_CHECKING, List
 from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING
+
+from gatovid.game.common import GameLogicException
 
 if TYPE_CHECKING:
     from gatovid.game import Game
+
 
 class Action(ABC):
     @abstractmethod
     def apply(self, game: "Game") -> None:
         """"""
+
 
 class Pass(Action):
     """"""
@@ -27,8 +30,8 @@ class Discard(Action):
     """"""
 
     def __init__(self, data) -> None:
-        # TODO: pillar slots
-        self.cards = cards
+        # Slot de la mano con la carta que queremos descartar.
+        self.slot = data.get("slot")
 
     def apply(self, game: "Game") -> None:
         """"""
@@ -43,9 +46,9 @@ class PlayCard(Action):
 
         if self.slot is None:
             raise GameLogicException("Slot vacío")
-        
+
     def apply(self, caller: str, game: "Game") -> None:
         """"""
         player = game.get_player(caller)
-        card = player.get_card(slot)
+        card = player.get_card(self.slot)
         card.apply(self, game)

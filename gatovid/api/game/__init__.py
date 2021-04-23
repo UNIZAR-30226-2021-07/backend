@@ -5,8 +5,8 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
 from gatovid.api.game.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
-from gatovid.game.actions import Pass, PlayCard, Discard
 from gatovid.exts import socket
+from gatovid.game.actions import Discard, Pass, PlayCard
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -411,6 +411,7 @@ def play_draw():
         <errores>`.
     """
 
+
 @socket.on("play_pass")
 @_requires_game(started=True)
 def play_pass():
@@ -453,7 +454,7 @@ def play_card(data):
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
     """
-    
+
     match = MM.get_match(session["game"])
     name = session["user"].name
 

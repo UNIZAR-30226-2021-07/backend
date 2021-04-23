@@ -5,13 +5,14 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from gatovid.game.actions import Action
 from gatovid.game.body import Body
 from gatovid.game.cards import Card
-from gatovid.game.actions import Action
-from gatovid.models import User
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException
+from gatovid.models import User
+
 
 class Player:
     """

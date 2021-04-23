@@ -25,74 +25,84 @@ class Action(ABC):
 class Card(Action):
     """"""
 
-    def __init__(self, id: int) -> None:
-        self.id = id
+    def __init__(self) -> None:
+        """"""
+
+class SimpleCard(Card):
+    """
+    Clase abstracta para órganos, virus y medicinas. Estos tres tienen
+    un comportamiento similar, ya que actúan solo sobre una pila de
+    cartas (en el cuerpo de un jugador).
+    """
+
+    def __init__(self, color: Color) -> None:
+        self.color = color 
 
 
-class Organ(Card):
+class Organ(SimpleCard):
     """"""
 
-    def __init__(self, id: int, color: Color) -> None:
-        super().__init__(id)
-        self.color = color
+    def __init__(self, color: Color) -> None:
+        super().__init__(color)
 
 
-class Virus(Card):
+class Virus(SimpleCard):
     """"""
 
-    def __init__(self, id: int, color: Color) -> None:
-        super().__init__(id)
-        self.color = color
+    def __init__(self, color: Color) -> None:
+        super().__init__(color)
 
 
-class Medicine(Card):
+class Medicine(SimpleCard):
     """"""
 
-    def __init__(self, id: int, color: Color) -> None:
-        super().__init__(id)
-        self.color = color
+    def __init__(self, color: Color) -> None:
+        super().__init__(color)
 
 
 class Treatment(Card):
-    """"""
+    """
+    Clase abstracta que contiene las cartas especiales (cartas de
+    tratamiento). Estas realizan acciones muy variadas.
+    """
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class Transplant(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class OrganThief(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class Infection(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class LatexGlove(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class MedicalError(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    def __init__(self) -> None:
+        super().__init__()
 
 
 class Pass(Action):

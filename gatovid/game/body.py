@@ -26,6 +26,20 @@ class OrganPile:
         """
         self._organ = organ
 
+    def remove_organ(self):
+        """
+        Extirpar el órgano. Se elimina el órgano de la base de la pila y las
+        cartas modificadoras.
+        """
+        self.pop_modifiers()
+        self._organ = None
+
+    def add_modifier(self, modifier: SimpleCard):
+        self._modifiers.append(modifier)
+
+    def pop_modifiers(self):
+        self._modifiers.clear()
+
     def is_empty(self) -> bool:
         return not self._organ
 

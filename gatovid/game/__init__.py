@@ -26,6 +26,9 @@ class Player:
         self.hand: List[Card] = []
         self.body: Body = Body()
 
+    def get_card(self, slot: int) -> Card:
+        return self.hand[slot]
+
 
 class Game:
     """
@@ -45,13 +48,17 @@ class Game:
         self._paused = False
         self._finished = False
 
+        # TODO: Por el momento, se hace como que se juega y se termina la
+        # partida.
+        for i, player in enumerate(self._players):
+            player.position = i + 1
+
     def is_finished(self) -> bool:
         return self._finished
 
-    def get_player(self, user: User) -> Player:
-        name = user.name
+    def get_player(self, user_name: str) -> Player:
         for player in self._players:
-            if player.name == name:
+            if player.name == user_name:
                 return player
 
         raise GameLogicException("El jugador no está en la partida")
@@ -69,20 +76,16 @@ class Game:
         if self._paused:
             raise GameLogicException("El juego está pausado")
 
-        if self._players[self._turn].name == caller:
+        if self._players[self._turn].name != caller:
             raise GameLogicException("No es tu turno")
 
-        return action.apply(self)
-
-    def end_turn(self) -> [Dict]:
-        # TODO: Por el momento, se hace como que se juega y se termina la
-        # partida.
-        for i, player in enumerate(self._players):
-            player.position = i + 1
-        self._finished = True
+        action.apply(caller, game=self)
 
         status = [self._generate_status(player) for player in self._players]
         return status
+
+    def end_turn(self) -> [Dict]:
+        self._finished = True
 
     def _generate_status(self, player: Player) -> Dict:
         """
@@ -94,7 +97,8 @@ class Game:
         return {
             "finished": self._finished,
             "current_turn": self._players[self._turn].name,
-            "hands": self._hands(),
+            "hand": player.hand,
+            "bodies": [player.body for player in self._players],
             "leaderboard": self._leaderboard(),
             "playtime_mins": self._playtime_mins(),
         }
@@ -131,24 +135,3 @@ class Game:
             }
 
         return leaderboard
-
-    def _hands(self, recipient: Player) -> Dict:
-        """
-        Genera un diccionario con las manos de todos los jugadores, de forma que
-        solo ellos tengan acceso a sus cartas.
-        """
-
-        hands = {}
-
-        for player in self._players:
-            hands[player.name] = {
-                "organs": [],
-                "effects": [],
-            }
-
-            if player == recipient:
-                hands[player.name]["hand"] = player.hand
-            else:
-                hands[player.name]["num_cards"] = len(player.hand)
-
-        return hands

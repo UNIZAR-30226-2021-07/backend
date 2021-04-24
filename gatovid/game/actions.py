@@ -52,3 +52,4 @@ class PlayCard(Action):
         player = game.get_player(caller)
         card = player.get_card(self.slot)
         card.apply(self, game)
+        # TODO: quitar carta de la mano

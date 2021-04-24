@@ -3,15 +3,20 @@ Implementación de los objetos que almacenan los cuerpos de los jugadores y las
 pilas de cartas dentro de los cuerpos.
 """
 
+from dataclasses import dataclass
 from typing import List, Optional
 
 from gatovid.game.cards import Color, Medicine, Organ, SimpleCard, Virus
 
 
+@dataclass(init=False)
 class OrganPile:
     """
     Pila de cartas encima de un órgano.
     """
+
+    _organ: Optional[Organ]
+    _modifiers: List[SimpleCard]
 
     def __init__(self):
         # Órgano base de la pila sobre el que se añadirán modificadores.
@@ -79,21 +84,19 @@ class OrganPile:
         return True
 
 
+@dataclass(init=False)
 class Body:
     """
     Información relativa al cuerpo de un jugador.
     """
 
-    def __init__(self):
-        self.piles: List[OrganPile] = [OrganPile() for i in range(4)]
+    piles: List[OrganPile]
 
-    def add_organ(self, organ: Organ):
-        # TODO: Lanzar alguna excepción en caso de no encontrar un hueco
-        for pile in self.piles:
-            if self.is_empty():
-                pile.set_organ(organ)
-                return
+    def __init__(self):
+        self.piles: List[OrganPile] = [None] * 4
 
     def get_pile(self, pile: int) -> OrganPile:
         # TODO: Lanzar excepción en caso de pila incorrecta
+        if self.piles[pile] is None:
+            self.piles[pile] = OrganPile()
         return self.piles[pile]

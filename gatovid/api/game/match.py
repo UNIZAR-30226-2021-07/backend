@@ -94,11 +94,14 @@ class Match:
             raise GameLogicException("El juego no ha comenzado")
 
         all_status = self._game.run_action(caller, action)
-        for status in all_status:
-            if status.finished:
-                self.update_stats(status)
 
-            socket.emit("game_update", status, room=self.user.sid)
+        for i, user in enumerate(self.users):
+            status = all_status[i]
+            finished = status.get("finished")
+            if finished is None or not finished:
+                self.update_stats(user, status)
+
+            socket.emit("game_update", status, room=user.sid)
 
     def end(self) -> None:
         """
@@ -116,6 +119,9 @@ class Match:
         cada usuario.
         """
 
+        # Los objetos están lazy-loaded, necesitamos recuperar una versión
+        # modificable de user para poder editar su atributo stats.
+        user = User.query.get(user.email)
         user.stats.playtime_mins += status["playtime_mins"]
 
         leaderboard = status["leaderboard"][user.name]

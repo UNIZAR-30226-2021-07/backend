@@ -4,7 +4,7 @@ Módulo principal de ejecución, donde se configuran las APIs.
 
 import locale
 
-from flask import Flask
+from flask import Flask, json
 
 from gatovid import api
 from gatovid.config import BaseConfig
@@ -20,7 +20,7 @@ def _register_extensions(app: Flask) -> None:
 
     db.init_app(app)
     jwt.init_app(app)
-    socket.init_app(app)
+    socket.init_app(app, json=json)
     sess.init_app(app)
     cors.init_app(
         app,

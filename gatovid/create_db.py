@@ -78,6 +78,11 @@ def db_test_data():
         ]
         for stat in stats:
             db.session.add(stat)
+        for stat in [
+            Stats(user_id=GENERIC_USERS_EMAIL.format(i))
+            for i in range(NUM_GENERIC_USERS)
+        ]:
+            db.session.add(stat)
         db.session.commit()
 
         # Compras iniciales para cada usuario personalizado

@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from gatovid.game.actions import PlayCard
 
 
-class Color(Enum):
+class Color(str, Enum):
     Red = "red"
     Green = "green"
     Blue = "blue"
@@ -43,11 +43,17 @@ class SimpleCard(Card):
         # Pila de órgano donde se va a colocar la carta (dentro de dicho cuerpo).
         organ_pile_slot = action.data.get("organ_pile")
 
-        if None in (self.target, self.organ_pile):
+        if None in (target_name, organ_pile_slot):
             raise GameLogicException("Parámetro vacío")
+
+        if organ_pile_slot < 0 or organ_pile_slot > 3:
+            raise GameLogicException("Slot inválido")
 
         self.target = game.get_player(target_name)
         self.organ_pile = self.target.body.get_pile(organ_pile_slot)
+
+        if self.target is None:
+            raise GameLogicException("El jugador no existe")
 
         # Comprobamos si podemos colocar
         if not self.organ_pile.can_place(self):
@@ -58,6 +64,9 @@ class SimpleCard(Card):
 class Organ(SimpleCard):
     """"""
 
+    # Usado para la codificación JSON
+    card_type: str = "organ"
+
     def apply(self, action: "PlayCard", game: "Game") -> None:
         self.get_action_data(action, game)
 
@@ -67,6 +76,9 @@ class Organ(SimpleCard):
 @dataclass
 class Virus(SimpleCard):
     """"""
+
+    # Usado para la codificación JSON
+    card_type: str = "virus"
 
     def apply(self, action: "PlayCard", game: "Game") -> None:
         super().get_action_data(action, game)
@@ -85,6 +97,9 @@ class Virus(SimpleCard):
 @dataclass
 class Medicine(SimpleCard):
     """"""
+
+    # Usado para la codificación JSON
+    card_type: str = "medicine"
 
     def apply(self, action: "PlayCard", game: "Game") -> None:
         super().get_action_data(action, game)

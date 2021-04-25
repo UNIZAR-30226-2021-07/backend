@@ -10,11 +10,8 @@ from gatovid.create_db import (
     NUM_GENERIC_USERS,
 )
 from gatovid.game.cards import Color, Medicine, Organ, Virus
-from gatovid.util import get_logger
 
 from .base import WsTestClient
-
-logger = get_logger(__name__)
 
 users_data = []
 for i in range(NUM_GENERIC_USERS):
@@ -59,7 +56,7 @@ class GameTest(WsTestClient):
         # TODO: Se debería acceder al endpoint directamente, pero no está hecha
         # la inicialización de la partida, así que no puedo probar a usar la
         # mano sin inicializarla yo.
-        game = MM.get_match(code).get_game()
+        game = MM.get_match(code)._game
 
         leader_player = None
         for player in game._players:

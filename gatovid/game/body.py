@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 
 from gatovid.game.cards import Color, Medicine, Organ, SimpleCard, Virus
+from gatovid.game.common import GameLogicException
 
 
 @dataclass(init=False)
@@ -96,7 +97,9 @@ class Body:
         self.piles: List[OrganPile] = [None] * 4
 
     def get_pile(self, pile: int) -> OrganPile:
-        # TODO: Lanzar excepción en caso de pila incorrecta
+        if pile < 0 or pile > 3:
+            raise GameLogicException("Slot de pila inválido")
+
         if self.piles[pile] is None:
             self.piles[pile] = OrganPile()
         return self.piles[pile]

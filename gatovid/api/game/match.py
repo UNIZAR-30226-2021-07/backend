@@ -67,9 +67,6 @@ class Match:
 
         return self._game is not None
 
-    def get_game(self) -> Game:
-        return self._game
-
     def start(self) -> None:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es

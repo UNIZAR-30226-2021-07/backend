@@ -81,7 +81,7 @@ class Virus(SimpleCard):
     card_type: str = "virus"
 
     def apply(self, action: "PlayCard", game: "Game") -> None:
-        super().get_action_data(action, game)
+        self.get_action_data(action, game)
 
         # Comprobamos si hay que extirpar o destruir vacuna
         if self.organ_pile.is_infected():
@@ -102,7 +102,7 @@ class Medicine(SimpleCard):
     card_type: str = "medicine"
 
     def apply(self, action: "PlayCard", game: "Game") -> None:
-        super().get_action_data(action, game)
+        self.get_action_data(action, game)
 
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():

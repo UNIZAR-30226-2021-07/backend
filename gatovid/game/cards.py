@@ -46,9 +46,6 @@ class SimpleCard(Card):
         if None in (target_name, organ_pile_slot):
             raise GameLogicException("Parámetro vacío")
 
-        if organ_pile_slot < 0 or organ_pile_slot > 3:
-            raise GameLogicException("Slot inválido")
-
         self.target = game.get_player(target_name)
         self.organ_pile = self.target.body.get_pile(organ_pile_slot)
 
@@ -119,6 +116,9 @@ class Treatment(Card):
     Clase abstracta que contiene las cartas especiales (cartas de
     tratamiento). Estas realizan acciones muy variadas.
     """
+
+    # Usado para la codificación JSON
+    card_type: str = "treatment"
 
     pass
 

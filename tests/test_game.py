@@ -93,7 +93,7 @@ class GameTest(WsTestClient):
         self.assertEqual(
             args["bodies"][0]["piles"],
             [
-                {"_modifiers": [], "_organ": {"card_type": "organ", "color": "red"}},
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
                 None,
                 None,
                 None,

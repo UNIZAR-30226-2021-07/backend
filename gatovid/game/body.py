@@ -14,23 +14,27 @@ from gatovid.game.common import GameLogicException
 class OrganPile:
     """
     Pila de cartas encima de un órgano.
+
+    NOTE: se deberían usar las funciones para acceder a los atributos. Por
+    cuestiones de exportado a JSON se tienen que declarar sin la convención de
+    '_' antes del nombre.
     """
 
-    _organ: Optional[Organ]
-    _modifiers: List[SimpleCard]
+    organ: Optional[Organ]
+    modifiers: List[SimpleCard]
 
     def __init__(self):
         # Órgano base de la pila sobre el que se añadirán modificadores.
-        self._organ: Optional[Organ] = None
+        self.organ: Optional[Organ] = None
         # Modificadores (cartas simples) que infectan, protejen o inmunizan al
         # órgano.
-        self._modifiers: List[SimpleCard] = []
+        self.modifiers: List[SimpleCard] = []
 
     def set_organ(self, organ: Organ):
         """
         Establece el órgano como base de la pila.
         """
-        self._organ = organ
+        self.organ = organ
 
     def remove_organ(self):
         """
@@ -38,28 +42,28 @@ class OrganPile:
         cartas modificadoras.
         """
         self.pop_modifiers()
-        self._organ = None
+        self.organ = None
 
     def add_modifier(self, modifier: SimpleCard):
-        self._modifiers.append(modifier)
+        self.modifiers.append(modifier)
 
     def pop_modifiers(self):
-        self._modifiers.clear()
+        self.modifiers.clear()
 
     def is_empty(self) -> bool:
-        return not self._organ
+        return not self.organ
 
     def is_infected(self) -> bool:
-        return len(self._modifiers) > 0 and isinstance(self._modifiers[0], Virus)
+        return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Virus)
 
     def is_protected(self) -> bool:
-        return len(self._modifiers) > 0 and isinstance(self._modifiers[0], Medicine)
+        return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Medicine)
 
     def is_immune(self) -> bool:
         return (
-            len(self._modifiers) > 1
-            and isinstance(self._modifiers[0], Medicine)
-            and isinstance(self._modifiers[1], Medicine)
+            len(self.modifiers) > 1
+            and isinstance(self.modifiers[0], Medicine)
+            and isinstance(self.modifiers[1], Medicine)
         )
 
     def can_place(self, card: SimpleCard) -> bool:
@@ -72,8 +76,8 @@ class OrganPile:
 
         # Comprobamos si los colores son iguales o alguna de las dos es un color
         # comodín.
-        if self._organ.color != card.color and Color.Any not in (
-            self._organ.color,
+        if self.organ.color != card.color and Color.Any not in (
+            self.organ.color,
             card.color,
         ):
             return False

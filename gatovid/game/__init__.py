@@ -5,14 +5,13 @@ Implementación de la lógica del juego.
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from gatovid.game.cards import Action
+from gatovid.game.actions import Action
+from gatovid.game.body import Body
+from gatovid.game.cards import Card
+
+# Exportamos GameLogicException
+from gatovid.game.common import GameLogicException
 from gatovid.models import User
-
-
-class GameLogicException(Exception):
-    """
-    Esta excepción se usa para indicar casos erróneos o inesperados en el juego.
-    """
 
 
 class Player:
@@ -24,7 +23,11 @@ class Player:
     def __init__(self, name: str) -> None:
         self.name = name
         self.position: Optional[int] = None
-        self.hand: List[int] = []
+        self.hand: List[Card] = []
+        self.body: Body = Body()
+
+    def get_card(self, slot: int) -> Card:
+        return self.hand[slot]
 
 
 class Game:
@@ -38,37 +41,51 @@ class Game:
 
     def __init__(self, users: List[User]) -> None:
         self._players = [Player(user.name) for user in users]
-        self._discarded: List[int] = []
-        self._deck: List[int] = []
+        self._discarded: List[Card] = []
+        self._deck: List[Card] = []
         self._turn = 0
         self._start_time = datetime.now()
         self._paused = False
         self._finished = False
 
+        # TODO: Por el momento, se hace como que se juega y se termina la
+        # partida.
+        for i, player in enumerate(self._players):
+            player.position = i + 1
+
     def is_finished(self) -> bool:
         return self._finished
 
-    def run_action(self, action: Action) -> [Dict]:
+    def get_player(self, user_name: str) -> Player:
+        for player in self._players:
+            if player.name == user_name:
+                return player
+
+        raise GameLogicException("El jugador no está en la partida")
+
+    def run_action(self, caller: str, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
         nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
         terminado anteriormente o estuviera pausada, un error.
         """
 
-        if self._game._finished:
+        if self._finished:
             raise GameLogicException("El juego ya ha terminado")
 
-        if self._game._paused:
+        if self._paused:
             raise GameLogicException("El juego está pausado")
 
-        # TODO: Por el momento, se hace como que se juega y se termina la
-        # partida.
-        for i, player in enumerate(self._players):
-            player.position = i + 1
-        self._finished = True
+        if self._players[self._turn].name != caller:
+            raise GameLogicException("No es tu turno")
+
+        action.apply(caller, game=self)
 
         status = [self._generate_status(player) for player in self._players]
         return status
+
+    def end_turn(self) -> [Dict]:
+        self._finished = True
 
     def _generate_status(self, player: Player) -> Dict:
         """
@@ -80,7 +97,8 @@ class Game:
         return {
             "finished": self._finished,
             "current_turn": self._players[self._turn].name,
-            "hands": self._hands(),
+            "hand": player.hand,
+            "bodies": [player.body for player in self._players],
             "leaderboard": self._leaderboard(),
             "playtime_mins": self._playtime_mins(),
         }
@@ -117,24 +135,3 @@ class Game:
             }
 
         return leaderboard
-
-    def _hands(self, recipient: Player) -> Dict:
-        """
-        Genera un diccionario con las manos de todos los jugadores, de forma que
-        solo ellos tengan acceso a sus cartas.
-        """
-
-        hands = {}
-
-        for player in self._players:
-            hands[player.name] = {
-                "organs": [],
-                "effects": [],
-            }
-
-            if player == recipient:
-                hands[player.name]["hand"] = player.hand
-            else:
-                hands[player.name]["num_cards"] = len(player.hand)
-
-        return hands

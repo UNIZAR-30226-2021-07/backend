@@ -8,4 +8,4 @@ python -m black .
 echo ">> Sorting imports"
 python -m isort .
 echo ">> Running linter"
-python -m flake8 . --ignore E402
+python -m flake8 . --ignore E402,W503

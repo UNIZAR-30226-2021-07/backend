@@ -6,6 +6,7 @@ from flask_socketio import emit, join_room, leave_room
 
 from gatovid.api.game.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
 from gatovid.exts import socket
+from gatovid.game.actions import Discard, Pass, PlayCard
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -383,12 +384,21 @@ def play_discard(data):
         <errores>`.
     """
 
+    match = MM.get_match(session["game"])
+    name = session["user"].name
+
+    try:
+        match.run_action(name, Discard(data))
+    except GameLogicException as e:
+        return {"error": str(e)}
+
 
 @socket.on("play_draw")
 @_requires_game(started=True)
 def play_draw():
     """
-    .. warning:: Este endpoint está en construcción aún.
+    .. warning:: Este endpoint está en construcción aún y puede que no
+        se construya.
 
     Roba tantas cartas como sean necesarias para que el usuario tenga 3.
 
@@ -400,6 +410,8 @@ def play_draw():
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
     """
+
+    pass
 
 
 @socket.on("play_pass")
@@ -419,6 +431,14 @@ def play_pass():
         <errores>`.
     """
 
+    match = MM.get_match(session["game"])
+    name = session["user"].name
+
+    try:
+        match.run_action(name, Pass())
+    except GameLogicException as e:
+        return {"error": str(e)}
+
 
 @socket.on("play_card")
 @_requires_game(started=True)
@@ -436,3 +456,11 @@ def play_card(data):
         Si el usuario no está en una partida se devolverá un :ref:`error
         <errores>`.
     """
+
+    match = MM.get_match(session["game"])
+    name = session["user"].name
+
+    try:
+        match.run_action(name, PlayCard(data))
+    except GameLogicException as e:
+        return {"error": str(e)}

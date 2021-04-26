@@ -317,33 +317,12 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         // Nombre del usuario con el turno actual, opcional.
         "current_turn": "manolo22",
         // Manos de los jugadores, opcional.
-        // Solo se sabrá la mano completa del usuario que recibe el mensaje. Los
-        // demás únicamente tendrán el número de cartas.
-        "hands": {
-            // Jugador actual
-            "manolo22": {
-                "organs": [
-                    // TODO
-                ],
-                "effects": [
-                    // TODO
-                ],
-                "cards": [
-                    // TODO
-                ],
-            },
-            // Otro jugador
-            "juanma2000": {
-                "organs": [
-                    // TODO
-                ],
-                "effects": [
-                    // TODO
-                ],
-                "num_cards": 3,
-            },
-            // ...
-        },
+        // Solo se sabrá la mano completa del usuario que recibe el mensaje.
+        "hand": [ // Jugador actual
+            {"card_type": "organ", "color": "red"},
+            {"card_type": "virus", "color": "green"},
+            {"card_type": "medicine", "color": "yellow"},
+        ],
         // Tiempo de juego en minutos, opcional.
         "playtime_mins": 4,
         // Lista de ganadores, opcional.

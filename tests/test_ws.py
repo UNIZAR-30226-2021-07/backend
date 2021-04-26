@@ -3,7 +3,6 @@ Tests para la conexión básica de websockets
 """
 
 import time
-from typing import Dict, List, Optional
 
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
@@ -28,48 +27,6 @@ for i in range(NUM_GENERIC_USERS):
 
 
 class WsTest(WsTestClient):
-    matchmaking_delay = 0.0
-
-    def set_matchmaking_time(self, delay: float):
-        """
-        Para los tests se parchea el tiempo de espera para el inicio de la
-        partida, evitando que se tenga que esperar a que acabe.
-        """
-
-        import gatovid.api.game.match
-
-        gatovid.api.game.match.TIME_UNTIL_START = delay
-        self.matchmaking_delay = delay
-
-    def wait_matchmaking_time(self):
-        """
-        Espera el tiempo de inicio de una partida, con un pequeño margen para el
-        procesamiento en el backend.
-        """
-
-        time.sleep(self.matchmaking_delay * 1.2)
-
-    def parse_json_args(self, args):
-        return dict((key, arg[key]) for arg in args for key in arg)
-
-    def get_msg_in_received(
-        self, received: List, msg_type: str, json: bool = False
-    ) -> (Optional[Dict], Optional[List[Dict]]):
-        """
-        Devuelve la primera aparición de un mensaje de tipo `msg_type` en
-        `received`.
-        """
-        raw = next(iter(filter(lambda msg: msg["name"] == msg_type, received)), None)
-        if raw is None:
-            return None, None
-
-        args = raw["args"]
-
-        if raw and raw.get("args") and json:
-            args = self.parse_json_args(raw["args"])
-
-        return raw, args
-
     def test_connect(self):
         client = self.create_client(users_data[0])
         self.assertIsNotNone(client)

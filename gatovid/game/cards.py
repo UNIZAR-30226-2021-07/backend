@@ -1,119 +1,156 @@
-from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
+
+from gatovid.game.common import GameLogicException
 
 if TYPE_CHECKING:
     from gatovid.game import Game
+    from gatovid.game.actions import PlayCard
 
 
-class Color(Enum):
+class Color(str, Enum):
     Red = "red"
     Green = "green"
     Blue = "blue"
     Yellow = "yellow"
+    Any = "any"
 
 
-class Action(ABC):
-    def __init__(self) -> None:
-        """"""
-
-    @abstractmethod
-    def apply(self, game: "Game") -> None:
-        """"""
+@dataclass
+class Card:
+    pass
 
 
-class Card(Action):
+@dataclass
+class SimpleCard(Card):
+    """
+    Clase genérica para órganos, virus y medicinas. Estos tres tienen
+    un comportamiento similar, ya que actúan solo sobre una pila de
+    cartas (en el cuerpo de un jugador).
+    """
+
+    color: Color
+
+    def get_action_data(self, action: "PlayCard", game: "Game") -> None:
+        """
+        Extraer la información común para las cartas simples y
+        realizar las comprobaciones correspondientes.
+        """
+
+        # Jugador donde queremos colocar la carta (en su cuerpo).
+        target_name = action.data.get("target")
+        # Pila de órgano donde se va a colocar la carta (dentro de dicho cuerpo).
+        organ_pile_slot = action.data.get("organ_pile")
+
+        if None in (target_name, organ_pile_slot):
+            raise GameLogicException("Parámetro vacío")
+
+        self.target = game.get_player(target_name)
+        self.organ_pile = self.target.body.get_pile(organ_pile_slot)
+
+        if self.target is None:
+            raise GameLogicException("El jugador no existe")
+
+        # Comprobamos si podemos colocar
+        if not self.organ_pile.can_place(self):
+            raise GameLogicException("No se puede colocar la carta ahí")
+
+
+@dataclass
+class Organ(SimpleCard):
     """"""
 
-    def __init__(self, id: int) -> None:
-        self.id = id
+    # Usado para la codificación JSON
+    card_type: str = "organ"
+
+    def apply(self, action: "PlayCard", game: "Game") -> None:
+        self.get_action_data(action, game)
+
+        self.organ_pile.set_organ(self)
 
 
-class Organ(Card):
+@dataclass
+class Virus(SimpleCard):
     """"""
 
-    def __init__(self, id: int, color: Color) -> None:
-        super().__init__(id)
-        self.color = color
+    # Usado para la codificación JSON
+    card_type: str = "virus"
+
+    def apply(self, action: "PlayCard", game: "Game") -> None:
+        self.get_action_data(action, game)
+
+        # Comprobamos si hay que extirpar o destruir vacuna
+        if self.organ_pile.is_infected():
+            # Si está infectado -> se extirpa el órgano
+            self.organ_pile.remove_organ()
+        elif self.organ_pile.is_protected():
+            # Si está protegido -> se destruye la vacuna
+            self.organ_pile.pop_modifiers()
+        else:  # Se infecta el órgano (se añade el virus a los modificadores)
+            self.organ_pile.add_modifier(self)
 
 
-class Virus(Card):
+@dataclass
+class Medicine(SimpleCard):
     """"""
 
-    def __init__(self, id: int, color: Color) -> None:
-        super().__init__(id)
-        self.color = color
+    # Usado para la codificación JSON
+    card_type: str = "medicine"
+
+    def apply(self, action: "PlayCard", game: "Game") -> None:
+        self.get_action_data(action, game)
+
+        # Comprobamos si hay que destruir un virus
+        if self.organ_pile.is_infected():
+            self.organ_pile.pop_modifiers()
+        else:
+            # Se proteje o se inmuniza el órgano (se añade la vacuna a los
+            # modificadores)
+            self.organ_pile.add_modifier(self)
 
 
-class Medicine(Card):
-    """"""
-
-    def __init__(self, id: int, color: Color) -> None:
-        super().__init__(id)
-        self.color = color
-
-
+@dataclass
 class Treatment(Card):
-    """"""
+    """
+    Clase abstracta que contiene las cartas especiales (cartas de
+    tratamiento). Estas realizan acciones muy variadas.
+    """
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    # Usado para la codificación JSON
+    card_type: str = "treatment"
+
+    pass
 
 
+@dataclass
 class Transplant(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    pass
 
 
+@dataclass
 class OrganThief(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    pass
 
 
+@dataclass
 class Infection(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    pass
 
 
+@dataclass
 class LatexGlove(Treatment):
     """"""
 
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
+    pass
 
 
+@dataclass
 class MedicalError(Treatment):
     """"""
-
-    def __init__(self, id: int) -> None:
-        super().__init__(id)
-
-
-class Pass(Action):
-    """"""
-
-    def apply(self, game: "Game") -> None:
-        """"""
-
-
-class Draw(Action):
-    """"""
-
-    def apply(self, game: "Game") -> None:
-        """"""
-
-
-class Discard(Action):
-    """"""
-
-    def __init__(self, cards: List[Card]) -> None:
-        self.cards = cards
-
-    def apply(self, game: "Game") -> None:
-        """"""

@@ -82,6 +82,19 @@ class Match:
 
         socket.emit("start_game", room=self.code)
 
+        # Se envía también un mensaje inicial con información sobre todos los
+        # jugadores de la partida.
+        for user in self.users:
+            socket.emit("game_update", , room=user.sid)
+
+    def _users_data(self) -> Dict:
+        users = []
+        for user in self.users:
+            users.append({
+                "name": user.name,
+                "picture": user.picture,
+            })
+
     def run_action(self, caller: str, action: Action) -> None:
         """
         Ejecuta una acción cualquiera del juego.

@@ -312,26 +312,54 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
 .. code-block:: javascript
 
     {
-        // Terminación de la partida, opcional.
+        // Terminación de la partida.
         "finished": false,
-        // Nombre del usuario con el turno actual, opcional.
+        // Lista de ganadores. Se incluye la posición de cada jugador, y las
+        // monedas que ha ganado por ello.
+        "leaderboard": {
+            "manolo22": {
+                "position": 1,
+                "coins": 50,
+            },
+            // ...
+        },
+        // Tiempo de juego en minutos.
+        "playtime_mins": 4,
+        // Nombre del usuario con el turno actual.
         "current_turn": "manolo22",
-        // Manos de los jugadores, opcional.
-        // Solo se sabrá la mano completa del usuario que recibe el mensaje.
-        "hand": [ // Jugador actual
+        // Mano del jugador actual (solo él tendrá esa información).
+        "hand": [
             {"card_type": "organ", "color": "red"},
             {"card_type": "virus", "color": "green"},
             {"card_type": "medicine", "color": "yellow"},
         ],
-        // Tiempo de juego en minutos, opcional.
-        "playtime_mins": 4,
-        // Lista de ganadores, opcional.
-        // Se incluye la posición de cada jugador, comenzando desde el 1, y las
-        // monedas que ha ganado por ello.
-        "leaderboard": [
-            "manolo22": {
-                "position": 1,
-                "coins": 50,
+        // El último descarte realizado en la partida.
+        "last_discarded": {
+            "card_type": "medicine",
+            "color": "yellow"
+        },
+        // Información de los jugadores. Los campos "board" y "picture" solo se
+        // incluirán al inicio de la partida.
+        "players": [
+            {
+                // El propio jugador también tendrá el tablero en "board".
+                "name": "marcuspkz",
+                "picture": 4,
+                "board": 2,
+                "piles": [
+                    {
+                        // Puede ser nulo.
+                        "organ": "heart",
+                        "modifiers": [
+                            {
+                                "card_type": "organ",
+                                "color": "blue",
+                            },
+                            // ...
+                        ]
+                    },
+                    // ....
+                ]
             },
             // ...
         ],

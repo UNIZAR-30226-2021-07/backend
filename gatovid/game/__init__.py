@@ -74,7 +74,7 @@ class Game:
         """
         Inicializa la baraja, la reordena de forma aleatoria, y reparte 3 cartas
         a cada jugador, iterando de forma similar a cómo se haría en la vida
-        real.
+        real. También elige de forma aleatoria el turno inicial.
 
         Devuelve un game_update con el estado actual del juego.
         """
@@ -86,7 +86,16 @@ class Game:
             for player in self._players:
                 self.draw_card(player)
 
-        update = [{"hand": player.hand} for player in self._players]
+        self._turn = random.randint(0, len(self._players) - 1)
+
+        # Genera el estado inicial con las manos y turno
+        update = []
+        for player in self._players:
+            update.append({
+                "hand": player.hand,
+                "current_turn": self.turn_player().name
+            })
+
         return update
 
     def is_finished(self) -> bool:

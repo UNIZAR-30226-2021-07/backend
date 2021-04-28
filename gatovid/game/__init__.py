@@ -98,10 +98,12 @@ class Game:
         # Genera el estado inicial con las manos y turno
         update = []
         for player in self.players:
-            update.append({
-                "hand": player.hand,
-                "current_turn": self.turn_player().name,
-            })
+            update.append(
+                {
+                    "hand": player.hand,
+                    "current_turn": self.turn_player().name,
+                }
+            )
 
         return update
 

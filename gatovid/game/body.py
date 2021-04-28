@@ -95,10 +95,14 @@ class Body:
     Información relativa al cuerpo de un jugador.
     """
 
+    # Los elementos de la pila nunca serán nulos, pero posiblemente los miembros
+    # dentro de `OrganPile` sí que estén vacíos.
     piles: List[OrganPile]
 
     def __init__(self):
-        self.piles: List[OrganPile] = [None] * 4
+        self.piles = []
+        for i in range(4):
+            self.piles.append(OrganPile())
 
     def get_pile(self, pile: int) -> OrganPile:
         if pile < 0 or pile > 3:

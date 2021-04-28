@@ -338,21 +338,41 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
             "card_type": "medicine",
             "color": "yellow"
         },
-        // Información de los jugadores. Los campos "board" y "picture" solo se
-        // incluirán al inicio de la partida.
+        // Información de los jugadores, enviada únicamente al inicio de la
+        // partida. El orden de los jugadores será el mismo durante el resto de
+        // la partida.
         "players": [
             {
-                // El propio jugador también tendrá el tablero en "board".
                 "name": "marcuspkz",
                 "picture": 4,
+                // El propio jugador también tendrá el tablero.
                 "board": 2,
+            },
+            // ...
+        ],
+        // Las manos de los jugadores.
+        "hands": [
+            [
+                {
+                    "card_type": "organ",
+                    "color": "red"
+                },
+                // ...
+            ],
+            // ...
+        ],
+        // Los cuerpos de los jugadores.
+        "bodies": [
+            {
+                // Pila del jugador, siempre con longitud 4.
                 "piles": [
-                    // Puede ser nulo.
                     {
+                        // Puede ser nulo si no hay nada en esa posición.
                         "organ": {
                             "card_type": "organ",
                             "color": "red"
                         }
+                        // Puede estar vacío si no hay modificadores.
                         "modifiers": [
                             {
                                 "card_type": "virus",

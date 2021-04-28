@@ -63,7 +63,7 @@ class SimpleCard(Card):
         Genera un diccionario indicando cambios a la pila del target.
         """
 
-        return {"bodies": {self.target.name: {"piles": self.target.body.piles}}}
+        return {"bodies": {self.target.name: self.target.body.piles}}
 
 
 @dataclass

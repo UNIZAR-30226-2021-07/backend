@@ -346,24 +346,21 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         ],
         // Los cuerpos de los jugadores.
         "bodies": {
-            "marcuspkz": {
-                // Pila del jugador, siempre con longitud 4.
-                "piles": [
-                    {
-                        // Puede ser nulo si no hay nada en esa posición.
-                        "organ": {
-                            "card_type": "organ",
-                            "color": "red"
-                        }
-                        // Puede estar vacío si no hay modificadores.
-                        "modifiers": [
-                            {"card_type": "virus", "color": "red"},
-                            // ...
-                        ]
-                    },
+            "marcuspkz": [
+                {
+                    // Puede ser nulo si no hay nada en esa posición.
+                    "organ": {
+                        "card_type": "organ",
+                        "color": "red"
+                    }
+                    // Puede estar vacío si no hay modificadores.
+                    "modifiers": [
+                        {"card_type": "virus", "color": "red"},
+                        // ...
+                    ]
+                },
                     // ....
-                ]
-            },
+            ],
             // ...
         },
     }

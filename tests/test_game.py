@@ -135,7 +135,7 @@ class GameTest(WsTestClient):
 
         self.assertIn("bodies", args)
         self.assertEqual(
-            args["bodies"][name]["piles"],
+            args["bodies"][name],
             [
                 {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
                 {"modifiers": [], "organ": None},

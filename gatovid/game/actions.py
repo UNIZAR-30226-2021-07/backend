@@ -134,7 +134,6 @@ class PlayCard(Action):
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """"""
 
-        caller = game.get_player(caller)
         card = caller.get_card(self.slot)
         return card.apply(self, game)
         # TODO: quitar carta de la mano

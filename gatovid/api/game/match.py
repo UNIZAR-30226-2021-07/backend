@@ -9,6 +9,7 @@ from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException
+from gatovid.game.actions import StartGame
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -71,6 +72,17 @@ class Match:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es
         más limitada que un setter.
+
+        Primero se envía un mensaje especial de inicio de la partida,
+        start_game.
+
+        Posteriormente, se inicia la partida tanto por parte del juego (con la
+        lógica, como las cartas de cada jugador, etc), como por parte de la
+        partida (que tiene que enviar al cliente información de los usuarios,
+        como su tablero).
+
+        Notar que esto último se tiene que enviar en un mismo mensaje al
+        cliente, y no se puede dividir en dos.
         """
 
         with self._started_lock:
@@ -78,24 +90,57 @@ class Match:
                 return
             self._game = Game(self.users)
 
+        # Mensaje especial de inicio de la partida
         logger.info(f"Match {self.code} has started")
-
         socket.emit("start_game", room=self.code)
 
-        # Se envía también un mensaje inicial con información sobre todos los
-        # jugadores de la partida.
-        # for user in self.users:
-            # socket.emit("game_update", , room=user.sid)
+        # game_update con el inicio del juego
+        start_update = self._game.run_action(None, StartGame())
+        # game_update con el inicio de la partida
+        match_update = self._match_info()
 
-    def _users_data(self) -> Dict:
-        users = []
-        for user in self.users:
-            users.append({
-                "name": user.name,
-                "picture": user.picture,
-            })
+        # Unión de ambos game_update
+        full_update = []
+        for start, match in zip(start_update, match_update):
+            full_update.append({**start, **match})
+        self.send_update(full_update)
 
-    def run_action(self, caller: str, action: Action) -> None:
+    def _match_info(self) -> Dict:
+        """
+        Genera un game_update con información sobre la partida para cada
+        jugador.
+        """
+
+        update = []
+
+        for current_user in self.users:
+            data = {}
+
+            for user in self.users:
+                # Información genérica del resto de usuarios
+                data["players"] = {
+                    "name": user.name,
+                    "picture": user.picture,
+                }
+
+                # Para el mismo usuario que recibe el mensaje, se envía también
+                # su tablero.
+                if user == current_user:
+                    data["players"]["board"] = user.board
+
+            update.append(data)
+
+        return update
+
+    def send_update(self, data: List[Dict]) -> None:
+        """
+        Envía un game_update a cada uno de los participantes de la partida.
+        """
+
+        for user, status in zip(self.users, data):
+            socket.emit("game_update", status, room=user.sid)
+
+    def run_action(self, caller: Optional[str], action: Action) -> None:
         """
         Ejecuta una acción cualquiera del juego.
         """
@@ -103,14 +148,11 @@ class Match:
         if not self.is_started():
             raise GameLogicException("El juego no ha comenzado")
 
-        all_status = self._game.run_action(caller, action)
+        update = self._game.run_action(caller, action)
+        self.send_update(update)
 
-        for i, user in enumerate(self.users):
-            status = all_status[i]
-            socket.emit("game_update", status, room=user.sid)
-
-            finished = status.get("finished")
-            if finished is True:
+        if self._game.is_finished():
+            for user, status in zip(self._users, update):
                 self.update_stats(user, status)
 
     def end(self) -> None:

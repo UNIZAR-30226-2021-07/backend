@@ -61,8 +61,8 @@ class Game:
         self._paused = False
         self._finished = False
         self._players_finished = 0
-        # Si un jugador está descartando, no podrá hacer otra cosa hasta que
-        # pase el turno.
+        # Indica la fase de descarte, en la que no se podrá hacer otra cosa
+        # excepto seguir descartando o pasar el turno.
         self._discarding = False
 
         # TODO: Por el momento, se hace como que se juega y se termina la
@@ -151,20 +151,23 @@ class Game:
         update = [{}] * len(self._players)
 
         while True:
-            # Roba cartas hasta tener 3, se actualiza el estado
+            # Roba cartas hasta tener 3, se actualiza el estado de ese jugador
+            # en concreto.
             while len(self.turn_player().hand) < 3:
                 self.draw_card(self.turn_player())
-                for u in update:
+                for u, player in zip(update, self._players):
+                    if player == self.turn_player():
+                        u["hand"] = self.turn_player().hand
+                        break
 
-                update = self._merge_updates(update, draw_update)
-
-            # Siguiente turno
+            # Siguiente turno, y actualización del estado a todos los jugadores
             self._turn = self._turn % len(self._players)
             new_turn = {"current_turn": self.turn_player().name}
             turn_update = [new_turn] * len(self._players)
             update = self._merge_updates(update, turn_update)
 
-            # Continúa pasando el turno si no tiene cartas disponibles.
+            # Continúa pasando el turno si el jugador siguiente no tiene cartas
+            # disponibles.
             if len(self.turn_player().hand) != 0:
                 break
 

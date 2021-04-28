@@ -41,7 +41,7 @@ class Pass(Action):
 
 class Discard(Action):
     """
-        Descarta una única carta.
+    Descarta una única carta.
     """
 
     def __init__(self, data) -> None:

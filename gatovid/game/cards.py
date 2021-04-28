@@ -214,7 +214,8 @@ def parse_card(data: Dict) -> (object, Dict):
 
 def parse_deck(all_cards: List[Dict]) -> [SimpleCard]:
     """
-    Incializa el mazo base con la información en el JSON de cartas.
+    Incializa el mazo base con la información en el JSON de cartas, cada uno con
+    una instancia distinta.
     """
 
     deck = []

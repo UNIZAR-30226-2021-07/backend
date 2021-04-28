@@ -141,6 +141,9 @@ class Match:
         """
 
         for user, status in zip(self.users, data):
+            if status == {}:
+                continue
+
             socket.emit("game_update", status, room=user.sid)
 
     def run_action(self, caller: str, action: Action) -> None:

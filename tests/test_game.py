@@ -47,6 +47,43 @@ class GameTest(WsTestClient):
 
         return clients, code
 
+    def test_start_game(self):
+        """
+        Comprueba el protocolo de inicio de la partida.
+        """
+
+        clients, code = self.create_game()
+
+        for cur_client_num, client in enumerate(clients):
+            # Primero debería haberse recibido un mensaje de `start_game`
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "start_game", json=True)
+            self.assertIsNotNone(args)
+
+            # Después, debería haberse recibido un mensaje con el estado inicial
+            # del juego.
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertIsNotNone(args)
+
+            # La mano será aleatoria
+            self.assertIn('hand', args)
+
+            # Los jugadores de la partida sí que se pueden saber
+            self.assertIn('players', args)
+            expected_players = []
+            for client_num in range(len(clients)):
+                # Cada jugador tendrá su información básica, y él mismo habrá
+                # recibido su tablero.
+                data = {
+                    "name": GENERIC_USERS_NAME.format(client_num),
+                    "picture": 0,
+                }
+                if client_num == cur_client_num:
+                    data["board"] = 0
+                expected_players.append(data)
+
+            self.assertEqual(args["players"], expected_players)
+
     def test_play_card(self):
         """
         TODO: Modificar este test cuando se implemente el sistema de turnos.

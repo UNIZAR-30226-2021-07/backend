@@ -9,7 +9,6 @@ from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException
-from gatovid.game.actions import StartGame
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -82,7 +81,8 @@ class Match:
         como su tablero).
 
         Notar que esto último se tiene que enviar en un mismo mensaje al
-        cliente, y no se puede dividir en dos.
+        cliente, y no se puede dividir en dos; originalmente la información
+        sobre los jugadores como sus fotos debería haber ido en start_game.
         """
 
         with self._started_lock:
@@ -95,7 +95,7 @@ class Match:
         socket.emit("start_game", room=self.code)
 
         # game_update con el inicio del juego
-        start_update = self._game.run_action(None, StartGame())
+        start_update = self._game.start()
         # game_update con el inicio de la partida
         match_update = self._match_info()
 
@@ -113,11 +113,13 @@ class Match:
 
         update = []
         for current_user in self.users:
-            data = {}
+            data = {
+                "players": []
+            }
 
             for user in self.users:
                 # Información genérica del resto de usuarios
-                data["players"] = {
+                user_data = {
                     "name": user.name,
                     "picture": user.picture,
                 }
@@ -125,7 +127,9 @@ class Match:
                 # Para el mismo usuario que recibe el mensaje, se envía también
                 # su tablero.
                 if user == current_user:
-                    data["players"]["board"] = user.board
+                    user_data["board"] = user.board
+
+                data["players"].append(user_data)
 
             update.append(data)
 
@@ -139,7 +143,7 @@ class Match:
         for user, status in zip(self.users, data):
             socket.emit("game_update", status, room=user.sid)
 
-    def run_action(self, caller: Optional[str], action: Action) -> None:
+    def run_action(self, caller: str, action: Action) -> None:
         """
         Ejecuta una acción cualquiera del juego.
         """

@@ -197,7 +197,7 @@ def parse_deck(all_cards: List[Dict]) -> [SimpleCard]:
 
     for data in all_cards:
         cls, kwargs = parse_card(data)
-        for i in data["total"]:
+        for i in range(data["total"]):
             card = cls(**kwargs)
             deck.append(card)
 

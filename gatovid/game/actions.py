@@ -11,19 +11,19 @@ from gatovid.game.cards import DECK
 from gatovid.game.common import GameLogicException
 
 if TYPE_CHECKING:
-    from gatovid.game import Game
+    from gatovid.game import Game, Player
 
 
 class Action(ABC):
     @abstractmethod
-    def apply(self, game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> Dict:
         """"""
 
 
 class StartGame(Action):
     """"""
 
-    def apply(self, game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> Dict:
         """
         Inicializa la baraja y reparte 3 cartas a cada jugador, iterando de
         forma similar a cómo se haría en la vida real.
@@ -76,8 +76,9 @@ class EndGame(Action):
 
         return leaderboard
 
-    def apply(self, game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> Dict:
         """"""
+
         game.end_turn()
 
         return {
@@ -90,7 +91,7 @@ class EndGame(Action):
 class Pass(Action):
     """"""
 
-    def apply(self, game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> Dict:
         """"""
 
         game.end_turn()
@@ -107,7 +108,7 @@ class Discard(Action):
         # Slot de la mano con la carta que queremos descartar.
         self.slot = data.get("slot")
 
-    def apply(self, game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> Dict:
         """"""
 
 
@@ -121,9 +122,9 @@ class PlayCard(Action):
         if self.slot is None:
             raise GameLogicException("Slot vacío")
 
-    def apply(self, caller: str, game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> Dict:
         """"""
-        player = game.get_player(caller)
-        card = player.get_card(self.slot)
+
+        card = caller.get_card(self.slot)
         return card.apply(self, game)
         # TODO: quitar carta de la mano

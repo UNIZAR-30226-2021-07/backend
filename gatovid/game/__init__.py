@@ -89,7 +89,7 @@ class Game:
 
     def turn_name(self) -> str:
         """
-        Devuelve el nombre del usuario con el turno actual
+        Devuelve el nombre del usuario con el turno actual.
         """
 
         return self._players[self._turn].name

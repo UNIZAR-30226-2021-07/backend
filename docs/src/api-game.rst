@@ -346,6 +346,7 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         ],
         // Los cuerpos de los jugadores.
         "bodies": {
+            // Pila del jugador, siempre de longitud 4.
             "marcuspkz": [
                 {
                     // Puede ser nulo si no hay nada en esa posición.

@@ -65,8 +65,9 @@ class GameTest(WsTestClient):
             _, args = self.get_msg_in_received(received, "game_update", json=True)
             self.assertIsNotNone(args)
 
-            # La mano será aleatoria
+            # La mano y el turno serán aleatorios
             self.assertIn('hand', args)
+            self.assertIn('current_turn', args)
 
             # Los jugadores de la partida sí que se pueden saber
             self.assertIn('players', args)
@@ -90,6 +91,11 @@ class GameTest(WsTestClient):
         """
         clients, code = self.create_game()
 
+        # Primero se tendrá el game_update inicial
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
+
         # TODO: Se debería acceder al endpoint directamente, pero no está hecha
         # la inicialización de la partida, así que no puedo probar a usar la
         # mano sin inicializarla yo.
@@ -111,11 +117,12 @@ class GameTest(WsTestClient):
         # que le toque
         game._turn = 0
 
+        name = GENERIC_USERS_NAME.format(0)
         callback_args = clients[0].emit(
             "play_card",
             {
                 "slot": 0,
-                "target": GENERIC_USERS_NAME.format(0),  # itself
+                "target": name,  # itself
                 "organ_pile": 0,
             },
             callback=True,
@@ -128,11 +135,11 @@ class GameTest(WsTestClient):
 
         self.assertIn("bodies", args)
         self.assertEqual(
-            args["bodies"][0]["piles"],
+            args["bodies"][name]["piles"],
             [
                 {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
-                None,
-                None,
-                None,
+                {"modifiers": [], "organ": None},
+                {"modifiers": [], "organ": None},
+                {"modifiers": [], "organ": None},
             ],
         )

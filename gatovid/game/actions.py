@@ -66,6 +66,14 @@ class Discard(Action):
         del caller.hand[self.slot]
         game._deck.insert(0, card)
 
+        update = [{}] * len(self._players)
+        for u, player in zip(update, self._players):
+            if player == self.turn_player():
+                u["hand"] = self.turn_player().hand
+                break
+
+        return update
+
 
 class PlayCard(Action):
     """
@@ -91,11 +99,12 @@ class PlayCard(Action):
         if game._discarding:
             raise GameLogicException("El jugador está en proceso de descarte")
 
-        # Obtiene la carta y la elimina de su mano
+        # Obtiene la carta y la elimina de su mano. No hace falta actualizar el
+        # estado al eliminar la carta porque ya se hará cuando robe al final del
+        # turno.
         card = caller.hand[self.slot]
         del caller.hand[self.slot]
 
         # Usa la carta
         update = card.apply(self, game)
-
         return update

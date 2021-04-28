@@ -58,6 +58,19 @@ class SimpleCard(Card):
         if not self.organ_pile.can_place(self):
             raise GameLogicException("No se puede colocar la carta ahí")
 
+    def piles_update(self) -> Dict:
+        """
+        Genera un diccionario indicando cambios a la pila del target.
+        """
+
+        return {
+            "bodies": {
+                self.target.name: {
+                    "piles": self.target.body.piles
+                }
+            }
+        }
+
 
 @dataclass
 class Organ(SimpleCard):
@@ -73,14 +86,8 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        update = {
-            "bodies": {
-                self.target.name: {
-                    "organ": self
-                }
-            }
-        }
-        return [update] * len(game._players)
+        return [self.piles_update()] * len(game._players)
+
 
 
 @dataclass
@@ -105,14 +112,7 @@ class Virus(SimpleCard):
         else:  # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
-        update = {
-            "bodies": {
-                self.target.name: {
-                    "modifiers": self.organ_pile.modifiers
-                }
-            }
-        }
-        return [update] * len(game._players)
+        return [self.piles_update()] * len(game._players)
 
 
 @dataclass
@@ -135,14 +135,7 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
-        update = {
-            "bodies": {
-                self.target.name: {
-                    "modifiers": self.organ_pile.modifiers
-                }
-            }
-        }
-        return [update] * len(game._players)
+        return [self.piles_update()] * len(game._players)
 
 
 @dataclass

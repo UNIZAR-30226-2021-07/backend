@@ -4,7 +4,7 @@ pilas de cartas dentro de los cuerpos.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Optional
 from datetime import datetime
 
 from gatovid.game.cards import DECK
@@ -15,15 +15,23 @@ if TYPE_CHECKING:
 
 
 class Action(ABC):
+    """
+    Clase base para implementar el patrón Command. Las interacciones con el
+    juego toman lugar como "acciones", que modifican el estado del juego y
+    devuelven un diccionario con los cambios realizados.
+
+    Dependiendo de la acción ésta podrá ser llevada a cabo por un jugador o no.
+    """
+
     @abstractmethod
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """"""
 
 
 class StartGame(Action):
     """"""
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """
         Inicializa la baraja y reparte 3 cartas a cada jugador, iterando de
         forma similar a cómo se haría en la vida real.
@@ -36,7 +44,7 @@ class StartGame(Action):
                 drawn = game._deck.pop()
                 player.hand.append(drawn)
 
-        update = [player.hand for player in game._players]
+        update = [{"hand": player.hand} for player in game._players]
         return update
 
 
@@ -76,22 +84,23 @@ class EndGame(Action):
 
         return leaderboard
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """"""
 
         game.end_turn()
 
-        return {
+        update = {
             "finished": True,
             "leaderboard": self._leaderboard(game),
             "playtime_mins": self._playtime_mins(game),
         }
+        return [update] * len(game._players)
 
 
 class Pass(Action):
     """"""
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """"""
 
         game.end_turn()
@@ -108,7 +117,7 @@ class Discard(Action):
         # Slot de la mano con la carta que queremos descartar.
         self.slot = data.get("slot")
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """"""
 
 
@@ -122,9 +131,10 @@ class PlayCard(Action):
         if self.slot is None:
             raise GameLogicException("Slot vacío")
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """"""
 
+        caller = game.get_player(caller)
         card = caller.get_card(self.slot)
         return card.apply(self, game)
         # TODO: quitar carta de la mano

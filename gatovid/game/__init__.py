@@ -64,7 +64,7 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def run_action(self, caller: str, action: Action) -> [Dict]:
+    def run_action(self, caller: Optional[str], action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
         nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
@@ -80,7 +80,10 @@ class Game:
         if self._players[self._turn].name != caller:
             raise GameLogicException("No es tu turno")
 
-        player = self.get_player(caller)
+        player = None
+        if caller is not None:
+            player = self.get_player
+
         update = action.apply(player, game=self)
         return update
 
@@ -93,15 +96,3 @@ class Game:
         """
 
         return self._players[self._turn].name
-
-    def _generate_status(self, player: Player) -> Dict:
-        """
-        Genera el estado para uno de los jugadores. Cada uno de ellos puede
-        recibir uno diferente, dado que solo tendrán acceso a sus propias
-        cartas, por ejemplo.
-        """
-
-        return {
-            "hand": player.hand,
-            "bodies": [player.body for player in self._players],
-        }

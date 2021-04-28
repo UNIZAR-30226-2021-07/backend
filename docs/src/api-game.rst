@@ -347,13 +347,16 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
                 "picture": 4,
                 "board": 2,
                 "piles": [
+                    // Puede ser nulo.
                     {
-                        // Puede ser nulo.
-                        "organ": "heart",
+                        "organ": {
+                            "card_type": "organ",
+                            "color": "red"
+                        }
                         "modifiers": [
                             {
-                                "card_type": "organ",
-                                "color": "blue",
+                                "card_type": "virus",
+                                "color": "red",
                             },
                             // ...
                         ]

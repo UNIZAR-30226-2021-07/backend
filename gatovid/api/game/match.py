@@ -84,8 +84,8 @@ class Match:
 
         # Se envía también un mensaje inicial con información sobre todos los
         # jugadores de la partida.
-        for user in self.users:
-            socket.emit("game_update", , room=user.sid)
+        # for user in self.users:
+            # socket.emit("game_update", , room=user.sid)
 
     def _users_data(self) -> Dict:
         users = []
@@ -107,11 +107,11 @@ class Match:
 
         for i, user in enumerate(self.users):
             status = all_status[i]
-            finished = status.get("finished")
-            if finished is None or not finished:
-                self.update_stats(user, status)
-
             socket.emit("game_update", status, room=user.sid)
+
+            finished = status.get("finished")
+            if finished is True:
+                self.update_stats(user, status)
 
     def end(self) -> None:
         """

@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from gatovid.game.actions import Action
 from gatovid.game.body import Body
-from gatovid.game.cards import Card
+from gatovid.game.cards import Card, DECK
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException
@@ -24,7 +24,7 @@ class Player:
         self.name = name
         self.position: Optional[int] = None
         self.hand: List[Card] = []
-        self.body: Body = Body()
+        self.body = Body()
 
     def get_card(self, slot: int) -> Card:
         return self.hand[slot]
@@ -40,6 +40,7 @@ class Game:
     """
 
     def __init__(self, users: List[User]) -> None:
+        # TODO: atributos públicos
         self._players = [Player(user.name) for user in users]
         self._discarded: List[Card] = []
         self._deck: List[Card] = []
@@ -63,6 +64,17 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
+    def find_diffs(self, old, new):
+        diffs = {}
+
+        for key, old_val in old.items():
+            new_val = new.get(key)
+
+            if old_val != new_val:
+                diffs[key] = new_val
+
+        return diffs
+
     def run_action(self, caller: str, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
@@ -79,10 +91,20 @@ class Game:
         if self._players[self._turn].name != caller:
             raise GameLogicException("No es tu turno")
 
-        action.apply(caller, game=self)
+        player = next(filter(lambda x: x.name == caller, self._players), None)
+        if player is None:
+            raise GameLogicException("Jugador {} no encontrado en la partida", caller)
 
-        status = [self._generate_status(player) for player in self._players]
-        return status
+        old_state = [self._generate_status(player) for player in self._players]
+        action.apply(caller, game=self)
+        new_state = [self._generate_status(player) for player in self._players]
+
+        diffs = []
+        for old, new in zip(old_state, new_state):
+            diffs.append(self.find_diffs(old, new))
+            print(old, new)
+
+        return diffs
 
     def end_turn(self) -> [Dict]:
         self._finished = True

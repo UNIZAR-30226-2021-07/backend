@@ -86,6 +86,8 @@ class Game:
         Devuelve un game_update con el estado actual del juego.
         """
 
+        logger.info("Setting up game")
+
         self._deck = DECK.copy()
         random.shuffle(self._deck)
 

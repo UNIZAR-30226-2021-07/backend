@@ -67,9 +67,9 @@ class Organ(SimpleCard):
     card_type: str = "organ"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
-        logger.info(f"{caller.name} plays a {self.color}-colored organ")
-
         self.get_action_data(action, game)
+
+        logger.info(f"{self.color}-colored organ played over {self.target.name}")
 
         self.organ_pile.set_organ(self)
 
@@ -91,9 +91,9 @@ class Virus(SimpleCard):
     card_type: str = "virus"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
-        logger.info(f"{caller.name} plays a {self.color}-colored virus")
-
         self.get_action_data(action, game)
+
+        logger.info(f"{self.color}-colored virus played over {self.target.name}")
 
         # Comprobamos si hay que extirpar o destruir vacuna
         if self.organ_pile.is_infected():
@@ -123,9 +123,9 @@ class Medicine(SimpleCard):
     card_type: str = "medicine"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
-        logger.info(f"{caller.name} plays a {self.color}-colored medicine")
-
         self.get_action_data(action, game)
+
+        logger.info(f"{self.color}-colored medicine played over {self.target.name}")
 
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():

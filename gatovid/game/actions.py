@@ -84,6 +84,8 @@ class PlayCard(Action):
             raise GameLogicException("Slot vacío")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
+        logger.info(f"{caller.name} plays a card")
+
         # No podrá jugar una carta si el mismo jugador está en proceso de
         # descarte.
         if game._discarding:

@@ -102,7 +102,7 @@ class GameTest(WsTestClient):
         game = MM.get_match(code)._game
 
         leader_player = None
-        for player in game._players:
+        for player in game.players:
             if player.name == GENERIC_USERS_NAME.format(0):
                 leader_player = player
                 break

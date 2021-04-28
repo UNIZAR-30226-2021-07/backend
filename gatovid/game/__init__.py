@@ -59,9 +59,8 @@ class Game:
     """
 
     def __init__(self, users: List[User]) -> None:
-        # TODO: atributos públicos
-        self._players = [Player(user.name) for user in users]
-        self._deck: List[Card] = []
+        self.players = [Player(user.name) for user in users]
+        self.deck: List[Card] = []
         self._turn = 0
         self._start_time = datetime.now()
         self._paused = False
@@ -69,11 +68,11 @@ class Game:
         self._players_finished = 0
         # Indica la fase de descarte, en la que no se podrá hacer otra cosa
         # excepto seguir descartando o pasar el turno.
-        self._discarding = False
+        self.discarding = False
 
         # TODO: Por el momento, se hace como que se juega y se termina la
         # partida.
-        for i, player in enumerate(self._players):
+        for i, player in enumerate(self.players):
             player.position = i + 1
 
     def start(self) -> Dict:
@@ -87,18 +86,18 @@ class Game:
 
         logger.info("Setting up game")
 
-        self._deck = DECK.copy()
-        random.shuffle(self._deck)
+        self.deck = DECK.copy()
+        random.shuffle(self.deck)
 
         for i in range(3):
-            for player in self._players:
+            for player in self.players:
                 self.draw_card(player)
 
-        self._turn = random.randint(0, len(self._players) - 1)
+        self._turn = random.randint(0, len(self.players) - 1)
 
         # Genera el estado inicial con las manos y turno
         update = []
-        for player in self._players:
+        for player in self.players:
             update.append(
                 {"hand": player.hand, "current_turn": self.turn_player().name}
             )
@@ -109,7 +108,7 @@ class Game:
         return self._finished
 
     def get_player(self, user_name: str) -> Player:
-        for player in self._players:
+        for player in self.players:
             if player.name == user_name:
                 return player
 
@@ -131,13 +130,13 @@ class Game:
         if self._paused:
             raise GameLogicException("El juego está pausado")
 
-        if self._players[self._turn].name != caller:
+        if self.players[self._turn].name != caller:
             raise GameLogicException("No es tu turno")
 
         player = self.get_player(caller)
         update = action.apply(player, game=self)
 
-        if not self._discarding:
+        if not self.discarding:
             end_update = self.end_turn()
             update = self._merge_updates(end_update, update)
 
@@ -150,7 +149,7 @@ class Game:
 
         logger.info(f"{player.name} draws a card")
 
-        drawn = self._deck.pop()
+        drawn = self.deck.pop()
         player.hand.append(drawn)
 
     def end_turn(self) -> [Dict]:
@@ -166,22 +165,22 @@ class Game:
         completo.
         """
 
-        update = [{}] * len(self._players)
+        update = [{}] * len(self.players)
 
         while True:
             # Roba cartas hasta tener 3, se actualiza el estado de ese jugador
             # en concreto.
             while len(self.turn_player().hand) < 3:
                 self.draw_card(self.turn_player())
-                for u, player in zip(update, self._players):
+                for u, player in zip(update, self.players):
                     if player == self.turn_player():
                         u["hand"] = self.turn_player().hand
                         break
 
             # Siguiente turno, y actualización del estado a todos los jugadores
-            self._turn = self._turn % len(self._players)
+            self._turn = self._turn % len(self.players)
             new_turn = {"current_turn": self.turn_player().name}
-            turn_update = [new_turn] * len(self._players)
+            turn_update = [new_turn] * len(self.players)
             update = self._merge_updates(update, turn_update)
 
             logger.info("Current turn has ended")
@@ -200,7 +199,7 @@ class Game:
         `update1`.
         """
 
-        nump = len(self._players)
+        nump = len(self.players)
         if len(update1) != nump or len(update2) != nump:
             raise Exception("Tamaños incompatibles mezclando game_updates")
 
@@ -215,7 +214,7 @@ class Game:
         Devuelve el nombre del usuario con el turno actual.
         """
 
-        return self._players[self._turn]
+        return self.players[self._turn]
 
     def _playtime_mins(self, game: "Game") -> int:
         """
@@ -237,9 +236,9 @@ class Game:
         """
 
         leaderboard = {}
-        N = len(self._players)
+        N = len(self.players)
 
-        for player in self._players:
+        for player in self.players:
             if player.position is None:
                 continue
 
@@ -277,4 +276,4 @@ class Game:
             "leaderboard": self._leaderboard(),
             "playtime_mins": self._playtime_mins(),
         }
-        return [update] * len(self._players)
+        return [update] * len(self.players)

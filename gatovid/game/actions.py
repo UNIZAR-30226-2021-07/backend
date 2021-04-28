@@ -42,7 +42,7 @@ class Pass(Action):
     def apply(self, caller: "Player", game: "Game") -> Dict:
         logger.info(f"{caller.name} stops discarding cards")
 
-        game._discarding = False
+        game.discarding = False
 
 
 class Discard(Action):
@@ -58,18 +58,18 @@ class Discard(Action):
         logger.info(f"{caller.name} discards a card")
 
         # Activa la fase de descarte
-        game._discarding = True
+        game.discarding = True
 
         # Elimina la carta de la mano del jugador y la añade al principio del
         # mazo.
         card = caller.hand[self.slot]
         del caller.hand[self.slot]
-        game._deck.insert(0, card)
+        game.deck.insert(0, card)
 
-        update = [{}] * len(self._players)
-        for u, player in zip(update, self._players):
-            if player == self.turn_player():
-                u["hand"] = self.turn_player().hand
+        update = [{}] * len(game.players)
+        for u, player in zip(update, game.players):
+            if player == game.turn_player():
+                u["hand"] = game.turn_player().hand
                 break
 
         return update
@@ -96,7 +96,7 @@ class PlayCard(Action):
 
         # No podrá jugar una carta si el mismo jugador está en proceso de
         # descarte.
-        if game._discarding:
+        if game.discarding:
             raise GameLogicException("El jugador está en proceso de descarte")
 
         # Obtiene la carta y la elimina de su mano. No hace falta actualizar el

@@ -80,7 +80,7 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        return [self.piles_update()] * len(game._players)
+        return [self.piles_update()] * len(game.players)
 
 
 @dataclass
@@ -105,7 +105,7 @@ class Virus(SimpleCard):
         else:  # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
-        return [self.piles_update()] * len(game._players)
+        return [self.piles_update()] * len(game.players)
 
 
 @dataclass
@@ -128,7 +128,7 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
-        return [self.piles_update()] * len(game._players)
+        return [self.piles_update()] * len(game.players)
 
 
 @dataclass

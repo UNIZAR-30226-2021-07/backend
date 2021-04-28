@@ -92,7 +92,12 @@ class Pass(Action):
 
     def apply(self, game: "Game") -> Dict:
         """"""
+
         game.end_turn()
+
+        return {
+            "current_turn": game.turn_name()
+        }
 
 
 class Discard(Action):

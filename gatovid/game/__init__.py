@@ -80,15 +80,19 @@ class Game:
         if self._players[self._turn].name != caller:
             raise GameLogicException("No es tu turno")
 
-        player = next(filter(lambda x: x.name == caller, self._players), None)
-        if player is None:
-            raise GameLogicException("Jugador {} no encontrado en la partida", caller)
-
-        update = action.apply(caller, game=self)
+        player = self.get_player(caller)
+        update = action.apply(player, game=self)
         return update
 
     def end_turn(self) -> [Dict]:
         self._finished = True
+
+    def turn_name(self) -> str:
+        """
+        Devuelve el nombre del usuario con el turno actual
+        """
+
+        return self._players[self._turn].name
 
     def _generate_status(self, player: Player) -> Dict:
         """
@@ -98,8 +102,6 @@ class Game:
         """
 
         return {
-            "current_turn": self._players[self._turn].name,
             "hand": player.hand,
             "bodies": [player.body for player in self._players],
         }
-

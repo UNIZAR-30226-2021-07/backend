@@ -64,17 +64,6 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def find_diffs(self, old, new):
-        diffs = {}
-
-        for key, old_val in old.items():
-            new_val = new.get(key)
-
-            if old_val != new_val:
-                diffs[key] = new_val
-
-        return diffs
-
     def run_action(self, caller: str, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
@@ -95,16 +84,8 @@ class Game:
         if player is None:
             raise GameLogicException("Jugador {} no encontrado en la partida", caller)
 
-        old_state = [self._generate_status(player) for player in self._players]
-        action.apply(caller, game=self)
-        new_state = [self._generate_status(player) for player in self._players]
-
-        diffs = []
-        for old, new in zip(old_state, new_state):
-            diffs.append(self.find_diffs(old, new))
-            print(old, new)
-
-        return diffs
+        update = action.apply(caller, game=self)
+        return update
 
     def end_turn(self) -> [Dict]:
         self._finished = True
@@ -117,43 +98,8 @@ class Game:
         """
 
         return {
-            "finished": self._finished,
             "current_turn": self._players[self._turn].name,
             "hand": player.hand,
             "bodies": [player.body for player in self._players],
-            "leaderboard": self._leaderboard(),
-            "playtime_mins": self._playtime_mins(),
         }
 
-    def _playtime_mins(self) -> int:
-        """
-        Devuelve el tiempo de juego de la partida.
-        """
-
-        elapsed = datetime.now() - self._start_time
-        return int(elapsed.total_seconds() / 60)
-
-    def _leaderboard(self) -> Dict:
-        """
-        Calcula los resultados de la partida hasta el momento, incluyendo las
-        monedas obtenidas para cada jugador según la posición final, siguiendo
-        la fórmula establecida:
-
-          Sea N el número de jugadores de la partida, el jugador en puesto i
-          ganará 10 * (N - i) monedas en la partida. El primero será por ejemplo
-          N * 10, y el último 0.
-        """
-
-        leaderboard = {}
-        N = len(self._players)
-
-        for player in self._players:
-            if player.position is None:
-                continue
-
-            leaderboard[player.name] = {
-                "position": player.position,
-                "coins": 10 * (N - player.position),
-            }
-
-        return leaderboard

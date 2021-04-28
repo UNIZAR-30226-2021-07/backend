@@ -27,30 +27,45 @@ class Action(ABC):
 
 
 class Pass(Action):
-    """ """
+    """
+    Únicamente se pasará el turno para indicar que el usuario ha dejado de
+    descartarse cartas. En el resto de los casos el proceso es automático.
+
+    Por tanto, esta acción se limita a desactivar la fase de descarte, y ya se
+    pasará el turno automáticamente en el juego.
+    """
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        """ """
-
-        game.end_turn()
-
-        return {"current_turn": game.turn_name()}
+        game._discarding = False
 
 
 class Discard(Action):
-    """ """
+    """
+        Descarta una única carta.
+    """
 
     def __init__(self, data) -> None:
         # Slot de la mano con la carta que queremos descartar.
-        self.slots = data.get("slots")
+        self.slot = data.get("slot")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        """
-        Descarta una o más cartas
-        """
+        # Activa la fase de descarte
+        game._discarding = True
+
+        # Elimina la carta de la mano del jugador y la añade al principio del
+        # mazo.
+        card = caller.hand[self.slot]
+        del caller.hand[self.slot]
+        game._deck.insert(0, card)
 
 
 class PlayCard(Action):
+    """
+    Juega una carta, siguiendo el orden de las reglas del juego. La
+    implementación se delegará a la carta en específico que se esté jugando,
+    definido en las subclases de SimpleCard.
+    """
+
     def __init__(self, data) -> None:
         # Slot de la mano con la carta que queremos jugar.
         self.slot = data.get("slot")
@@ -61,22 +76,16 @@ class PlayCard(Action):
             raise GameLogicException("Slot vacío")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        """
-        Juega una carta, siguiendo el orden de las reglas del juego.
-        """
+        # No podrá jugar una carta si el mismo jugador está en proceso de
+        # descarte.
+        if game._discarding:
+            raise GameLogicException("El jugador está en proceso de descarte")
 
         # Obtiene la carta y la elimina de su mano
-        card = caller.get_card(self.slot)
-        caller.remove_card(self.slot)
+        card = caller.hand[self.slot]
+        del caller.hand[self.slot]
 
         # Usa la carta
         update = card.apply(self, game)
 
-        # Pasa el turno
-        new_card = game.draw_card()
-        caller.add_card(new_card)
-
-        return {
-            **update,
-            "current_turn": game.turn_name()
-        }
+        return update

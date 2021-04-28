@@ -29,7 +29,7 @@ class Player:
 
     def get_card(self, slot: int) -> Card:
         try:
-            self.hand[slot]
+            return self.hand[slot]
         except IndexError:
             raise GameLogicException("Slot no existente en la mano del jugador")
 
@@ -55,13 +55,15 @@ class Game:
     def __init__(self, users: List[User]) -> None:
         # TODO: atributos públicos
         self._players = [Player(user.name) for user in users]
-        self._discarded: List[Card] = []
         self._deck: List[Card] = []
         self._turn = 0
         self._start_time = datetime.now()
         self._paused = False
         self._finished = False
         self._players_finished = 0
+        # Si un jugador está descartando, no podrá hacer otra cosa hasta que
+        # pase el turno.
+        self._discarding = False
 
         # TODO: Por el momento, se hace como que se juega y se termina la
         # partida.
@@ -82,8 +84,7 @@ class Game:
 
         for i in range(3):
             for player in self._players:
-                drawn = self._deck.pop()
-                player.hand.append(drawn)
+                self.draw_card(player)
 
         update = [{"hand": player.hand} for player in self._players]
         return update
@@ -103,6 +104,9 @@ class Game:
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
         nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
         terminado anteriormente o estuviera pausada, un error.
+
+        Se terminará el turno automáticamente en caso de que no haya quedado el
+        usuario en fase de descarte.
         """
 
         if self._finished:
@@ -116,17 +120,78 @@ class Game:
 
         player = self.get_player(caller)
         update = action.apply(player, game=self)
+
+        if not self._discarding:
+            end_update = self.end_turn()
+            update = self._merge_updates(end_update, update)
+
         return update
 
-    def end_turn(self) -> [Dict]:
-        self._finished = True
+    def draw_card(self, player: Player) -> None:
+        """
+        Roba una carta del mazo para el jugador.
+        """
 
-    def turn_name(self) -> str:
+        drawn = self._deck.pop()
+        player.hand.append(drawn)
+
+    def end_turn(self) -> [Dict]:
+        """
+        TODO: sistema de turnos
+
+        Tiene en cuenta que si el jugador al que le toca el turno no tiene
+        cartas en la mano, deberá ser skipeado. Antes de pasar el turno el
+        jugador automáticamente robará cartas hasta tener 3.
+
+        Es posible, por tanto, que el fin de turno modifique varias partes de la
+        partida, incluyendo las manos, por lo que se devuelve un game_update
+        completo.
+        """
+
+        update = [{}] * len(self._players)
+
+        while True:
+            # Roba cartas hasta tener 3, se actualiza el estado
+            while len(self.turn_player().hand) < 3:
+                self.draw_card(self.turn_player())
+                for u in update:
+
+                update = self._merge_updates(update, draw_update)
+
+            # Siguiente turno
+            self._turn = self._turn % len(self._players)
+            new_turn = {"current_turn": self.turn_player().name}
+            turn_update = [new_turn] * len(self._players)
+            update = self._merge_updates(update, turn_update)
+
+            # Continúa pasando el turno si no tiene cartas disponibles.
+            if len(self.turn_player().hand) != 0:
+                break
+
+        return update
+
+    def _merge_updates(self, update1: List[Dict], update2: List[Dict]) -> List[Dict]:
+        """
+        Mezcla dos game_update, donde `update2` tiene preferencia sobre
+        `update1`.
+        """
+
+        nump = len(self._players)
+        if len(update1) != nump or len(update2) != nump:
+            raise Exception("Tamaños incompatibles mezclando game_updates")
+
+        updates = []
+        for u1, u2 in zip(update1, update2):
+            updates.append({**u1, **u2})
+
+        return updates
+
+    def turn_player(self) -> Player:
         """
         Devuelve el nombre del usuario con el turno actual.
         """
 
-        return self._players[self._turn].name
+        return self._players[self._turn]
 
     def _playtime_mins(self, game: "Game") -> int:
         """

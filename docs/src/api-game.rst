@@ -357,10 +357,7 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
                         }
                         // Puede estar vacío si no hay modificadores.
                         "modifiers": [
-                            {
-                                "card_type": "virus",
-                                "color": "red",
-                            },
+                            {"card_type": "virus", "color": "red"},
                             // ...
                         ]
                     },

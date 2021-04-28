@@ -50,9 +50,6 @@ class SimpleCard(Card):
         self.target = game.get_player(target_name)
         self.organ_pile = self.target.body.get_pile(organ_pile_slot)
 
-        if self.target is None:
-            raise GameLogicException("El jugador no existe")
-
         # Comprobamos si podemos colocar
         if not self.organ_pile.can_place(self):
             raise GameLogicException("No se puede colocar la carta ahí")
@@ -70,14 +67,13 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        update = []
-        for player in game._players:
-            if player == self.target:
-                update = {
-                    "bodies": [player.body for player in game._players]
+        update = {
+            "bodies": {
+                self.target.name: {
+                    "organ": self
                 }
-            else:
-                update.append(None)
+            }
+        }
         return [update] * len(game._players)
 
 
@@ -101,6 +97,15 @@ class Virus(SimpleCard):
         else:  # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
+        update = {
+            "bodies": {
+                self.target.name: {
+                    "modifiers": self.organ_pile.modifiers
+                }
+            }
+        }
+        return [update] * len(game._players)
+
 
 @dataclass
 class Medicine(SimpleCard):
@@ -119,6 +124,15 @@ class Medicine(SimpleCard):
             # Se proteje o se inmuniza el órgano (se añade la vacuna a los
             # modificadores)
             self.organ_pile.add_modifier(self)
+
+        update = {
+            "bodies": {
+                self.target.name: {
+                    "modifiers": self.organ_pile.modifiers
+                }
+            }
+        }
+        return [update] * len(game._players)
 
 
 @dataclass

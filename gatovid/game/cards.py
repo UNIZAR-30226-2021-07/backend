@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING, Optional, Dict, List
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from gatovid.models import CARDS
 from gatovid.game.common import GameLogicException
+from gatovid.models import CARDS
 
 if TYPE_CHECKING:
     from gatovid.game import Game
@@ -60,7 +60,7 @@ class SimpleCard(Card):
 
 @dataclass
 class Organ(SimpleCard):
-    """"""
+    """ """
 
     # Usado para la codificación JSON
     card_type: str = "organ"
@@ -73,7 +73,7 @@ class Organ(SimpleCard):
 
 @dataclass
 class Virus(SimpleCard):
-    """"""
+    """ """
 
     # Usado para la codificación JSON
     card_type: str = "virus"
@@ -94,7 +94,7 @@ class Virus(SimpleCard):
 
 @dataclass
 class Medicine(SimpleCard):
-    """"""
+    """ """
 
     # Usado para la codificación JSON
     card_type: str = "medicine"
@@ -126,35 +126,35 @@ class Treatment(Card):
 
 @dataclass
 class Transplant(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class OrganThief(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class Infection(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class LatexGlove(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class MedicalError(Treatment):
-    """"""
+    """ """
 
 
 def parse_card(data: Dict) -> (object, Dict):
@@ -179,7 +179,7 @@ def parse_card(data: Dict) -> (object, Dict):
         "organ_thief": OrganThief,
         "infection": Infection,
         "medical_error": MedicalError,
-        "transplant": Transplant
+        "transplant": Transplant,
     }
     cls = treatment_cards.get(data["treatment_type"])
     if cls is not None:

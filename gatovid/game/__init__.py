@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 
 from gatovid.game.actions import Action
 from gatovid.game.body import Body
-from gatovid.game.cards import Card, DECK
+from gatovid.game.cards import Card
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException

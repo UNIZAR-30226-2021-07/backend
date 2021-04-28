@@ -112,7 +112,6 @@ class Match:
         """
 
         update = []
-
         for current_user in self.users:
             data = {}
 

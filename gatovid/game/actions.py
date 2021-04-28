@@ -4,8 +4,8 @@ pilas de cartas dentro de los cuerpos.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, Optional
 from datetime import datetime
+from typing import TYPE_CHECKING, Dict, Optional
 
 from gatovid.game.cards import DECK
 from gatovid.game.common import GameLogicException
@@ -25,11 +25,11 @@ class Action(ABC):
 
     @abstractmethod
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
-        """"""
+        """ """
 
 
 class StartGame(Action):
-    """"""
+    """ """
 
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
         """
@@ -49,7 +49,7 @@ class StartGame(Action):
 
 
 class EndGame(Action):
-    """"""
+    """ """
 
     def _playtime_mins(self, game: "Game") -> int:
         """
@@ -85,7 +85,7 @@ class EndGame(Action):
         return leaderboard
 
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
-        """"""
+        """ """
 
         game.end_turn()
 
@@ -98,27 +98,25 @@ class EndGame(Action):
 
 
 class Pass(Action):
-    """"""
+    """ """
 
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
-        """"""
+        """ """
 
         game.end_turn()
 
-        return {
-            "current_turn": game.turn_name()
-        }
+        return {"current_turn": game.turn_name()}
 
 
 class Discard(Action):
-    """"""
+    """ """
 
     def __init__(self, data) -> None:
         # Slot de la mano con la carta que queremos descartar.
         self.slot = data.get("slot")
 
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
-        """"""
+        """ """
 
 
 class PlayCard(Action):
@@ -132,7 +130,7 @@ class PlayCard(Action):
             raise GameLogicException("Slot vacío")
 
     def apply(self, caller: Optional["Player"], game: "Game") -> Dict:
-        """"""
+        """ """
 
         card = caller.get_card(self.slot)
         return card.apply(self, game)

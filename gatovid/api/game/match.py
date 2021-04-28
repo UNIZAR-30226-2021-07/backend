@@ -113,9 +113,7 @@ class Match:
 
         update = []
         for current_user in self.users:
-            data = {
-                "players": []
-            }
+            data = {"players": []}
 
             for user in self.users:
                 # Información genérica del resto de usuarios

@@ -8,13 +8,12 @@ from typing import Dict, List, Optional
 
 from gatovid.game.actions import Action
 from gatovid.game.body import Body
-from gatovid.game.cards import Card, DECK
-from gatovid.util import get_logger
+from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException
 from gatovid.models import User
-
+from gatovid.util import get_logger
 
 logger = get_logger(__name__)
 
@@ -100,10 +99,9 @@ class Game:
         # Genera el estado inicial con las manos y turno
         update = []
         for player in self._players:
-            update.append({
-                "hand": player.hand,
-                "current_turn": self.turn_player().name
-            })
+            update.append(
+                {"hand": player.hand, "current_turn": self.turn_player().name}
+            )
 
         return update
 

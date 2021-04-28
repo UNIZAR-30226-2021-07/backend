@@ -66,11 +66,11 @@ class GameTest(WsTestClient):
             self.assertIsNotNone(args)
 
             # La mano y el turno serán aleatorios
-            self.assertIn('hand', args)
-            self.assertIn('current_turn', args)
+            self.assertIn("hand", args)
+            self.assertIn("current_turn", args)
 
             # Los jugadores de la partida sí que se pueden saber
-            self.assertIn('players', args)
+            self.assertIn("players", args)
             expected_players = []
             for client_num in range(len(clients)):
                 # Cada jugador tendrá su información básica, y él mismo habrá

@@ -63,13 +63,7 @@ class SimpleCard(Card):
         Genera un diccionario indicando cambios a la pila del target.
         """
 
-        return {
-            "bodies": {
-                self.target.name: {
-                    "piles": self.target.body.piles
-                }
-            }
-        }
+        return {"bodies": {self.target.name: {"piles": self.target.body.piles}}}
 
 
 @dataclass
@@ -87,7 +81,6 @@ class Organ(SimpleCard):
         self.organ_pile.set_organ(self)
 
         return [self.piles_update()] * len(game._players)
-
 
 
 @dataclass

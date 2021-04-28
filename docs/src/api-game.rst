@@ -327,12 +327,6 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         "playtime_mins": 4,
         // Nombre del usuario con el turno actual.
         "current_turn": "manolo22",
-        // Mano del jugador actual (solo él tendrá esa información).
-        "hand": [
-            {"card_type": "organ", "color": "red"},
-            {"card_type": "virus", "color": "green"},
-            {"card_type": "treatment", "treatment_type": "infection"},
-        ],
         // Información de los jugadores, enviada únicamente al inicio de la
         // partida.
         "players": [
@@ -344,13 +338,11 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
             },
             // ...
         ],
-        // La mano del jugador actual.
+        // Mano del jugador actual (solo él tendrá esa información).
         "hand": [
-            {
-                "card_type": "organ",
-                "color": "red"
-            },
-            // ...
+            {"card_type": "organ", "color": "red"},
+            {"card_type": "virus", "color": "green"},
+            {"card_type": "treatment", "treatment_type": "infection"},
         ],
         // Los cuerpos de los jugadores.
         "bodies": {

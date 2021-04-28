@@ -312,29 +312,60 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
 .. code-block:: javascript
 
     {
-        // Terminación de la partida, opcional.
+        // Terminación de la partida.
         "finished": false,
-        // Nombre del usuario con el turno actual, opcional.
-        "current_turn": "manolo22",
-        // Manos de los jugadores, opcional.
-        // Solo se sabrá la mano completa del usuario que recibe el mensaje.
-        "hand": [ // Jugador actual
-            {"card_type": "organ", "color": "red"},
-            {"card_type": "virus", "color": "green"},
-            {"card_type": "medicine", "color": "yellow"},
-        ],
-        // Tiempo de juego en minutos, opcional.
-        "playtime_mins": 4,
-        // Lista de ganadores, opcional.
-        // Se incluye la posición de cada jugador, comenzando desde el 1, y las
+        // Lista de ganadores. Se incluye la posición de cada jugador, y las
         // monedas que ha ganado por ello.
-        "leaderboard": [
+        "leaderboard": {
             "manolo22": {
                 "position": 1,
                 "coins": 50,
             },
             // ...
+        },
+        // Tiempo de juego en minutos.
+        "playtime_mins": 4,
+        // Nombre del usuario con el turno actual.
+        "current_turn": "manolo22",
+        // Información de los jugadores, enviada únicamente al inicio de la
+        // partida.
+        "players": [
+            {
+                "name": "marcuspkz",
+                "picture": 4,
+                // El propio jugador también tendrá el tablero.
+                "board": 2,
+            },
+            // ...
         ],
+        // Mano del jugador actual (solo él tendrá esa información).
+        "hand": [
+            {"card_type": "organ", "color": "red"},
+            {"card_type": "virus", "color": "green"},
+            {"card_type": "treatment", "treatment_type": "infection"},
+        ],
+        // Los cuerpos de los jugadores.
+        "bodies": {
+            "marcuspkz": {
+                // Pila del jugador, siempre con longitud 4.
+                "piles": [
+                    {
+                        // Puede ser nulo si no hay nada en esa posición.
+                        "organ": {
+                            "card_type": "organ",
+                            "color": "red"
+                        }
+                        // Puede estar vacío si no hay modificadores.
+                        "modifiers": [
+                            {"card_type": "virus", "color": "red"},
+                            // ...
+                        ]
+                    },
+                    // ....
+                ]
+            },
+            // ...
+        },
     }
 
 .. _game_reference:
@@ -350,7 +381,6 @@ Referencia
         leave,
         play_card,
         play_discard,
-        play_draw,
         play_pass,
         search_game,
         stop_searching,

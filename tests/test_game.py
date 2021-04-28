@@ -47,11 +47,54 @@ class GameTest(WsTestClient):
 
         return clients, code
 
+    def test_start_game(self):
+        """
+        Comprueba el protocolo de inicio de la partida.
+        """
+
+        clients, code = self.create_game()
+
+        for cur_client_num, client in enumerate(clients):
+            # Primero debería haberse recibido un mensaje de `start_game`
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "start_game", json=True)
+            self.assertIsNotNone(args)
+
+            # Después, debería haberse recibido un mensaje con el estado inicial
+            # del juego.
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertIsNotNone(args)
+
+            # La mano y el turno serán aleatorios
+            self.assertIn("hand", args)
+            self.assertIn("current_turn", args)
+
+            # Los jugadores de la partida sí que se pueden saber
+            self.assertIn("players", args)
+            expected_players = []
+            for client_num in range(len(clients)):
+                # Cada jugador tendrá su información básica, y él mismo habrá
+                # recibido su tablero.
+                data = {
+                    "name": GENERIC_USERS_NAME.format(client_num),
+                    "picture": 0,
+                }
+                if client_num == cur_client_num:
+                    data["board"] = 0
+                expected_players.append(data)
+
+            self.assertEqual(args["players"], expected_players)
+
     def test_play_card(self):
         """
         TODO: Modificar este test cuando se implemente el sistema de turnos.
         """
         clients, code = self.create_game()
+
+        # Primero se tendrá el game_update inicial
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
 
         # TODO: Se debería acceder al endpoint directamente, pero no está hecha
         # la inicialización de la partida, así que no puedo probar a usar la
@@ -59,7 +102,7 @@ class GameTest(WsTestClient):
         game = MM.get_match(code)._game
 
         leader_player = None
-        for player in game._players:
+        for player in game.players:
             if player.name == GENERIC_USERS_NAME.format(0):
                 leader_player = player
                 break
@@ -74,11 +117,12 @@ class GameTest(WsTestClient):
         # que le toque
         game._turn = 0
 
+        name = GENERIC_USERS_NAME.format(0)
         callback_args = clients[0].emit(
             "play_card",
             {
                 "slot": 0,
-                "target": GENERIC_USERS_NAME.format(0),  # itself
+                "target": name,  # itself
                 "organ_pile": 0,
             },
             callback=True,
@@ -91,11 +135,11 @@ class GameTest(WsTestClient):
 
         self.assertIn("bodies", args)
         self.assertEqual(
-            args["bodies"][0]["piles"],
+            args["bodies"][name]["piles"],
             [
                 {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
-                None,
-                None,
-                None,
+                {"modifiers": [], "organ": None},
+                {"modifiers": [], "organ": None},
+                {"modifiers": [], "organ": None},
             ],
         )

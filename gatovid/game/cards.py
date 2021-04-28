@@ -1,12 +1,17 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from gatovid.game.common import GameLogicException
+from gatovid.models import CARDS
+from gatovid.util import get_logger
 
 if TYPE_CHECKING:
     from gatovid.game import Game
     from gatovid.game.actions import PlayCard
+
+
+logger = get_logger(__name__)
 
 
 class Color(str, Enum):
@@ -30,7 +35,7 @@ class SimpleCard(Card):
     cartas (en el cuerpo de un jugador).
     """
 
-    color: Color
+    color: Optional[Color]
 
     def get_action_data(self, action: "PlayCard", game: "Game") -> None:
         """
@@ -49,36 +54,46 @@ class SimpleCard(Card):
         self.target = game.get_player(target_name)
         self.organ_pile = self.target.body.get_pile(organ_pile_slot)
 
-        if self.target is None:
-            raise GameLogicException("El jugador no existe")
-
         # Comprobamos si podemos colocar
         if not self.organ_pile.can_place(self):
             raise GameLogicException("No se puede colocar la carta ahí")
 
+    def piles_update(self) -> Dict:
+        """
+        Genera un diccionario indicando cambios a la pila del target.
+        """
+
+        return {"bodies": {self.target.name: {"piles": self.target.body.piles}}}
+
 
 @dataclass
 class Organ(SimpleCard):
-    """"""
+    """ """
 
     # Usado para la codificación JSON
     card_type: str = "organ"
 
-    def apply(self, action: "PlayCard", game: "Game") -> None:
+    def apply(self, action: "PlayCard", game: "Game") -> Dict:
         self.get_action_data(action, game)
 
+        logger.info(f"{self.color}-colored organ played over {self.target.name}")
+
         self.organ_pile.set_organ(self)
+
+        return [self.piles_update()] * len(game.players)
 
 
 @dataclass
 class Virus(SimpleCard):
-    """"""
+    """ """
 
     # Usado para la codificación JSON
     card_type: str = "virus"
 
-    def apply(self, action: "PlayCard", game: "Game") -> None:
+    def apply(self, action: "PlayCard", game: "Game") -> Dict:
         self.get_action_data(action, game)
+
+        logger.info(f"{self.color}-colored virus played over {self.target.name}")
 
         # Comprobamos si hay que extirpar o destruir vacuna
         if self.organ_pile.is_infected():
@@ -90,16 +105,20 @@ class Virus(SimpleCard):
         else:  # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
+        return [self.piles_update()] * len(game.players)
+
 
 @dataclass
 class Medicine(SimpleCard):
-    """"""
+    """ """
 
     # Usado para la codificación JSON
     card_type: str = "medicine"
 
-    def apply(self, action: "PlayCard", game: "Game") -> None:
+    def apply(self, action: "PlayCard", game: "Game") -> Dict:
         self.get_action_data(action, game)
+
+        logger.info(f"{self.color}-colored medicine played over {self.target.name}")
 
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():
@@ -108,6 +127,8 @@ class Medicine(SimpleCard):
             # Se proteje o se inmuniza el órgano (se añade la vacuna a los
             # modificadores)
             self.organ_pile.add_modifier(self)
+
+        return [self.piles_update()] * len(game.players)
 
 
 @dataclass
@@ -125,32 +146,85 @@ class Treatment(Card):
 
 @dataclass
 class Transplant(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class OrganThief(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class Infection(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class LatexGlove(Treatment):
-    """"""
+    """ """
 
     pass
 
 
 @dataclass
 class MedicalError(Treatment):
-    """"""
+    """ """
+
+
+def parse_card(data: Dict) -> (object, Dict):
+    """
+    Devuelve los datos necesarios para la inicialización de una carta de los
+    datos JSON.
+    """
+
+    # En el caso de cartas simples solo se necesita el color
+    simple_cards = {
+        "organ": Organ,
+        "medicine": Medicine,
+        "virus": Virus,
+    }
+    cls = simple_cards.get(data["type"])
+    if cls is not None:
+        return cls, {"color": data["color"]}
+
+    # Si no es una carta simple es un tratamiento, que no tiene color
+    treatment_cards = {
+        "latex_glove": LatexGlove,
+        "organ_thief": OrganThief,
+        "infection": Infection,
+        "medical_error": MedicalError,
+        "transplant": Transplant,
+    }
+    cls = treatment_cards.get(data["treatment_type"])
+    if cls is not None:
+        return cls, {}
+
+    raise GameLogicException(f"Couldn't parse card with data {data}")
+
+
+def parse_deck(all_cards: List[Dict]) -> [SimpleCard]:
+    """
+    Incializa el mazo base con la información en el JSON de cartas, cada uno con
+    una instancia distinta.
+    """
+
+    logger.info("Parsing deck JSON")
+
+    deck = []
+
+    for data in all_cards:
+        cls, kwargs = parse_card(data)
+        for i in range(data["total"]):
+            card = cls(**kwargs)
+            deck.append(card)
+
+    return deck
+
+
+DECK = parse_deck(CARDS)

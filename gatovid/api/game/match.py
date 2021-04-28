@@ -71,6 +71,18 @@ class Match:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es
         más limitada que un setter.
+
+        Primero se envía un mensaje especial de inicio de la partida,
+        start_game.
+
+        Posteriormente, se inicia la partida tanto por parte del juego (con la
+        lógica, como las cartas de cada jugador, etc), como por parte de la
+        partida (que tiene que enviar al cliente información de los usuarios,
+        como su tablero).
+
+        Notar que esto último se tiene que enviar en un mismo mensaje al
+        cliente, y no se puede dividir en dos; originalmente la información
+        sobre los jugadores como sus fotos debería haber ido en start_game.
         """
 
         with self._started_lock:
@@ -78,9 +90,59 @@ class Match:
                 return
             self._game = Game(self.users)
 
+        # Mensaje especial de inicio de la partida
         logger.info(f"Match {self.code} has started")
-
         socket.emit("start_game", room=self.code)
+
+        # game_update con el inicio del juego
+        start_update = self._game.start()
+        # game_update con el inicio de la partida
+        match_update = self._match_info()
+
+        # Unión de ambos game_update
+        full_update = []
+        for start, match in zip(start_update, match_update):
+            full_update.append({**start, **match})
+        self.send_update(full_update)
+
+    def _match_info(self) -> Dict:
+        """
+        Genera un game_update con información sobre la partida para cada
+        jugador.
+        """
+
+        update = []
+        for current_user in self.users:
+            data = {"players": []}
+
+            for user in self.users:
+                # Información genérica del resto de usuarios
+                user_data = {
+                    "name": user.name,
+                    "picture": user.picture,
+                }
+
+                # Para el mismo usuario que recibe el mensaje, se envía también
+                # su tablero.
+                if user == current_user:
+                    user_data["board"] = user.board
+
+                data["players"].append(user_data)
+
+            update.append(data)
+
+        return update
+
+    def send_update(self, data: List[Dict]) -> None:
+        """
+        Envía un game_update a cada uno de los participantes de la partida.
+        """
+
+        for user, status in zip(self.users, data):
+            if status == {}:
+                continue
+
+            socket.emit("game_update", status, room=user.sid)
 
     def run_action(self, caller: str, action: Action) -> None:
         """
@@ -90,15 +152,12 @@ class Match:
         if not self.is_started():
             raise GameLogicException("El juego no ha comenzado")
 
-        all_status = self._game.run_action(caller, action)
+        update = self._game.run_action(caller, action)
+        self.send_update(update)
 
-        for i, user in enumerate(self.users):
-            status = all_status[i]
-            finished = status.get("finished")
-            if finished is None or not finished:
+        if self._game.is_finished():
+            for user, status in zip(self._users, update):
                 self.update_stats(user, status)
-
-            socket.emit("game_update", status, room=user.sid)
 
     def end(self) -> None:
         """

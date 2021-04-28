@@ -4,10 +4,14 @@ from typing import TYPE_CHECKING, Dict, List, Optional
 
 from gatovid.game.common import GameLogicException
 from gatovid.models import CARDS
+from gatovid.util import get_logger
 
 if TYPE_CHECKING:
     from gatovid.game import Game
     from gatovid.game.actions import PlayCard
+
+
+logger = get_logger(__name__)
 
 
 class Color(str, Enum):
@@ -63,6 +67,8 @@ class Organ(SimpleCard):
     card_type: str = "organ"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
+        logger.info("{caller.name} plays a {self.color}-colored organ")
+
         self.get_action_data(action, game)
 
         self.organ_pile.set_organ(self)
@@ -85,6 +91,8 @@ class Virus(SimpleCard):
     card_type: str = "virus"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
+        logger.info("{caller.name} plays a {self.color}-colored virus")
+
         self.get_action_data(action, game)
 
         # Comprobamos si hay que extirpar o destruir vacuna
@@ -115,6 +123,8 @@ class Medicine(SimpleCard):
     card_type: str = "medicine"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
+        logger.info("{caller.name} plays a {self.color}-colored medicine")
+
         self.get_action_data(action, game)
 
         # Comprobamos si hay que destruir un virus
@@ -217,6 +227,8 @@ def parse_deck(all_cards: List[Dict]) -> [SimpleCard]:
     Incializa el mazo base con la información en el JSON de cartas, cada uno con
     una instancia distinta.
     """
+
+    logger.info("Parsing deck JSON")
 
     deck = []
 

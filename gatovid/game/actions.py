@@ -7,9 +7,13 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict
 
 from gatovid.game.common import GameLogicException
+from gatovid.util import get_logger
 
 if TYPE_CHECKING:
     from gatovid.game import Game, Player
+
+
+logger = get_logger(__name__)
 
 
 class Action(ABC):
@@ -36,6 +40,8 @@ class Pass(Action):
     """
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
+        logger.info("{caller.name} stops discarding cards")
+
         game._discarding = False
 
 
@@ -49,6 +55,8 @@ class Discard(Action):
         self.slot = data.get("slot")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
+        logger.info("{caller.name} discards a card")
+
         # Activa la fase de descarte
         game._discarding = True
 

@@ -62,8 +62,8 @@ class Discard(Action):
 
         # Elimina la carta de la mano del jugador y la añade al principio del
         # mazo.
-        card = caller.hand[self.slot]
-        del caller.hand[self.slot]
+        card = caller.get_card(self.slot)
+        caller.remove_card(self.slot)
         game.deck.insert(0, card)
 
         update = [{}] * len(game.players)
@@ -102,8 +102,8 @@ class PlayCard(Action):
         # Obtiene la carta y la elimina de su mano. No hace falta actualizar el
         # estado al eliminar la carta porque ya se hará cuando robe al final del
         # turno.
-        card = caller.hand[self.slot]
-        del caller.hand[self.slot]
+        card = caller.get_card(self.slot)
+        caller.remove_card(self.slot)
 
         # Usa la carta
         update = card.apply(self, game)

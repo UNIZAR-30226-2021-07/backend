@@ -27,7 +27,7 @@ class Action(ABC):
 
     @abstractmethod
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        """ """
+        pass
 
 
 class Pass(Action):
@@ -59,6 +59,9 @@ class Discard(Action):
 
         # Activa la fase de descarte
         game.discarding = True
+
+        if len(caller.hand) == 0:
+            raise GameLogicException("El jugador no tiene cartas")
 
         # Elimina la carta de la mano del jugador y la añade al principio del
         # mazo.

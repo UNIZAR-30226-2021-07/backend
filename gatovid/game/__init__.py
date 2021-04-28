@@ -98,9 +98,10 @@ class Game:
         # Genera el estado inicial con las manos y turno
         update = []
         for player in self.players:
-            update.append(
-                {"hand": player.hand, "current_turn": self.turn_player().name}
-            )
+            update.append({
+                "hand": player.hand,
+                "current_turn": self.turn_player().name,
+            })
 
         return update
 
@@ -172,13 +173,13 @@ class Game:
             # en concreto.
             while len(self.turn_player().hand) < 3:
                 self.draw_card(self.turn_player())
-                for u, player in zip(update, self.players):
-                    if player == self.turn_player():
-                        u["hand"] = self.turn_player().hand
-                        break
+            for u, player in zip(update, self.players):
+                if player == self.turn_player():
+                    u["hand"] = self.turn_player().hand
+                    break
 
             # Siguiente turno, y actualización del estado a todos los jugadores
-            self._turn = self._turn % len(self.players)
+            self._turn = (self._turn + 1) % len(self.players)
             new_turn = {"current_turn": self.turn_player().name}
             turn_update = [new_turn] * len(self.players)
             update = self._merge_updates(update, turn_update)
@@ -221,7 +222,7 @@ class Game:
         Devuelve el tiempo de juego de la partida.
         """
 
-        elapsed = datetime.now() - game._start_time
+        elapsed = datetime.now() - self._start_time
         return int(elapsed.total_seconds() / 60)
 
     def _leaderboard(self) -> Dict:

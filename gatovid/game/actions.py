@@ -6,7 +6,6 @@ pilas de cartas dentro de los cuerpos.
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Dict
 
-from gatovid.game.cards import DECK
 from gatovid.game.common import GameLogicException
 
 if TYPE_CHECKING:
@@ -43,10 +42,12 @@ class Discard(Action):
 
     def __init__(self, data) -> None:
         # Slot de la mano con la carta que queremos descartar.
-        self.slot = data.get("slot")
+        self.slots = data.get("slots")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        """ """
+        """
+        Descarta una o más cartas
+        """
 
 
 class PlayCard(Action):
@@ -60,8 +61,22 @@ class PlayCard(Action):
             raise GameLogicException("Slot vacío")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        """ """
+        """
+        Juega una carta, siguiendo el orden de las reglas del juego.
+        """
 
+        # Obtiene la carta y la elimina de su mano
         card = caller.get_card(self.slot)
-        return card.apply(self, game)
-        # TODO: quitar carta de la mano
+        caller.remove_card(self.slot)
+
+        # Usa la carta
+        update = card.apply(self, game)
+
+        # Pasa el turno
+        new_card = game.draw_card()
+        caller.add_card(new_card)
+
+        return {
+            **update,
+            "current_turn": game.turn_name()
+        }

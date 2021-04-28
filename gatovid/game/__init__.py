@@ -2,6 +2,7 @@
 Implementación de la lógica del juego.
 """
 
+import random
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -27,7 +28,19 @@ class Player:
         self.body = Body()
 
     def get_card(self, slot: int) -> Card:
-        return self.hand[slot]
+        try:
+            self.hand[slot]
+        except IndexError:
+            raise GameLogicException("Slot no existente en la mano del jugador")
+
+    def remove_card(self, slot: int) -> None:
+        try:
+            del self.hand[slot]
+        except IndexError:
+            raise GameLogicException("Slot no existente en la mano del jugador")
+
+    def add_card(self, card: Card) -> None:
+        self.hand.append(card)
 
 
 class Game:
@@ -57,13 +70,15 @@ class Game:
 
     def start(self) -> Dict:
         """
-        Inicializa la baraja y reparte 3 cartas a cada jugador, iterando de
-        forma similar a cómo se haría en la vida real.
+        Inicializa la baraja, la reordena de forma aleatoria, y reparte 3 cartas
+        a cada jugador, iterando de forma similar a cómo se haría en la vida
+        real.
 
         Devuelve un game_update con el estado actual del juego.
         """
 
         self._deck = DECK.copy()
+        random.shuffle(self._deck)
 
         for i in range(3):
             for player in self._players:

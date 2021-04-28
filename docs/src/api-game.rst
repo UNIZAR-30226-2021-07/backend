@@ -331,16 +331,10 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         "hand": [
             {"card_type": "organ", "color": "red"},
             {"card_type": "virus", "color": "green"},
-            {"card_type": "medicine", "color": "yellow"},
+            {"card_type": "treatment", "treatment_type": "infection"},
         ],
-        // El último descarte realizado en la partida.
-        "last_discarded": {
-            "card_type": "medicine",
-            "color": "yellow"
-        },
         // Información de los jugadores, enviada únicamente al inicio de la
-        // partida. El orden de los jugadores será el mismo durante el resto de
-        // la partida.
+        // partida.
         "players": [
             {
                 "name": "marcuspkz",
@@ -350,20 +344,17 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
             },
             // ...
         ],
-        // Las manos de los jugadores.
-        "hands": [
-            [
-                {
-                    "card_type": "organ",
-                    "color": "red"
-                },
-                // ...
-            ],
+        // La mano del jugador actual.
+        "hand": [
+            {
+                "card_type": "organ",
+                "color": "red"
+            },
             // ...
         ],
         // Los cuerpos de los jugadores.
-        "bodies": [
-            {
+        "bodies": {
+            "marcuspkz": {
                 // Pila del jugador, siempre con longitud 4.
                 "piles": [
                     {
@@ -385,7 +376,7 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
                 ]
             },
             // ...
-        ],
+        },
     }
 
 .. _game_reference:
@@ -401,7 +392,6 @@ Referencia
         leave,
         play_card,
         play_discard,
-        play_draw,
         play_pass,
         search_game,
         stop_searching,

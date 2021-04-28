@@ -369,7 +369,7 @@ def chat(msg):
 
 @socket.on("play_discard")
 @_requires_game(started=True)
-def play_discard(data):
+def play_discard(cards):
     """
     .. warning:: Este endpoint está en construcción aún.
 
@@ -377,6 +377,9 @@ def play_discard(data):
 
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
+
+    :param cards: Los slots de cartas del usuario a descartar
+    :type cards: List[int]
 
     :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
@@ -388,30 +391,9 @@ def play_discard(data):
     name = session["user"].name
 
     try:
-        match.run_action(name, Discard(data))
+        match.run_action(name, Discard(name, cards))
     except GameLogicException as e:
         return {"error": str(e)}
-
-
-@socket.on("play_draw")
-@_requires_game(started=True)
-def play_draw():
-    """
-    .. warning:: Este endpoint está en construcción aún y puede que no
-        se construya.
-
-    Roba tantas cartas como sean necesarias para que el usuario tenga 3.
-
-    Requiere que el usuario esté en una partida y que esté empezada o se
-    devolverá un :ref:`error <errores>`.
-
-    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
-
-        Si el usuario no está en una partida se devolverá un :ref:`error
-        <errores>`.
-    """
-
-    pass
 
 
 @socket.on("play_pass")
@@ -435,7 +417,7 @@ def play_pass():
     name = session["user"].name
 
     try:
-        match.run_action(name, Pass())
+        match.run_action(name, Pass(name))
     except GameLogicException as e:
         return {"error": str(e)}
 
@@ -450,6 +432,25 @@ def play_card(data):
 
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
+
+    :param data: Diccionario con datos sobre la carta a jugar. Todas las cartas
+        deberán tener un campo ``slot`` (``int``) con el slot de la carta jugada
+        en la mano del jugador. Adicionalmente, algunas cartas en concreto
+        tendrán parámetros específicos:
+
+        * Órgano, Virus y Medicina:
+            * ``target`` (``str``): nombre del jugador destino
+            * ``organ_pile`` (``int``): número de pila del jugador destino
+        * Tratamientos:
+            * Transplante:
+                * ``targets`` (``List[str]``): lista con los nombres de los dos
+                  jugadores.
+            * Ladrón de Órganos:
+                * ``target`` (``str``): nombre del jugador destino
+            * Error médico:
+                * ``target`` (``str``): nombre del jugador destino
+
+    :type data: Dict
 
     :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 

@@ -70,6 +70,16 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
+        update = []
+        for player in game._players:
+            if player == self.target:
+                update = {
+                    "bodies": [player.body for player in game._players]
+                }
+            else:
+                update.append(None)
+        return [update] * len(game._players)
+
 
 @dataclass
 class Virus(SimpleCard):

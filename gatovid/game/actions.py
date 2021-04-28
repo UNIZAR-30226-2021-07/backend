@@ -40,7 +40,7 @@ class Pass(Action):
     """
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        logger.info("{caller.name} stops discarding cards")
+        logger.info(f"{caller.name} stops discarding cards")
 
         game._discarding = False
 
@@ -55,7 +55,7 @@ class Discard(Action):
         self.slot = data.get("slot")
 
     def apply(self, caller: "Player", game: "Game") -> Dict:
-        logger.info("{caller.name} discards a card")
+        logger.info(f"{caller.name} discards a card")
 
         # Activa la fase de descarte
         game._discarding = True

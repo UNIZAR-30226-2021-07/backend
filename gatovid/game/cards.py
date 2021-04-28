@@ -67,7 +67,7 @@ class Organ(SimpleCard):
     card_type: str = "organ"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
-        logger.info("{caller.name} plays a {self.color}-colored organ")
+        logger.info(f"{caller.name} plays a {self.color}-colored organ")
 
         self.get_action_data(action, game)
 
@@ -91,7 +91,7 @@ class Virus(SimpleCard):
     card_type: str = "virus"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
-        logger.info("{caller.name} plays a {self.color}-colored virus")
+        logger.info(f"{caller.name} plays a {self.color}-colored virus")
 
         self.get_action_data(action, game)
 
@@ -123,7 +123,7 @@ class Medicine(SimpleCard):
     card_type: str = "medicine"
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
-        logger.info("{caller.name} plays a {self.color}-colored medicine")
+        logger.info(f"{caller.name} plays a {self.color}-colored medicine")
 
         self.get_action_data(action, game)
 

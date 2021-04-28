@@ -148,7 +148,7 @@ class Game:
         Roba una carta del mazo para el jugador.
         """
 
-        logger.info("{player.name} draws a card")
+        logger.info(f"{player.name} draws a card")
 
         drawn = self._deck.pop()
         player.hand.append(drawn)
@@ -184,13 +184,13 @@ class Game:
             turn_update = [new_turn] * len(self._players)
             update = self._merge_updates(update, turn_update)
 
-            logger.info("current turn has ended")
+            logger.info("Current turn has ended")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
             # disponibles.
             if len(self.turn_player().hand) != 0:
                 break
-            logger.info("{self.turn_player().name} skipped (no cards)")
+            logger.info(f"{self.turn_player().name} skipped (no cards)")
 
         return update
 
@@ -261,14 +261,14 @@ class Game:
         self._players_finished + 1
         player.position = self._players_finished
 
-        logger.info("{player.name} has finished at position {player.position}")
+        logger.info(f"{player.name} has finished at position {player.position}")
 
     def finish(self, caller: Player) -> Dict:
         """
         Finaliza el juego y devuelve un game_update.
         """
 
-        logger.info("game has finished")
+        logger.info("Game has finished")
 
         self._finished = True
 

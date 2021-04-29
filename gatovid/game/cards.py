@@ -63,12 +63,18 @@ class SimpleCard(Card):
         Genera un diccionario indicando cambios a la pila del target.
         """
 
-        return {"bodies": {self.target.name: {"piles": self.target.body.piles}}}
+        return {"bodies": {self.target.name: self.target.body.piles}}
 
 
 @dataclass
 class Organ(SimpleCard):
-    """ """
+    """
+    Coloca un órgano para un jugador.
+
+    TODO: es en este punto en el que se decide si un usuario ha ganado (cuando
+    tiene uno de cada). Cuando hayan más tests hechos, llamar a player_finished
+    y hacer el fin de partida añadiendo `finish` en este.
+    """
 
     # Usado para la codificación JSON
     card_type: str = "organ"

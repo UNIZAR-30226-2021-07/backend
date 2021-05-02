@@ -67,6 +67,13 @@ class Match:
 
         return self._game is not None
 
+    def set_paused(self, val: bool) -> None:
+        update = self._game.set_paused(val)
+        self.send_update(update)
+
+    def is_paused(self) -> bool:
+        self._game.is_paused()
+        
     def start(self) -> None:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es

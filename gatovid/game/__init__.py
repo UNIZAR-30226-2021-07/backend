@@ -117,6 +117,15 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
+    def set_paused(self, val: bool) -> Dict:
+        self._paused = val
+        return {
+            "paused": self._paused,
+        }
+
+    def is_paused(self) -> bool:
+        self._paused
+
     def run_action(self, caller: str, action: Action) -> [Dict]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el

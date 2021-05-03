@@ -377,6 +377,7 @@ Referencia
         create_game,
         join,
         leave,
+        pause_game,
         play_card,
         play_discard,
         play_pass,

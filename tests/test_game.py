@@ -143,3 +143,102 @@ class GameTest(WsTestClient):
                 {"modifiers": [], "organ": None},
             ],
         )
+
+    def test_pause(self):
+        """
+        Cualquier usuario de la partida podrá realizar una pausa. En ese momento
+        la partida quedará pausada para todos los jugadores de la misma.
+        """
+        clients, code = self.create_game()
+
+        for (i, client) in enumerate(clients):
+            # Ignoramos los eventos anteriores
+            _ = client.get_received()
+
+            # Pausamos
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertIn("paused", args)
+            self.assertEqual(args["paused"], True)
+            self.assertIn("paused_by", args)
+            self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(i))
+
+            # Reanudamos
+            callback_args = client.emit("pause_game", False, callback=True)
+            self.assertNotIn("error", callback_args)
+
+    def test_resume(self):
+        """
+        El usuario que realiza la pausa es el único capaz de volver a
+        reanudarla.
+        """
+        clients, code = self.create_game()
+
+        # Ignoramos los eventos anteriores
+        _ = clients[0].get_received()
+        _ = clients[1].get_received()
+        _ = clients[2].get_received()
+
+        # Pausamos con el cliente 0
+        callback_args = clients[0].emit("pause_game", True, callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Otro jugador espera recibir pausa
+        received = clients[1].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertIn("paused", args)
+        self.assertEqual(args["paused"], True)
+        self.assertIn("paused_by", args)
+        self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
+
+        # Intentamos reanudar con el cliente 2
+        callback_args = clients[2].emit("pause_game", False, callback=True)
+        self.assertIn("error", callback_args)
+
+        # Otro jugador no espera recibir reanudacion
+        received = clients[1].get_received()
+        self.assertEqual(received, [])
+
+        # Reanudamos con el cliente 0
+        callback_args = clients[0].emit("pause_game", False, callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Otro jugador espera recibir reanudacion
+        received = clients[1].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertIn("paused", args)
+        self.assertEqual(args["paused"], False)
+        self.assertIn("paused_by", args)
+        self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
+
+    def test_auto_resume(self):
+        """
+        TODO: Si la pausa supera un tiempo límite, la partida se reanuda
+        automáticamente.
+        """
+        clients, code = self.create_game()
+
+        # Establecemos el tiempo para que se cancele la pausa a 1 segundo para
+        # no tener que esperar tanto.
+        self.set_pause_timeout(1)
+
+        # Pausamos con el cliente 0
+        callback_args = clients[0].emit("pause_game", True, callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Ignoramos los eventos anteriores
+        _ = clients[1].get_received()
+
+        # Esperamos al tiempo de expiración de la pausa
+        self.wait_pause_timeout()
+
+        # Otro jugador espera recibir pausa
+        received = clients[1].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertIn("paused", args)
+        self.assertEqual(args["paused"], False)
+        self.assertIn("paused_by", args)
+        self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))

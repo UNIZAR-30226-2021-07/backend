@@ -3,6 +3,7 @@ Implementación de la lógica del juego.
 """
 
 import random
+import threading
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -16,6 +17,9 @@ from gatovid.models import User
 from gatovid.util import get_logger
 
 logger = get_logger(__name__)
+
+# Tiempo de espera hasta que se reanuda la partida si está pausada.
+TIME_UNTIL_RESUME = 15
 
 
 class Player:
@@ -63,7 +67,11 @@ class Game:
         self.deck: List[Card] = []
         self._turn = 0
         self._start_time = datetime.now()
+
         self._paused = False
+        self._paused_by: str = ""
+        self._paused_lock = threading.Lock()
+
         self._finished = False
         self._players_finished = 0
         # Indica la fase de descarte, en la que no se podrá hacer otra cosa
@@ -116,6 +124,41 @@ class Game:
                 return player
 
         raise GameLogicException("El jugador no está en la partida")
+
+    def set_paused(
+        self, paused: bool, paused_by: str, resume_callback
+    ) -> Optional[Dict]:
+        with self._paused_lock:
+            if self._paused == paused:
+                return None
+
+            # Solo el jugador que ha pausado la partida puede volver a reanudarla.
+            if self._paused and self._paused_by != paused_by:
+                raise GameLogicException(
+                    "Solo el jugador que inicia la pausa puede reanudar"
+                )
+
+            # Si la pausa pasa del tiempo límite comentado anteriormente, la
+            # partida se reanuda automáticamente
+            if paused:
+                # Iniciamos un timer
+                self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, resume_callback)
+                self._pause_timer.start()
+
+                logger.info(f"Game paused by {paused_by}")
+            else:
+                self._pause_timer.cancel()
+                logger.info("Game resumed")
+
+            self._paused = paused
+            self._paused_by = paused_by
+            return {
+                "paused": paused,
+                "paused_by": paused_by,
+            }
+
+    def is_paused(self) -> bool:
+        self._paused
 
     def run_action(self, caller: str, action: Action) -> [Dict]:
         """

@@ -320,6 +320,43 @@ def leave():
             emit("game_owner", room=match.owner.sid)
 
 
+@socket.on("pause_game")
+@_requires_game(started=True)
+def pause_game(paused):
+    """
+    Pausa o reanuda una partida privada.
+
+    :param paused: Pausar la partida
+    :type paused: ``bool``
+
+    Requiere que el usuario esté en una partida privada y que esté empezada o se
+    devolverá un :ref:`error <errores>`.
+
+    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
+
+        Si no se cumplen los requisitos comentados anteriormente, se devolverá
+        un :ref:`error <errores>`.
+    """
+
+    if paused is None or type(paused) != bool:
+        return {"error": "Parámetro incorrecto"}
+
+    # TODO: Si la pausa pasa del tiempo límite comentado anteriormente, la
+    # partida se reanuda automáticamente, y el jugador que no esté se le
+    # irán pasando los turnos.
+
+    match = MM.get_match(session["game"])
+    name = session["user"].name
+
+    if isinstance(match, PrivateMatch):
+        try:
+            match.set_paused(paused, paused_by=name)
+        except GameLogicException as e:
+            return {"error": str(e)}
+    else:
+        return {"error": "No estás en una partida privada"}
+
+
 @socket.on("chat")
 @_requires_game(started=True)
 def chat(msg):

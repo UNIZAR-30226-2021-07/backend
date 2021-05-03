@@ -205,3 +205,22 @@ class WsTestClient(GatovidTestClient):
         """
 
         time.sleep(self.matchmaking_delay * 1.2)
+
+    def set_pause_timeout(self, delay: float):
+        """
+        Para los tests se parchea el tiempo de timeout de las pausas, evitando
+        que se tenga que esperar a que acabe.
+        """
+
+        import gatovid.game
+
+        gatovid.game.TIME_UNTIL_RESUME = delay
+        self.pause_timeout = delay
+
+    def wait_pause_timeout(self):
+        """
+        Espera el tiempo de reanudar automático, con un pequeño margen para el
+        procesamiento en el backend.
+        """
+
+        time.sleep(self.pause_timeout * 1.2)

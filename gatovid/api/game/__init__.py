@@ -328,6 +328,9 @@ def set_game_paused(paused):
 
     Pausa o reanuda una partida privada.
 
+    :param paused: Pausar la partida
+    :type paused: ``bool``
+
     Requiere que el usuario esté en una partida privada y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
@@ -340,10 +343,18 @@ def set_game_paused(paused):
     if paused is None or type(paused) != bool:
         return {"error": "Parámetro incorrecto"}
 
+    # TODO: Si la pausa pasa del tiempo límite comentado anteriormente, la
+    # partida se reanuda automáticamente, y el jugador que no esté se le
+    # irán pasando los turnos.
+
     match = MM.get_match(session["game"])
+    name = session["user"].name
 
     if isinstance(match, PrivateMatch):
-        match.set_paused(paused)
+        try:
+            match.set_paused(paused, paused_by=name)
+        except GameLogicException as e:
+            return {"error": str(e)}
     else:
         return {"error": "No estás en una partida privada"}
     

@@ -67,8 +67,8 @@ class Match:
 
         return self._game is not None
 
-    def set_paused(self, val: bool) -> None:
-        update = self._game.set_paused(val)
+    def set_paused(self, val: bool, paused_by: str) -> None:
+        update = self._game.set_paused(val, paused_by)
         self.send_update(update)
 
     def is_paused(self) -> bool:

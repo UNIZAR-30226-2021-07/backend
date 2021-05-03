@@ -117,10 +117,19 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def set_paused(self, val: bool) -> Dict:
-        self._paused = val
+    def set_paused(self, paused: bool, paused_by: str) -> Dict:
+        if self._paused == paused:
+            return
+        
+        # Solo el jugador que ha pausado la partida puede volver a reanudarla.
+        if self._paused and self._paused_by != paused_by:
+            raise GameLogicException("Solo el jugador que inicia la pausa puede reanudar")
+
+        self._paused = paused
+        self._paused_by = paused_by
         return {
-            "paused": self._paused,
+            "paused": _paused,
+            "paused_by": _paused_by,
         }
 
     def is_paused(self) -> bool:

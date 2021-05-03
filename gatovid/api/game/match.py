@@ -162,8 +162,8 @@ class Match:
         """
         Envía un mismo game_update a todos los participantes de la partida.
         """
-        for user in self.users:
-            socket.emit("game_update", status, room=user.sid)
+        
+        socket.emit("game_update", status, room=self.code)
 
     def run_action(self, caller: str, action: Action) -> None:
         """

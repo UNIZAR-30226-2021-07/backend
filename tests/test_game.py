@@ -215,3 +215,10 @@ class GameTest(WsTestClient):
         self.assertEqual(args["paused"], False)
         self.assertIn("paused_by", args)
         self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
+
+    def test_auto_resume(self):
+        """
+        TODO: Si la pausa supera un tiempo límite, la partida se reanuda
+        automáticamente.
+        """
+        clients, code = self.create_game()

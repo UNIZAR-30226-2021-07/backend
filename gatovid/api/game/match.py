@@ -72,13 +72,15 @@ class Match:
         self.set_paused(False, self._game._paused_by)
 
     def set_paused(self, val: bool, paused_by: str) -> None:
-        update = self._game.set_paused(val, paused_by, resume_callback=self._resume_paused)
+        update = self._game.set_paused(
+            val, paused_by, resume_callback=self._resume_paused
+        )
         if update is not None:
             self.broadcast_update(update)
 
     def is_paused(self) -> bool:
         self._game.is_paused()
-        
+
     def start(self) -> None:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es
@@ -162,7 +164,6 @@ class Match:
         """
         for user in self.users:
             socket.emit("game_update", status, room=user.sid)
-
 
     def run_action(self, caller: str, action: Action) -> None:
         """

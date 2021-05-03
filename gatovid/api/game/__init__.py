@@ -357,7 +357,7 @@ def pause_game(paused):
             return {"error": str(e)}
     else:
         return {"error": "No estás en una partida privada"}
-    
+
 
 @socket.on("chat")
 @_requires_game(started=True)

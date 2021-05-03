@@ -2,8 +2,6 @@
 Tests para la lógica del juego
 """
 
-import time
-
 from gatovid.api.game.match import MM
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
@@ -167,7 +165,7 @@ class GameTest(WsTestClient):
             self.assertEqual(args["paused"], True)
             self.assertIn("paused_by", args)
             self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(i))
-            
+
             # Reanudamos
             callback_args = client.emit("pause_game", False, callback=True)
             self.assertNotIn("error", callback_args)
@@ -203,7 +201,7 @@ class GameTest(WsTestClient):
         # Otro jugador no espera recibir reanudacion
         received = clients[1].get_received()
         self.assertEqual(received, [])
-            
+
         # Reanudamos con el cliente 0
         callback_args = clients[0].emit("pause_game", False, callback=True)
         self.assertNotIn("error", callback_args)
@@ -244,5 +242,3 @@ class GameTest(WsTestClient):
         self.assertEqual(args["paused"], False)
         self.assertIn("paused_by", args)
         self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
-
-        

@@ -4,7 +4,6 @@ Implementación de la lógica del juego.
 
 import random
 import threading
-
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -21,6 +20,7 @@ logger = get_logger(__name__)
 
 # Tiempo de espera hasta que se reanuda la partida si está pausada.
 TIME_UNTIL_RESUME = 15
+
 
 class Player:
     """
@@ -125,14 +125,18 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def set_paused(self, paused: bool, paused_by: str, resume_callback) -> Optional[Dict]:
+    def set_paused(
+        self, paused: bool, paused_by: str, resume_callback
+    ) -> Optional[Dict]:
         with self._paused_lock:
             if self._paused == paused:
                 return None
 
             # Solo el jugador que ha pausado la partida puede volver a reanudarla.
             if self._paused and self._paused_by != paused_by:
-                raise GameLogicException("Solo el jugador que inicia la pausa puede reanudar")
+                raise GameLogicException(
+                    "Solo el jugador que inicia la pausa puede reanudar"
+                )
 
             # Si la pausa pasa del tiempo límite comentado anteriormente, la
             # partida se reanuda automáticamente
@@ -144,7 +148,7 @@ class Game:
                 logger.info(f"Game paused by {paused_by}")
             else:
                 self._pause_timer.cancel()
-                logger.info(f"Game resumed")
+                logger.info("Game resumed")
 
             self._paused = paused
             self._paused_by = paused_by

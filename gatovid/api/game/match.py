@@ -70,7 +70,7 @@ class Match:
     def set_paused(self, val: bool, paused_by: str) -> None:
         update = self._game.set_paused(val, paused_by)
         if update is not None:
-            self.send_update(update)
+            self.broadcast_update(update)
 
     def is_paused(self) -> bool:
         self._game.is_paused()
@@ -151,6 +151,14 @@ class Match:
                 continue
 
             socket.emit("game_update", status, room=user.sid)
+
+    def broadcast_update(self, status: Dict) -> None:
+        """
+        Envía un mismo game_update a todos los participantes de la partida.
+        """
+        for user in self.users:
+            socket.emit("game_update", status, room=user.sid)
+
 
     def run_action(self, caller: str, action: Action) -> None:
         """

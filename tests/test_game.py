@@ -2,6 +2,8 @@
 Tests para la lógica del juego
 """
 
+import time
+
 from gatovid.api.game.match import MM
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
@@ -143,3 +145,33 @@ class GameTest(WsTestClient):
                 {"modifiers": [], "organ": None},
             ],
         )
+
+    def test_pause(self):
+        """
+        TODO: Modificar este test cuando se implemente el sistema de turnos.
+        """
+        clients, code = self.create_game()
+
+        # REQ: Cualquier usuario de la partida podrá realizar una pausa.
+        # Independientemente del turno, deberíamos ser capaces de pausar con
+        # cualquiera de los clientes.
+
+        for (i, client) in enumerate(clients):
+            # Ignoramos los eventos anteriores
+            _ = client.get_received()
+
+            # Pausamos
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertIn("paused", args)
+            self.assertEqual(args["paused"], True)
+            self.assertIn("paused_by", args)
+            self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(i))
+            
+            # Reanudamos
+            callback_args = client.emit("pause_game", False, callback=True)
+            self.assertNotIn("error", callback_args)
+

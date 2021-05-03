@@ -140,14 +140,17 @@ class Game:
                 # Iniciamos un timer
                 self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, self.set_paused, False, paused_by)
                 self._pause_timer.start()
+
+                logger.info(f"Game paused by {paused_by}")
             else:
                 self._pause_timer.cancel()
+                logger.info(f"Game resumed by {paused_by}")
 
             self._paused = paused
             self._paused_by = paused_by
             return {
-                "paused": _paused,
-                "paused_by": _paused_by,
+                "paused": paused,
+                "paused_by": paused_by,
             }
 
     def is_paused(self) -> bool:

@@ -320,9 +320,9 @@ def leave():
             emit("game_owner", room=match.owner.sid)
 
 
-@socket.on("set_game_paused")
+@socket.on("pause_game")
 @_requires_game(started=True)
-def set_game_paused(paused):
+def pause_game(paused):
     """
     .. warning:: Este endpoint está en construcción aún.
 

@@ -125,7 +125,7 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def set_paused(self, paused: bool, paused_by: str) -> Optional[Dict]:
+    def set_paused(self, paused: bool, paused_by: str, resume_callback) -> Optional[Dict]:
         with self._paused_lock:
             if self._paused == paused:
                 return None
@@ -138,13 +138,13 @@ class Game:
             # partida se reanuda automáticamente
             if paused:
                 # Iniciamos un timer
-                self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, self.set_paused, False, paused_by)
+                self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, resume_callback)
                 self._pause_timer.start()
 
                 logger.info(f"Game paused by {paused_by}")
             else:
                 self._pause_timer.cancel()
-                logger.info(f"Game resumed by {paused_by}")
+                logger.info(f"Game resumed")
 
             self._paused = paused
             self._paused_by = paused_by

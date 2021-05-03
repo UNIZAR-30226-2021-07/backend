@@ -222,3 +222,27 @@ class GameTest(WsTestClient):
         automáticamente.
         """
         clients, code = self.create_game()
+
+        # Establecemos el tiempo para que se cancele la pausa a 1 segundo para
+        # no tener que esperar tanto.
+        self.set_pause_timeout(1)
+
+        # Pausamos con el cliente 0
+        callback_args = clients[0].emit("pause_game", True, callback=True)
+        self.assertNotIn("error", callback_args)
+
+        # Ignoramos los eventos anteriores
+        _ = clients[1].get_received()
+
+        # Esperamos al tiempo de expiración de la pausa
+        self.wait_pause_timeout()
+
+        # Otro jugador espera recibir pausa
+        received = clients[1].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertIn("paused", args)
+        self.assertEqual(args["paused"], False)
+        self.assertIn("paused_by", args)
+        self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
+
+        

@@ -67,8 +67,12 @@ class Match:
 
         return self._game is not None
 
+    def _resume_paused(self):
+        logger.info("Pause time expirated, resuming game...")
+        self.set_paused(False, self._game._paused_by)
+
     def set_paused(self, val: bool, paused_by: str) -> None:
-        update = self._game.set_paused(val, paused_by)
+        update = self._game.set_paused(val, paused_by, resume_callback=self._resume_paused)
         if update is not None:
             self.broadcast_update(update)
 

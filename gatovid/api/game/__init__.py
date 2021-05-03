@@ -324,8 +324,6 @@ def leave():
 @_requires_game(started=True)
 def pause_game(paused):
     """
-    .. warning:: Este endpoint está en construcción aún.
-
     Pausa o reanuda una partida privada.
 
     :param paused: Pausar la partida
@@ -334,7 +332,7 @@ def pause_game(paused):
     Requiere que el usuario esté en una partida privada y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
-    :return: Un mensaje :ref:`msg_pause_game` para cada jugador.
+    :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
         Si no se cumplen los requisitos comentados anteriormente, se devolverá
         un :ref:`error <errores>`.

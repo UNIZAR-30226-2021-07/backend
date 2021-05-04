@@ -5,7 +5,7 @@ Algunas funciones útiles a lo largo de todo el programa.
 import functools
 import logging
 import threading
-from datetime import timedelta, datetime
+from datetime import datetime, timedelta
 from typing import Dict, Optional
 
 from flask import Blueprint, request

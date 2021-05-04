@@ -27,15 +27,20 @@ class CardsTest(WsTestClient):
 
         game = MM.get_match(code)._game
 
-        target = None
+        # Usaremos al cliente 0 como target
+        target = game.players[0].name
+
         for (i, card) in enumerate(card_order):
+            # Cambiamos el turno según la carta para cumplir las restricciones
+            # de no colocar medicina en el cuerpo de otros, etc.
+            if isinstance(card, Organ) or isinstance(card, Medicine):
+                game._turn = 0
+            elif isinstance(card, Virus):
+                game._turn = 1
+
             # Obtenemos el cliente al que le toca
-            turn_name = args["current_turn"]
-            turn_client = clients[self.player_names.index(args["current_turn"])]
-            turn_player = next(filter(lambda p: p.name == turn_name, game.players))
-            # Elegimos al primer jugador como el objetivo
-            if target is None:
-                target = turn_name
+            turn_player = game.players[game._turn]
+            turn_client = clients[self.player_names.index(turn_player.name)]
 
             turn_player.hand[0] = card
 
@@ -48,7 +53,7 @@ class CardsTest(WsTestClient):
             callback_args = turn_client.emit(
                 "play_card",
                 {
-                    "slot": 0,  # Las cartas en orden
+                    "slot": 0,
                     "target": target,
                     "organ_pile": 0,
                 },

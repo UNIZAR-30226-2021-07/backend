@@ -9,10 +9,10 @@ from gatovid.game.cards import Color, Medicine, Organ, Virus
 from .base import WsTestClient
 
 
-class CardTest(WsTestClient):
+class CardsTest(WsTestClient):
     player_names = [GENERIC_USERS_NAME.format(i) for i in range(NUM_GENERIC_USERS)]
 
-    def test_card_interactions_cure(self):
+    def test_interactions_cure(self):
         """
         Se prueba a colocar un órgano, infectarlo y curarlo.
         """
@@ -37,15 +37,71 @@ class CardTest(WsTestClient):
 
         self.check_card_interactions(card_order, expected_pile_states)
 
-    def test_card_interactions_remove(self):
+    def test_interactions_medicine_destroy(self):
         """
-        Se prueba a colocar un órgano, infectarlo y curarlo.
+        Se prueba a destruir una vacuna.
+        """
+
+        card_order = [
+            Organ(color=Color.Red),
+            Medicine(color=Color.Red),
+            Virus(color=Color.Red),
+        ]
+
+        expected_pile_states = [
+            # Se coloca el órgano en la pila
+            {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+            # Se protege el órgano
+            {
+                "modifiers": [{"card_type": "medicine", "color": "red"}],
+                "organ": {"card_type": "organ", "color": "red"},
+            },
+            # Se destruye la medicina
+            {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+        ]
+
+        self.check_card_interactions(card_order, expected_pile_states)
+
+    def test_interactions_immunize(self):
+        """
+        Se prueba a inmunizar un órgano.
+        """
+
+        card_order = [
+            Organ(color=Color.Red),
+            Medicine(color=Color.Red),
+            Medicine(color=Color.Red),
+        ]
+
+        expected_pile_states = [
+            # Se coloca el órgano en la pila
+            {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+            # Se protege el órgano
+            {
+                "modifiers": [{"card_type": "medicine", "color": "red"}],
+                "organ": {"card_type": "organ", "color": "red"},
+            },
+            # Se inmuniza el órgano
+            {
+                "modifiers": [
+                    {"card_type": "medicine", "color": "red"},
+                    {"card_type": "medicine", "color": "red"},
+                ],
+                "organ": {"card_type": "organ", "color": "red"},
+            },
+        ]
+
+        self.check_card_interactions(card_order, expected_pile_states)
+
+    def test_interactions_remove(self):
+        """
+        Se prueba a extirpar un órgano.
         """
 
         card_order = [
             Organ(color=Color.Red),
             Virus(color=Color.Red),
-            Medicine(color=Color.Red),
+            Virus(color=Color.Red),
         ]
 
         expected_pile_states = [
@@ -56,8 +112,8 @@ class CardTest(WsTestClient):
                 "modifiers": [{"card_type": "virus", "color": "red"}],
                 "organ": {"card_type": "organ", "color": "red"},
             },
-            # Se cura el órgano con la medicina
-            {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+            # Se extirpa el órgano
+            {"modifiers": [], "organ": None},
         ]
 
         self.check_card_interactions(card_order, expected_pile_states)

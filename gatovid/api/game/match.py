@@ -88,8 +88,9 @@ class Match:
         cuyo caso `kicked` no será `None`
         """
 
-        # TODO: esto también tendría que pasar un "finished", porque en caso de
-        # que se fueran todos los usuarios de la partida tendría que cancelarse.
+        # TODO: esto también tendría que pasar un parámetro "finished", porque
+        # en caso de que se fueran todos los usuarios de la partida tendría que
+        # cancelarse.
         if kicked is not None:
             # Se elimina al usuario de la partida
             kicked_user = None

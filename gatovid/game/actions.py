@@ -91,7 +91,7 @@ class PlayCard(Action):
         # Todos los datos pasados por el usuario
         self.data = data
         # El jugador que usa la carta
-        self.caller : "Player" = None
+        self.caller: "Player" = None
 
         if self.slot is None:
             raise GameLogicException("Slot vacío")

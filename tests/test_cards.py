@@ -4,6 +4,7 @@ Tests para la lógica del juego
 
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
+from gatovid.game.body import Body
 from gatovid.game.cards import Color, Medicine, Organ, Virus
 
 from .base import WsTestClient
@@ -23,7 +24,6 @@ class CardsTest(WsTestClient):
         received = clients[0].get_received()
         _, args = self.get_msg_in_received(received, "game_update", json=True)
         self.assertNotIn("error", args)
-
 
         game = MM.get_match(code)._game
 
@@ -66,6 +66,52 @@ class CardsTest(WsTestClient):
                 args["bodies"][target][0],  # Miramos la pila 0 del target
                 expected_pile_states[i],
             )
+
+    def check_cant_place(self, target_body, card, place_in_self=False):
+        """
+        Se prueba a colocar la carta `card` en el cuerpo de otro jugador
+        distinto (si `place_in_self` es True, el otro jugador es el mismo que
+        usa la carta). El cuerpo inicial del jugador donde se va a colocar la
+        carta será `target_body`.
+        """
+        clients, code = self.create_game()
+
+        # Primero se tendrá el game_update inicial
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
+
+        game = MM.get_match(code)._game
+
+        turn_name = args["current_turn"]
+        turn_client = clients[self.player_names.index(args["current_turn"])]
+        turn_player = next(filter(lambda p: p.name == turn_name, game.players))
+        if place_in_self:
+            other_player = turn_player
+        else:
+            other_player = next(filter(lambda p: p.name != turn_name, game.players))
+
+        turn_player.hand[0] = card
+        other_player.body = target_body
+
+        # Ignoramos los eventos anteriores
+        _ = turn_client.get_received()
+
+        # Intentamos colocar la carta en el jugador
+        callback_args = turn_client.emit(
+            "play_card",
+            {
+                "slot": 0,
+                "target": other_player.name,
+                "organ_pile": 0,
+            },
+            callback=True,
+        )
+        self.assertIn("error", callback_args)
+
+        # No recibimos el game_update
+        received = turn_client.get_received()
+        self.assertEqual(received, [])
 
     def test_interactions_cure(self):
         """
@@ -178,38 +224,9 @@ class CardsTest(WsTestClient):
         Se prueba que no se pueda colocar un órgano en el cuerpo de otro
         jugador.
         """
-        clients, code = self.create_game()
-
-        # Primero se tendrá el game_update inicial
-        received = clients[0].get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
-        self.assertNotIn("error", args)
-
-        game = MM.get_match(code)._game
-
-        turn_name = args["current_turn"]
-        turn_client = clients[self.player_names.index(args["current_turn"])]
-        turn_player = next(filter(lambda p: p.name == turn_name, game.players))
-        other_player = next(filter(lambda p: p.name != turn_name, game.players))
-
-        turn_player.hand = [
-            Organ(color=Color.Red),
-            Organ(color=Color.Any),
-            Organ(color=Color.Red),
-        ]
-
-        # Colocamos el órgano en el jugador
-        callback_args = turn_client.emit(
-            "play_card",
-            {
-                "slot": 0, # órgano
-                "target": other_player.name,
-                "organ_pile": 0,
-            },
-            callback=True,
+        self.check_cant_place(
+            target_body=Body(),
+            card=Organ(color=Color.Red),
+            place_in_self=False,
         )
-        self.assertIn("error", callback_args)
 
-        # No recibimos el game_update
-        received = turn_client.get_received()
-        self.assertEqual(received, [])

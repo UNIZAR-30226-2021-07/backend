@@ -127,6 +127,7 @@ class Game:
                 self.draw_card(player)
 
         self._turn = random.randint(0, len(self.players) - 1)
+        logger.info(f"First turn is for {self.turn_player().name}")
         self._start_turn_timer()
 
         # Genera el estado inicial con las manos y turno
@@ -252,6 +253,7 @@ class Game:
             # TODO: si el usuario está kickeado se le debería pasar el turno o
             # la IA debería jugar por él.
 
+            logger.info(f"{self.turn_player().name}'s turn has ended")
             self._turn_number += 1
 
             # Roba cartas hasta tener 3, se actualiza el estado de ese jugador
@@ -268,8 +270,7 @@ class Game:
             new_turn = {"current_turn": self.turn_player().name}
             turn_update = [new_turn] * len(self.players)
             update = self._merge_updates(update, turn_update)
-
-            logger.info("Current turn has ended")
+            logger.info(f"{self.turn_player().name}'s turn has started")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
             # disponibles.
@@ -325,8 +326,6 @@ class Game:
             if self._turn_number != initial_turn:
                 return
 
-            update = {}
-
             # Expulsión de jugadores AFK
             kicked = None
             self.turn_player().afk_turns += 1
@@ -335,8 +334,7 @@ class Game:
                 self.turn_player().kicked = True
 
             # Terminación automática del turno
-            end_update = self._end_turn()
-            update = self._merge_updates(end_update, update)
+            update = self._end_turn()
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
@@ -376,7 +374,7 @@ class Game:
 
         return self.players[self._turn]
 
-    def _playtime_mins(self, game: "Game") -> int:
+    def _playtime_mins(self) -> int:
         """
         Devuelve el tiempo de juego de la partida.
         """
@@ -437,6 +435,10 @@ class Game:
         logger.info("Game has finished")
 
         self._finished = True
+        if self._turn_timer is not None:
+            self._turn_timer.cancel()
+        if self._paused_timer is not None:
+            self._paused_timer.cancel()
 
         update = {
             "finished": True,

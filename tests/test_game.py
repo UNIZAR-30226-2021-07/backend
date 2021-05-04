@@ -144,3 +144,29 @@ class GameTest(WsTestClient):
         self.assertEqual(args["paused"], False)
         self.assertIn("paused_by", args)
         self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
+
+    def test_auto_pass(self):
+        """
+        Comprueba que el turno se pasa automáticamente después de alcanzar el
+        tiempo límite de un turno.
+
+        Notar que no se puede asumir el orden del turno, así que únicamente se
+        comprueba si ha cambiado.
+        """
+
+        self.set_turn_timeout(0.2)
+        clients, code = self.create_game()
+
+        def get_current_turn() -> str:
+            received = clients[0].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            return args["current_turn"]
+
+        # Ciclo de turnos completo
+        start_turn = get_current_turn()
+
+        for i in range(len(clients)):
+            self.wait_turn_timeout()
+            end_turn = get_current_turn()
+            self.assertNotEqual(start_turn, end_turn)
+            start_turn = end_turn

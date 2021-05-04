@@ -242,6 +242,25 @@ class WsTestClient(GatovidTestClient):
 
         time.sleep(self.pause_timeout * 1.2)
 
+    def set_turn_timeout(self, delay: float):
+        """
+        Para los tests se parchea el tiempo de timeout de los turnos, evitando
+        que se tenga que esperar a que acabe.
+        """
+
+        import gatovid.game
+
+        gatovid.game.TIME_TURN_END = delay
+        self.turn_time = delay
+
+    def wait_turn_timeout(self):
+        """
+        Espera el tiempo de turno, con un pequeño margen para el procesamiento
+        en el backend.
+        """
+
+        time.sleep(self.turn_time * 1.2)
+
     def create_game(self, players=6):
         clients = []
         for i in range(players):

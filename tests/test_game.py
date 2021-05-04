@@ -2,12 +2,23 @@
 Tests para la lógica del juego
 """
 
+import random
+import time
+
 from gatovid.create_db import GENERIC_USERS_NAME
+from gatovid.util import get_logger
 
 from .base import WsTestClient
 
+logger = get_logger(__name__)
+
 
 class GameTest(WsTestClient):
+    def get_current_turn(self, client) -> str:
+        received = client.get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        return args["current_turn"]
+
     def test_start_game(self):
         """
         Comprueba el protocolo de inicio de la partida.
@@ -157,16 +168,50 @@ class GameTest(WsTestClient):
         self.set_turn_timeout(0.2)
         clients, code = self.create_game()
 
-        def get_current_turn() -> str:
-            received = clients[0].get_received()
-            _, args = self.get_msg_in_received(received, "game_update", json=True)
-            return args["current_turn"]
-
         # Ciclo de turnos completo
-        start_turn = get_current_turn()
-
+        start_turn = self.get_current_turn(clients[0])
         for i in range(len(clients)):
             self.wait_turn_timeout()
-            end_turn = get_current_turn()
+            end_turn = self.get_current_turn(clients[0])
+            self.assertNotEqual(start_turn, end_turn)
+            start_turn = end_turn
+
+    def test_auto_pass_with_pause(self):
+        """
+        Comprueba que el turno se pasa automáticamente de forma correcta aun
+        cuando se pausa la partida.
+        """
+
+        self.set_turn_timeout(0.5)
+        clients, code = self.create_game()
+
+        def pause():
+            callback_args = clients[0].emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        def check_no_new_turn():
+            received = clients[0].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            if args is not None:
+                self.assertNotIn("current_turn", args)
+
+        # Ciclo de turnos completo
+        start_turn = self.get_current_turn(clients[0])
+        for i in range(len(clients)):
+            # Pausa, se duerme, reanuda y vuelve a dormirse varias veces hasta
+            # que termina el turno.
+            logger.info(">> Waiting new turn")
+            for i in range(5):
+                logger.info(f">> Iteration {i} of 5, slept {0.1 * 1.2 * i} total")
+                check_no_new_turn()
+                pause()
+                # El tiempo dormido entre pausas no debería contar
+                time.sleep(random.uniform(0.1, 0.5))
+                check_no_new_turn()
+                pause()
+                time.sleep(0.1 * 1.2)
+
+            logger.info(">> Done waiting")
+            end_turn = self.get_current_turn(clients[0])
             self.assertNotEqual(start_turn, end_turn)
             start_turn = end_turn

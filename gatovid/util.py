@@ -2,8 +2,11 @@
 Algunas funciones útiles a lo largo de todo el programa.
 """
 
+import datetime
 import functools
 import logging
+import threading
+from datetime import timedelta
 from typing import Dict, Optional
 
 from flask import Blueprint, request
@@ -64,3 +67,54 @@ def get_logger(name: str) -> logging.Logger:
     )
 
     return logger
+
+
+class PausableTimer:
+    """
+    Wrapper sobre threading.Timer que permite pausar y continuar la ejecución
+    del temporizador.
+    """
+
+    def __init__(self, interval: float, *args, **kwargs) -> None:
+        self._timer = threading.Timer(interval, *args, **kwargs)
+        self._interval = interval
+        self._args = args
+        self._kwargs = kwargs
+
+        self._elapsed = timedelta()
+        self._started_at = None
+        self._paused = False
+
+    def is_started(self) -> bool:
+        return self._started_at is not None
+
+    def is_paused(self) -> bool:
+        return self._paused
+
+    def start(self) -> None:
+        self._started_at = datetime.now()
+        self._timer.start()
+
+    def pause(self) -> None:
+        if not self.is_started():
+            raise ValueError("Timer not started")
+
+        if self.is_paused():
+            raise ValueError("Timer already paused")
+
+        self._elapsed += datetime.now() - self._started_at
+        self._paused = True
+        self._timer.cancel()
+
+    def resume(self) -> None:
+        if not self.is_started():
+            raise ValueError("Timer not started")
+
+        if not self.is_paused():
+            raise ValueError("Timer already running")
+
+        remaining = self._interval - self._elapsed
+        self._started_at = datetime.now()
+        self._timer = threading.Timer(remaining, *self._args, **self._kwargs)
+        self._timer.start()
+        self._paused = False

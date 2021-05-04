@@ -90,6 +90,8 @@ class PlayCard(Action):
         self.slot = data.get("slot")
         # Todos los datos pasados por el usuario
         self.data = data
+        # El jugador que usa la carta
+        self.caller: "Player" = None
 
         if self.slot is None:
             raise GameLogicException("Slot vacío")
@@ -101,6 +103,8 @@ class PlayCard(Action):
         # descarte.
         if game.discarding:
             raise GameLogicException("El jugador está en proceso de descarte")
+
+        self.caller = caller
 
         # Obtiene la carta y la elimina de su mano. No hace falta actualizar el
         # estado al eliminar la carta porque ya se hará cuando robe al final del

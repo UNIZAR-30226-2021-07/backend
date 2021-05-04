@@ -4,6 +4,7 @@ Implementación de la lógica del juego.
 
 import random
 import threading
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -26,6 +27,7 @@ TIME_TURN_END = 30
 MAX_AFK_TURNS = 3
 
 
+@dataclass(init=False)
 class GameUpdate:
     """
     TODO: hacer una clase para game_update por type safety y
@@ -33,16 +35,24 @@ class GameUpdate:
     """
 
 
+@dataclass(init=False)
 class Player:
     """
     Información sobre un usuario ya unido a la partida, con sus cartas y
     detalles sobre su estado.
     """
 
+    name: str
+    position: Optional[int]
+    hand: List[Card]
+    body: Body
+    afk_turns: int
+    kicked: bool
+
     def __init__(self, name: str) -> None:
         self.name = name
-        self.position: Optional[int] = None
-        self.hand: List[Card] = []
+        self.position = None
+        self.hand = []
         self.body = Body()
         # Turnos consecutivos que el usuario ha estado AFK
         self.afk_turns = 0
@@ -102,11 +112,6 @@ class Game:
         # Indica la fase de descarte, en la que no se podrá hacer otra cosa
         # excepto seguir descartando o pasar el turno.
         self.discarding = False
-
-        # TODO: Por el momento, se hace como que se juega y se termina la
-        # partida.
-        for i, player in enumerate(self.players):
-            player.position = i + 1
 
     def start(self) -> Dict:
         """
@@ -271,8 +276,8 @@ class Game:
             # partida.
             while True:
                 self._turn = (self._turn + 1) % len(self.players)
-                if self.turn_player().has_finished():
-                    continue
+                if not self.turn_player().has_finished():
+                    break
             new_turn = {"current_turn": self.turn_player().name}
             turn_update = [new_turn] * len(self.players)
             update = self._merge_updates(update, turn_update)

@@ -15,7 +15,7 @@ from gatovid.game.cards import DECK, Card
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException
 from gatovid.models import User
-from gatovid.util import get_logger
+from gatovid.util import PausableTimer, get_logger
 
 logger = get_logger(__name__)
 
@@ -173,12 +173,18 @@ class Game:
             # Si la pausa pasa del tiempo límite comentado anteriormente, la
             # partida se reanuda automáticamente
             if paused:
+                # Se para mientras tanto el timer del turno
+                self._turn_timer.pause()
+
                 # Iniciamos un timer
                 self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, resume_callback)
                 self._pause_timer.start()
 
                 logger.info(f"Game paused by {paused_by}")
             else:
+                # Continúa el timer del turno
+                self._turn_timer.resume()
+
                 self._pause_timer.cancel()
                 logger.info("Game resumed")
 
@@ -359,7 +365,7 @@ class Game:
         if self._turn_timer is not None:
             self._turn_timer.cancel()
 
-        self._turn_timer = threading.Timer(TIME_TURN_END, self._timer_end_turn)
+        self._turn_timer = PausableTimer(TIME_TURN_END, self._timer_end_turn)
         self._turn_timer.start()
 
     def _merge_updates(self, update1: List[Dict], update2: List[Dict]) -> List[Dict]:

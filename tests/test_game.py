@@ -182,36 +182,48 @@ class GameTest(WsTestClient):
         cuando se pausa la partida.
         """
 
-        self.set_turn_timeout(0.5)
+        self.set_turn_timeout(0.3)
         clients, code = self.create_game()
 
-        def pause():
-            callback_args = clients[0].emit("pause_game", True, callback=True)
+        def pause(paused):
+            callback_args = clients[0].emit("pause_game", paused, callback=True)
             self.assertNotIn("error", callback_args)
 
-        def check_no_new_turn():
+        def recv_pause():
+            """
+            Lee los mensajes recibidos, asegurando que únicamente se tiene uno
+            de pausa en el buzón.
+            """
+
             received = clients[0].get_received()
             _, args = self.get_msg_in_received(received, "game_update", json=True)
-            if args is not None:
-                self.assertNotIn("current_turn", args)
+            self.assertIn("paused", args)
+            self.assertIn("paused_by", args)
+            self.assertNotIn("current_turn", args)
+            self.assertEqual(clients[0].get_received(), [])
 
         # Ciclo de turnos completo
         start_turn = self.get_current_turn(clients[0])
+        self.assertEqual(clients[0].get_received(), [])
         for i in range(len(clients)):
             # Pausa, se duerme, reanuda y vuelve a dormirse varias veces hasta
             # que termina el turno.
             logger.info(">> Waiting new turn")
-            for i in range(5):
-                logger.info(f">> Iteration {i} of 5, slept {0.1 * 1.2 * i} total")
-                check_no_new_turn()
-                pause()
+            for i in range(4):
                 # El tiempo dormido entre pausas no debería contar
-                time.sleep(random.uniform(0.1, 0.5))
-                check_no_new_turn()
-                pause()
-                time.sleep(0.1 * 1.2)
+                pause(True)
+                recv_pause()
+                time.sleep(random.uniform(0.1, 0.3))
+                pause(False)
+                recv_pause()
 
+                time.sleep(0.05)
+                logger.info(f">> Iteration {i + 1}/4 done, slept {0.1 * (i + 1)}/0.2")
+
+            # Duerme el tiempo restante como margen fuera del bucle
+            time.sleep(0.1)
             logger.info(">> Done waiting")
+
             end_turn = self.get_current_turn(clients[0])
             self.assertNotEqual(start_turn, end_turn)
             start_turn = end_turn

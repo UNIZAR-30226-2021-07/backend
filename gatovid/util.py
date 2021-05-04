@@ -2,11 +2,10 @@
 Algunas funciones útiles a lo largo de todo el programa.
 """
 
-import datetime
 import functools
 import logging
 import threading
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Dict, Optional
 
 from flask import Blueprint, request
@@ -77,7 +76,7 @@ class PausableTimer:
 
     def __init__(self, interval: float, *args, **kwargs) -> None:
         self._timer = threading.Timer(interval, *args, **kwargs)
-        self._interval = interval
+        self._interval = timedelta(seconds=interval)
         self._args = args
         self._kwargs = kwargs
 
@@ -94,6 +93,9 @@ class PausableTimer:
     def start(self) -> None:
         self._started_at = datetime.now()
         self._timer.start()
+
+    def cancel(self) -> None:
+        self._timer.cancel()
 
     def pause(self) -> None:
         if not self.is_started():
@@ -113,7 +115,7 @@ class PausableTimer:
         if not self.is_paused():
             raise ValueError("Timer already running")
 
-        remaining = self._interval - self._elapsed
+        remaining = (self._interval - self._elapsed).total_seconds()
         self._started_at = datetime.now()
         self._timer = threading.Timer(remaining, *self._args, **self._kwargs)
         self._timer.start()

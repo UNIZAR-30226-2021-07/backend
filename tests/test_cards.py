@@ -240,3 +240,31 @@ class CardsTest(WsTestClient):
             card=Medicine(color=Color.Red),
             place_in_self=True,
         )
+
+    def test_medicine_on_others(self):
+        """
+        Se prueba que no se pueda colocar una vacuna a otro jugador, para evitar
+        errores de los jugadores.
+        """
+        b = Body()
+        b.piles[0].set_organ(Organ(color=Color.Red))
+
+        self.check_cant_place(
+            target_body=b,
+            card=Medicine(color=Color.Red),
+            place_in_self=False,
+        )
+
+    def test_virus_on_self(self):
+        """
+        Se prueba que no se pueda colocar un virus a ti mismo, para evitar
+        errores de los jugadores.
+        """
+        b = Body()
+        b.piles[0].set_organ(Organ(color=Color.Red))
+
+        self.check_cant_place(
+            target_body=b,
+            card=Virus(color=Color.Red),
+            place_in_self=True,
+        )

@@ -102,6 +102,9 @@ class Virus(SimpleCard):
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
         self.get_action_data(action, game)
 
+        if self.target.name == action.caller.name:
+            raise GameLogicException("No puedes colocar un virus en tu cuerpo")
+
         logger.info(f"{self.color}-colored virus played over {self.target.name}")
 
         # Comprobamos si hay que extirpar o destruir vacuna
@@ -126,6 +129,9 @@ class Medicine(SimpleCard):
 
     def apply(self, action: "PlayCard", game: "Game") -> Dict:
         self.get_action_data(action, game)
+
+        if self.target.name != action.caller.name:
+            raise GameLogicException("No puedes colocar una medicina en otro cuerpo")
 
         logger.info(f"{self.color}-colored medicine played over {self.target.name}")
 

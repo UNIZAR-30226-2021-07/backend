@@ -12,6 +12,61 @@ from .base import WsTestClient
 class CardsTest(WsTestClient):
     player_names = [GENERIC_USERS_NAME.format(i) for i in range(NUM_GENERIC_USERS)]
 
+    def check_card_interactions(self, card_order, expected_pile_states):
+        """
+        Se prueba la secuencia de cartas card_order en la pila 0 del jugador 0
+        y se comprueba que la interacción sea la deseada (expected_pile_states).
+        """
+        clients, code = self.create_game()
+
+        # Primero se tendrá el game_update inicial
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
+
+
+        game = MM.get_match(code)._game
+
+        target = None
+        for (i, card) in enumerate(card_order):
+            # Obtenemos el cliente al que le toca
+            turn_name = args["current_turn"]
+            turn_client = clients[self.player_names.index(args["current_turn"])]
+            turn_player = next(filter(lambda p: p.name == turn_name, game.players))
+            # Elegimos al primer jugador como el objetivo
+            if target is None:
+                target = turn_name
+
+            turn_player.hand[0] = card
+
+            # Ignoramos los mensajes anteriores en un cliente cualquiera
+            _ = clients[5].get_received()
+
+            # Colocamos la carta en el jugador target. Las cartas se colocarán
+            # en el orden de testing_hand y se espera que resulten en la pila 0
+            # == expected_pile_states[i]
+            callback_args = turn_client.emit(
+                "play_card",
+                {
+                    "slot": 0,  # Las cartas en orden
+                    "target": target,
+                    "organ_pile": 0,
+                },
+                callback=True,
+            )
+            self.assertNotIn("error", callback_args)
+
+            # Recibimos en un cliente cualquiera
+            received = clients[5].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertNotIn("error", args)
+
+            self.assertIn("bodies", args)
+            self.assertEqual(
+                args["bodies"][target][0],  # Miramos la pila 0 del target
+                expected_pile_states[i],
+            )
+
     def test_interactions_cure(self):
         """
         Se prueba a colocar un órgano, infectarlo y curarlo.
@@ -118,10 +173,10 @@ class CardsTest(WsTestClient):
 
         self.check_card_interactions(card_order, expected_pile_states)
 
-    def check_card_interactions(self, card_order, expected_pile_states):
+    def test_organ_on_others(self):
         """
-        Se prueba la secuencia de cartas card_order en la pila 0 del jugador 0
-        y se comprueba que la interacción sea la deseada (expected_pile_states).
+        Se prueba que no se pueda colocar un órgano en el cuerpo de otro
+        jugador.
         """
         clients, code = self.create_game()
 
@@ -130,46 +185,31 @@ class CardsTest(WsTestClient):
         _, args = self.get_msg_in_received(received, "game_update", json=True)
         self.assertNotIn("error", args)
 
-        # Obtenemos el cliente al que le toca
-
         game = MM.get_match(code)._game
 
-        target = None
-        for (i, card) in enumerate(card_order):
-            turn_name = args["current_turn"]
-            # Elegimos al primer jugador como el objetivo
-            if target is None:
-                target = turn_name
+        turn_name = args["current_turn"]
+        turn_client = clients[self.player_names.index(args["current_turn"])]
+        turn_player = next(filter(lambda p: p.name == turn_name, game.players))
+        other_player = next(filter(lambda p: p.name != turn_name, game.players))
 
-            turn_client = clients[self.player_names.index(args["current_turn"])]
-            turn_player = next(filter(lambda p: p.name == turn_name, game.players))
+        turn_player.hand = [
+            Organ(color=Color.Red),
+            Organ(color=Color.Any),
+            Organ(color=Color.Red),
+        ]
 
-            turn_player.hand[0] = card
+        # Colocamos el órgano en el jugador
+        callback_args = turn_client.emit(
+            "play_card",
+            {
+                "slot": 0, # órgano
+                "target": other_player.name,
+                "organ_pile": 0,
+            },
+            callback=True,
+        )
+        self.assertIn("error", callback_args)
 
-            # Ignoramos los mensajes anteriores en un cliente cualquiera
-            _ = clients[5].get_received()
-
-            # Colocamos la carta en el jugador target. Las cartas se colocarán
-            # en el orden de testing_hand y se espera que resulten en la pila 0
-            # == expected_pile_states[i]
-            callback_args = turn_client.emit(
-                "play_card",
-                {
-                    "slot": 0,  # Las cartas en orden
-                    "target": target,
-                    "organ_pile": 0,
-                },
-                callback=True,
-            )
-            self.assertNotIn("error", callback_args)
-
-            # Recibimos en un cliente cualquiera
-            received = clients[5].get_received()
-            _, args = self.get_msg_in_received(received, "game_update", json=True)
-            self.assertNotIn("error", args)
-
-            self.assertIn("bodies", args)
-            self.assertEqual(
-                args["bodies"][target][0],  # Miramos la pila 0 del target
-                expected_pile_states[i],
-            )
+        # No recibimos el game_update
+        received = turn_client.get_received()
+        self.assertEqual(received, [])

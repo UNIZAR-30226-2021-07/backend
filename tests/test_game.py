@@ -218,10 +218,10 @@ class GameTest(WsTestClient):
                 recv_pause()
 
                 time.sleep(0.05)
-                logger.info(f">> Iteration {i + 1}/4 done, slept {0.1 * (i + 1)}/0.2")
+                logger.info(f">> Iteration {i + 1}/4 done, slept {0.1 * (i + 1)}/0.2s")
 
             # Duerme el tiempo restante como margen fuera del bucle
-            time.sleep(0.1)
+            time.sleep(0.12)
             logger.info(">> Done waiting")
 
             end_turn = self.get_current_turn(clients[0])

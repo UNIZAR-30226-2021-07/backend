@@ -205,25 +205,24 @@ class GameTest(WsTestClient):
         # Ciclo de turnos completo
         start_turn = self.get_current_turn(clients[0])
         self.assertEqual(clients[0].get_received(), [])
-        for i in range(len(clients)):
-            # Pausa, se duerme, reanuda y vuelve a dormirse varias veces hasta
-            # que termina el turno.
-            logger.info(">> Waiting new turn")
-            for i in range(4):
-                # El tiempo dormido entre pausas no debería contar
-                pause(True)
-                recv_pause()
-                time.sleep(random.uniform(0.1, 0.3))
-                pause(False)
-                recv_pause()
+        # Pausa, se duerme, reanuda y vuelve a dormirse varias veces hasta
+        # que termina el turno.
+        logger.info(">> Waiting new turn")
+        for i in range(4):
+            # El tiempo dormido entre pausas no debería contar
+            pause(True)
+            recv_pause()
+            time.sleep(random.uniform(0.1, 0.3))
+            pause(False)
+            recv_pause()
 
-                time.sleep(0.05)
-                logger.info(f">> Iteration {i + 1}/4 done, slept {0.1 * (i + 1)}/0.2s")
+            time.sleep(0.05)
+            logger.info(f">> Iteration {i + 1}/4 done, slept {0.1 * (i + 1)}/0.2s")
 
-            # Duerme el tiempo restante como margen fuera del bucle
-            time.sleep(0.12)
-            logger.info(">> Done waiting")
+        # Duerme el tiempo restante como margen fuera del bucle
+        time.sleep(0.15)
+        logger.info(">> Done waiting")
 
-            end_turn = self.get_current_turn(clients[0])
-            self.assertNotEqual(start_turn, end_turn)
-            start_turn = end_turn
+        end_turn = self.get_current_turn(clients[0])
+        self.assertNotEqual(start_turn, end_turn)
+        self.assertEqual(clients[0].get_received(), [])

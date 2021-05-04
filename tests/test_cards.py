@@ -230,3 +230,13 @@ class CardsTest(WsTestClient):
             place_in_self=False,
         )
 
+    def test_modifier_on_empty_pile(self):
+        """
+        Se prueba que no se pueda colocar un modificador sin un órgano en la
+        base de la pila.
+        """
+        self.check_cant_place(
+            target_body=Body(),
+            card=Medicine(color=Color.Red),
+            place_in_self=True,
+        )

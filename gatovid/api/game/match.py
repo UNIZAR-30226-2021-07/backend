@@ -93,10 +93,7 @@ class Match:
         # cancelarse.
         if kicked is not None:
             # Se elimina al usuario de la partida
-            kicked_user = None
-            for user in self.users:
-                if user.name == kicked:
-                    kicked_user = user
+            kicked_user = next(filter(lambda u: u.name == kicked, self.users))
             self.users.remove(kicked_user)
 
             # Se notifica el abandono del usuario

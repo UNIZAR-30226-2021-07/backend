@@ -210,14 +210,14 @@ class Game:
             player = self.get_player(caller)
             update = action.apply(player, game=self)
 
-            if not self.discarding:
-                end_update = self._end_turn()
-                update = self._merge_updates(end_update, update)
-
             # TODO: revisar fin de partida
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
                 update = self._merge_updates(finish_update, update)
+
+            if not self.discarding and not self._finished:
+                end_update = self._end_turn()
+                update = self._merge_updates(end_update, update)
 
             return update
 
@@ -266,7 +266,13 @@ class Game:
                     break
 
             # Siguiente turno, y actualización del estado a todos los jugadores
-            self._turn = (self._turn + 1) % len(self.players)
+            #
+            # No se le pasará el turno a un jugador que ya ha terminado la
+            # partida.
+            while True:
+                self._turn = (self._turn + 1) % len(self.players)
+                if self.turn_player().has_finished():
+                    continue
             new_turn = {"current_turn": self.turn_player().name}
             turn_update = [new_turn] * len(self.players)
             update = self._merge_updates(update, turn_update)
@@ -397,19 +403,14 @@ class Game:
         N = len(self.players)
 
         for player in self.players:
-            if player.position is None:
+            # No entrará en el top si si ha abandonado la partida y o si es el
+            # último jugador.
+            if not player.has_finished() or player.kicked:
                 continue
-
-            # Un usuario ganará monedas únicamente si no ha abandonado la
-            # partida.
-            if player.kicked:
-                coins = 0
-            else:
-                coins = 10 * (N - player.position)
 
             leaderboard[player.name] = {
                 "position": player.position,
-                "coins": coins,
+                "coins": 10 * (N - player.position),
             }
 
         return leaderboard

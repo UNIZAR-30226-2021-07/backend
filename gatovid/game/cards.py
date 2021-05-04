@@ -72,8 +72,7 @@ class Organ(SimpleCard):
     Coloca un órgano para un jugador.
 
     TODO: es en este punto en el que se decide si un usuario ha ganado (cuando
-    tiene uno de cada). Cuando hayan más tests hechos, llamar a player_finished
-    y hacer el fin de partida añadiendo `finish` en este.
+    tiene uno de cada). Cuando hayan más tests hechos, llamar a player_finished.
     """
 
     # Usado para la codificación JSON

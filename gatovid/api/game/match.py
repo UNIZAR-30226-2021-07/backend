@@ -81,6 +81,30 @@ class Match:
     def is_paused(self) -> bool:
         self._game.is_paused()
 
+    def _turn_passed_auto(self, update: Dict, kicked: Optional[str]) -> None:
+        """
+        Callback invocado cuando la partida pasa de turno automáticamente por el
+        timer. Esta acción posiblemente expulse a un usuario de la partida, en
+        cuyo caso `kicked` no será `None`
+        """
+
+        # TODO: esto también tendría que pasar un "finished", porque en caso de
+        # que se fueran todos los usuarios de la partida tendría que cancelarse.
+        if kicked is not None:
+            # Se elimina al usuario de la partida
+            kicked_user = None
+            for user in self.users:
+                if user.name == kicked:
+                    kicked_user = user
+            self.users.remove(kicked_user)
+
+            # Se notifica el abandono del usuario
+            match_update = self._match_info()
+            # TODO: refactor when GameUpdate is implemented
+            update = self._game._merge_updates(match_update, update)
+
+        self.send_update(update)
+
     def start(self) -> None:
         """
         La partida solo se puede iniciar una vez, por lo que esta operación es
@@ -102,7 +126,9 @@ class Match:
         with self._started_lock:
             if self.is_started():
                 return
-            self._game = Game(self.users)
+
+            enable_ai = isinstance(self, PublicMatch)
+            self._game = Game(self.users, self._turn_passed_auto, enable_ai)
 
         # Mensaje especial de inicio de la partida
         logger.info(f"Match {self.code} has started")

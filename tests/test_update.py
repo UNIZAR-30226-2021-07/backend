@@ -96,3 +96,34 @@ class UpdateTest(GatovidTestClient):
         self.assertFalse(update.is_repeated)
 
         self.assertRaises(ValueError, lambda: update.get_any())
+
+    def test_recursive_merge(self):
+        """
+        Comprueba que los mergeos de datos son recursivos y no únicamente del
+        primer nivel.
+        """
+
+        game = self.get_game()
+        game.start()
+
+        update = GameUpdate(game)
+        update.repeat({"bodies": {"marcuspkz": 1234}})
+        update.repeat({"bodies": {"zebra": 444}})
+        update.repeat({"bodies": {"becario": {"a": 1, "b": 2}}})
+        update.repeat({"bodies": {"becario": {"a": 2, "c": 3}}})
+        update.add("test_1", {"bodies": 1})
+        update.add("test_2", {"hand": 1234.1234})
+        self.assertEqual(
+            update.as_dict(),
+            {
+                "test_1": {"bodies": 1},
+                "test_2": {
+                    "bodies": {
+                        "marcuspkz": 1234,
+                        "zebra": 444,
+                        "becario": {"a": 2, "b": 2, "c": 3},
+                    },
+                    "hand": 1234.1234,
+                },
+            },
+        )

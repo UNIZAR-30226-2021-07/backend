@@ -11,6 +11,21 @@ class GameLogicException(Exception):
     """
 
 
+def merge_dict(d1: Dict, d2: Dict) -> None:
+    """
+    Modifies d1 in-place to contain values from d2.  If any value
+    in d1 is a dictionary (or dict-like), *and* the corresponding
+    value in d2 is also a dictionary, then merge them in-place.
+    """
+
+    for k, v2 in d2.items():
+        v1 = d1.get(k)
+        if isinstance(v1, dict) and isinstance(v2, dict):
+            merge_dict(v1, v2)
+        else:
+            d1[k] = v2
+
+
 @dataclass(init=False)
 class GameUpdate:
     """
@@ -55,19 +70,16 @@ class GameUpdate:
 
     def add(self, player_name: str, value: Dict) -> None:
         self.is_repeated = False
-        self._data[player_name] = {**self._data[player_name], **value}
+        merge_dict(self._data[player_name], value)
 
     def add_for_each(self, mapping) -> None:
         self.is_repeated = False
         for player in self.game.players:
-            old_data = self._data[player.name]
-            new_data = mapping(player)
-            self._data[player.name] = {**old_data, **new_data}
+            merge_dict(self._data[player.name], mapping(player))
 
     def repeat(self, value: Dict) -> None:
         for player in self.game.players:
-            old_data = self._data[player.name]
-            self._data[player.name] = {**old_data, **value}
+            merge_dict(self._data[player.name], value)
 
     def merge_with(self, other: "GameUpdate") -> None:
         if self.game != other.game:
@@ -79,12 +91,4 @@ class GameUpdate:
         if not other.is_repeated:
             self.is_repeated = False
 
-        for player in self.game.players:
-            data_self = self.get(player.name)
-            data_other = other.get(player.name)
-
-            intersection = data_self.keys() & data_other.keys()
-            if len(intersection) != 0:
-                raise ValueError(f"Duplicate keys: {intersection}")
-
-            self._data[player.name] = {**data_self, **data_other}
+        merge_dict(self.as_dict(), other.as_dict())

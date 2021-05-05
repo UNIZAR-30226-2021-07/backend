@@ -151,27 +151,27 @@ class CardsTest(WsTestClient):
 
         self.check_card_interactions(
             card_order=[
-                Organ(color=Color.Any),
+                Organ(color=Color.All),
                 Virus(color=Color.Red),
                 Medicine(color=Color.Red),
             ],
             expected_pile_states=[
                 # Se coloca el órgano en la pila
-                {"modifiers": [], "organ": {"card_type": "organ", "color": "any"}},
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "all"}},
                 # Se infecta el órgano
                 {
                     "modifiers": [{"card_type": "virus", "color": "red"}],
-                    "organ": {"card_type": "organ", "color": "any"},
+                    "organ": {"card_type": "organ", "color": "all"},
                 },
                 # Se cura el órgano con la medicina
-                {"modifiers": [], "organ": {"card_type": "organ", "color": "any"}},
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "all"}},
             ],
         )
 
         self.check_card_interactions(
             card_order=[
                 Organ(color=Color.Red),
-                Virus(color=Color.Any),
+                Virus(color=Color.All),
                 Medicine(color=Color.Green),
             ],
             expected_pile_states=[
@@ -179,7 +179,7 @@ class CardsTest(WsTestClient):
                 {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
                 # Se infecta el órgano
                 {
-                    "modifiers": [{"card_type": "virus", "color": "any"}],
+                    "modifiers": [{"card_type": "virus", "color": "all"}],
                     "organ": {"card_type": "organ", "color": "red"},
                 },
                 # Se cura el órgano con la medicina
@@ -191,7 +191,7 @@ class CardsTest(WsTestClient):
             card_order=[
                 Organ(color=Color.Red),
                 Virus(color=Color.Red),
-                Medicine(color=Color.Any),
+                Medicine(color=Color.All),
             ],
             expected_pile_states=[
                 # Se coloca el órgano en la pila

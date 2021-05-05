@@ -19,7 +19,7 @@ class Color(str, Enum):
     Green = "green"
     Blue = "blue"
     Yellow = "yellow"
-    Any = "any"
+    All = "all"
 
 
 @dataclass

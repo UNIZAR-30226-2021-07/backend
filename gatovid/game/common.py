@@ -54,11 +54,14 @@ class GameUpdate:
 
     def add_for_each(self, mapping) -> None:
         for player in self.game.players:
-            self._data[player.name] = mapping(player)
+            old_data = self._data[player.name]
+            new_data = mapping(player)
+            self._data[player.name] = {**old_data, **new_data}
 
-    def repeat(self, value: any) -> None:
+    def repeat(self, value: Dict) -> None:
         for player in self.game.players:
-            self._data[player.name] = value
+            old_data = self._data[player.name]
+            self._data[player.name] = {**old_data, **value}
 
     def merge_with(self, other: "GameUpdate") -> None:
         if self.game != other.game:

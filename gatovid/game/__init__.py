@@ -244,6 +244,8 @@ class Game:
         completo.
         """
 
+        update = GameUpdate(self)
+
         # Se reestablecen los turnos AFK del usuario que ha terminado
         # correctamente la partida. No se hará para los posibles jugadores sean
         # skipeados.
@@ -260,9 +262,7 @@ class Game:
             # en concreto.
             while len(self.turn_player().hand) < 3:
                 self.draw_card(self.turn_player())
-
-            hand_update = GameUpdate(self)
-            hand_update.add(
+            update.add(
                 player_name=self.turn_player().name,
                 value={"hand": self.turn_player().hand},
             )
@@ -276,9 +276,7 @@ class Game:
                 if not self.turn_player().has_finished():
                     break
 
-            turn_update = GameUpdate(self)
-            turn_update.repeat({"current_turn": self.turn_player().name})
-            turn_update.merge_with(hand_update)
+            update.repeat({"current_turn": self.turn_player().name})
             logger.info(f"{self.turn_player().name}'s turn has started")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
@@ -289,7 +287,7 @@ class Game:
 
         self._start_turn_timer()
 
-        return turn_update
+        return update
 
     def _timer_end_turn(self):
         """

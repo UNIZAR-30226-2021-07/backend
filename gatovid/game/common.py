@@ -53,7 +53,7 @@ class GameUpdate:
         return self._data[player_name]
 
     def add(self, player_name: str, value: Dict) -> None:
-        self._data[player_name] = {**self._data, **value}
+        self._data[player_name] = {**self._data[player_name], **value}
 
     def add_for_each(self, mapping) -> None:
         for player in self.game.players:
@@ -73,11 +73,12 @@ class GameUpdate:
         if len(self._data) != len(other._data):
             raise ValueError("Tamaños incompatibles mezclando game_updates")
 
-        if len(self._data) != len(self.game.players):
-            raise ValueError("Tamaño incompatible con el número de jugadores")
+        for player in self.game.players:
+            data_self = self.get(player.name)
+            data_other = other.get(player.name)
 
-        intersection = self._data.keys() & other._data.keys()
-        if len(intersection) != 0:
-            raise ValueError(f"Duplicate keys: {intersection}")
+            intersection = data_self.keys() & data_other.keys()
+            if len(intersection) != 0:
+                raise ValueError(f"Duplicate keys: {intersection}")
 
-        self._data = {**self._data, **other._data}
+            self._data[player.name] = {**data_self, **data_other}

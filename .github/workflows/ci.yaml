@@ -18,7 +18,7 @@ jobs:
         with:
           submodules: recursive
       - id: list_dirs
-        run: echo "::set-output name=matrix::$(ls|jq -cnR '[inputs | select(length>0) | select(. | contains(\\"test_\\")) | rtrimstr(\\".py\\")]')"
+        run: echo "::set-output name=matrix::$(ls|jq -cnR '[inputs | select(length>0) | select(. | contains(\"test_\")) | rtrimstr(\".py\")]')"
     
   # Tests con el procedimiento estándar
   python-tests:

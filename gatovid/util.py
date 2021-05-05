@@ -68,14 +68,20 @@ def get_logger(name: str) -> logging.Logger:
     return logger
 
 
-class PausableTimer:
+class Timer:
     """
     Wrapper sobre threading.Timer que permite pausar y continuar la ejecución
     del temporizador.
+
+    También establece por defecto que sea un thread de tipo deamon, significando
+    que al acabar el programa también terminarán los threads pendientes.
+
+    Debería usarse siempre esta clase en vez de la original en threading.Timer.
     """
 
     def __init__(self, interval: float, *args, **kwargs) -> None:
         self._timer = threading.Timer(interval, *args, **kwargs)
+        self._timer.setDaemon(True)
         self._interval = timedelta(seconds=interval)
         self._args = args
         self._kwargs = kwargs

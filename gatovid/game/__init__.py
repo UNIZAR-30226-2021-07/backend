@@ -15,7 +15,7 @@ from gatovid.game.cards import DECK, Card
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
 from gatovid.models import User
-from gatovid.util import PausableTimer, get_logger
+from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
 
@@ -105,6 +105,14 @@ class Game:
         # excepto seguir descartando o pasar el turno.
         self.discarding = False
 
+    def __del__(self) -> None:
+        """
+        Destructor que termina la partida si no se ha hecho ya anteriormente.
+        """
+
+        if not self._finished:
+            self.finish()
+
     def start(self) -> GameUpdate:
         """
         Inicializa la baraja, la reordena de forma aleatoria, y reparte 3 cartas
@@ -163,7 +171,7 @@ class Game:
                 self._turn_timer.pause()
 
                 # Iniciamos un timer
-                self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, resume_callback)
+                self._pause_timer = Timer(TIME_UNTIL_RESUME, resume_callback)
                 self._pause_timer.start()
 
                 logger.info(f"Game paused by {paused_by}")
@@ -355,7 +363,7 @@ class Game:
         if self._turn_timer is not None:
             self._turn_timer.cancel()
 
-        self._turn_timer = PausableTimer(TIME_TURN_END, self._timer_end_turn)
+        self._turn_timer = Timer(TIME_TURN_END, self._timer_end_turn)
         self._turn_timer.start()
 
     def turn_player(self) -> Player:

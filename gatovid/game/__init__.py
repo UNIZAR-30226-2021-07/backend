@@ -34,6 +34,38 @@ class GameUpdate:
     comodidad/legibilidad de uso.
     """
 
+    def __init__(self, game: "Game") -> None:
+        self.game = game
+        # Los datos consisten en un diccionario con el nombre del jugador como
+        # clave y su información en el valor.
+        self._data = {}
+
+        for player in self.game.players:
+            self._data[player.name] = {}
+
+    def as_dict(self) -> Dict:
+        return self._data
+
+    def add(self, player_name: str, value: any) -> None:
+        self._data[player_name] = value
+
+    def repeat(self, value: any) -> None:
+        for player in self.game.players:
+            self._data[player.name] = value
+
+    def merge_with(self, other: "GameUpdate") -> None:
+        if len(self._data) != len(other._data):
+            raise ValueError("Tamaños incompatibles mezclando game_updates")
+
+        if len(self._data) != len(self.game.players):
+            raise ValueError("Tamaño incompatible con el número de jugadores")
+
+        intersection = self._data.keys() & other._data.keys()
+        if len(intersection) != 0:
+            raise ValueError(f"Duplicate keys: {intersection}")
+
+        self._data = {**self._data, **other._data}
+
 
 @dataclass(init=False)
 class Player:
@@ -113,7 +145,7 @@ class Game:
         # excepto seguir descartando o pasar el turno.
         self.discarding = False
 
-    def start(self) -> Dict:
+    def start(self) -> GameUpdate:
         """
         Inicializa la baraja, la reordena de forma aleatoria, y reparte 3 cartas
         a cada jugador, iterando de forma similar a cómo se haría en la vida
@@ -136,15 +168,15 @@ class Game:
         self._start_turn_timer()
 
         # Genera el estado inicial con las manos y turno
-        update = []
+        update = GameUpdate()
         for player in self.players:
-            update.append(
+            update.add(
+                player,
                 {
                     "hand": player.hand,
                     "current_turn": self.turn_player().name,
-                }
+                },
             )
-
         return update
 
     def is_finished(self) -> bool:
@@ -368,22 +400,6 @@ class Game:
         self._turn_timer = PausableTimer(TIME_TURN_END, self._timer_end_turn)
         self._turn_timer.start()
 
-    def _merge_updates(self, update1: List[Dict], update2: List[Dict]) -> List[Dict]:
-        """
-        Mezcla dos game_update, donde `update2` tiene preferencia sobre
-        `update1`.
-        """
-
-        nump = len(self.players)
-        if len(update1) != nump or len(update2) != nump:
-            raise Exception("Tamaños incompatibles mezclando game_updates")
-
-        updates = []
-        for u1, u2 in zip(update1, update2):
-            updates.append({**u1, **u2})
-
-        return updates
-
     def turn_player(self) -> Player:
         """
         Devuelve el nombre del usuario con el turno actual.
@@ -439,7 +455,7 @@ class Game:
 
         logger.info(f"{player.name} has finished at position {player.position}")
 
-    def finish(self) -> Dict:
+    def finish(self) -> GameUpdate:
         """
         Finaliza el juego y devuelve un game_update.
         """
@@ -452,9 +468,12 @@ class Game:
         if self._paused_timer is not None:
             self._paused_timer.cancel()
 
-        update = {
-            "finished": True,
-            "leaderboard": self._leaderboard(),
-            "playtime_mins": self._playtime_mins(),
-        }
-        return [update] * len(self.players)
+        update = GameUpdate()
+        update.repeat(
+            {
+                "finished": True,
+                "leaderboard": self._leaderboard(),
+                "playtime_mins": self._playtime_mins(),
+            }
+        )
+        return update

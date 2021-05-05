@@ -143,6 +143,69 @@ class CardsTest(WsTestClient):
 
         self.check_card_interactions(card_order, expected_pile_states)
 
+    def test_interactions_cure_multicolored(self):
+        """
+        Se prueba a colocar un órgano, infectarlo y curarlo alternando cartas
+        multicolor.
+        """
+
+        self.check_card_interactions(
+            card_order=[
+                Organ(color=Color.Any),
+                Virus(color=Color.Red),
+                Medicine(color=Color.Red),
+            ],
+            expected_pile_states=[
+                # Se coloca el órgano en la pila
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "any"}},
+                # Se infecta el órgano
+                {
+                    "modifiers": [{"card_type": "virus", "color": "red"}],
+                    "organ": {"card_type": "organ", "color": "any"},
+                },
+                # Se cura el órgano con la medicina
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "any"}},
+            ],
+        )
+
+        self.check_card_interactions(
+            card_order=[
+                Organ(color=Color.Red),
+                Virus(color=Color.Any),
+                Medicine(color=Color.Green),
+            ],
+            expected_pile_states=[
+                # Se coloca el órgano en la pila
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+                # Se infecta el órgano
+                {
+                    "modifiers": [{"card_type": "virus", "color": "any"}],
+                    "organ": {"card_type": "organ", "color": "red"},
+                },
+                # Se cura el órgano con la medicina
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+            ],
+        )
+
+        self.check_card_interactions(
+            card_order=[
+                Organ(color=Color.Red),
+                Virus(color=Color.Red),
+                Medicine(color=Color.Any),
+            ],
+            expected_pile_states=[
+                # Se coloca el órgano en la pila
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+                # Se infecta el órgano
+                {
+                    "modifiers": [{"card_type": "virus", "color": "red"}],
+                    "organ": {"card_type": "organ", "color": "red"},
+                },
+                # Se cura el órgano con la medicina
+                {"modifiers": [], "organ": {"card_type": "organ", "color": "red"}},
+            ],
+        )
+
     def test_interactions_medicine_destroy(self):
         """
         Se prueba a destruir una vacuna.

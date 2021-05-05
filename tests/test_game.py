@@ -212,7 +212,7 @@ class GameTest(WsTestClient):
             # El tiempo dormido entre pausas no debería contar
             pause(True)
             recv_pause()
-            time.sleep(random.uniform(0.1, 0.3))
+            time.sleep(0.4)
             pause(False)
             recv_pause()
 

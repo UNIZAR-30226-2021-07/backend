@@ -19,7 +19,7 @@ jobs:
           submodules: recursive
       - id: list_dirs
         run: |
-          ls | jq -cnR '[inputs | select(length>0) | select(. | contains("test_")) | rtrimstr(".py")]' >test_files.txt
+          echo $(ls tests | jq -cnR '[inputs | select(length>0) | select(. | contains("test_")) | rtrimstr(".py")]') >test_files.txt
           echo "::set-output name=matrix::$(cat test_files.txt)"
     
   # Tests con el procedimiento estándar

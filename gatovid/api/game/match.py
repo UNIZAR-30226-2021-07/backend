@@ -135,8 +135,6 @@ class Match:
         update = self._game.start()
         # game_update con el inicio de la partida
         match_update = self._match_info()
-        print(update)
-        print(match_update)
 
         # Unión de ambos game_update
         update.merge_with(match_update)
@@ -165,7 +163,7 @@ class Match:
 
                 data["players"].append(user_data)
 
-            update.add(user.name, data)
+            update.add(current_user.name, data)
 
         return update
 

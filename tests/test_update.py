@@ -1,4 +1,4 @@
-from gatovid.game import Game, GameUpdate, GameLogicException
+from gatovid.game import Game, GameUpdate
 from gatovid.models import User
 
 from .base import GatovidTestClient
@@ -15,6 +15,11 @@ class UpdateTest(GatovidTestClient):
         return game
 
     def test_full(self):
+        """
+        Comprueba que un GameUpdate es lo esperado tras una secuencia de
+        operaciones.
+        """
+
         game = self.get_game()
         game.start()
 

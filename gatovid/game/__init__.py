@@ -13,9 +13,9 @@ from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
-from gatovid.game.common import GameLogicException
+from gatovid.game.common import GameLogicException, GameUpdate
 from gatovid.models import User
-from gatovid.util import PausableTimer, get_logger
+from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
 
@@ -25,14 +25,6 @@ TIME_UNTIL_RESUME = 15
 TIME_TURN_END = 30
 # Máximo de turnos antes de expulsar a un usuario por estar AFK
 MAX_AFK_TURNS = 3
-
-
-@dataclass(init=False)
-class GameUpdate:
-    """
-    TODO: hacer una clase para game_update por type safety y
-    comodidad/legibilidad de uso.
-    """
 
 
 @dataclass(init=False)
@@ -113,7 +105,15 @@ class Game:
         # excepto seguir descartando o pasar el turno.
         self.discarding = False
 
-    def start(self) -> Dict:
+    def __del__(self) -> None:
+        """
+        Destructor que termina la partida si no se ha hecho ya anteriormente.
+        """
+
+        if not self._finished:
+            self.finish()
+
+    def start(self) -> GameUpdate:
         """
         Inicializa la baraja, la reordena de forma aleatoria, y reparte 3 cartas
         a cada jugador, iterando de forma similar a cómo se haría en la vida
@@ -136,15 +136,9 @@ class Game:
         self._start_turn_timer()
 
         # Genera el estado inicial con las manos y turno
-        update = []
-        for player in self.players:
-            update.append(
-                {
-                    "hand": player.hand,
-                    "current_turn": self.turn_player().name,
-                }
-            )
-
+        update = GameUpdate(self)
+        update.repeat({"current_turn": self.turn_player().name})
+        update.add_for_each(lambda player: {"hand": player.hand})
         return update
 
     def is_finished(self) -> bool:
@@ -159,7 +153,7 @@ class Game:
 
     def set_paused(
         self, paused: bool, paused_by: str, resume_callback
-    ) -> Optional[Dict]:
+    ) -> Optional[GameUpdate]:
         with self._paused_lock:
             if self._paused == paused:
                 return None
@@ -177,7 +171,7 @@ class Game:
                 self._turn_timer.pause()
 
                 # Iniciamos un timer
-                self._pause_timer = threading.Timer(TIME_UNTIL_RESUME, resume_callback)
+                self._pause_timer = Timer(TIME_UNTIL_RESUME, resume_callback)
                 self._pause_timer.start()
 
                 logger.info(f"Game paused by {paused_by}")
@@ -190,10 +184,15 @@ class Game:
 
             self._paused = paused
             self._paused_by = paused_by
-            return {
-                "paused": paused,
-                "paused_by": paused_by,
-            }
+
+            update = GameUpdate(self)
+            update.repeat(
+                {
+                    "paused": paused,
+                    "paused_by": paused_by,
+                }
+            )
+            return update
 
     def is_paused(self) -> bool:
         self._paused
@@ -224,11 +223,11 @@ class Game:
             # TODO: revisar fin de partida
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
-                update = self._merge_updates(finish_update, update)
+                update.merge_with(finish_update)
 
             if not self.discarding and not self._finished:
                 end_update = self._end_turn()
-                update = self._merge_updates(end_update, update)
+                update.merge_with(end_update)
 
             return update
 
@@ -242,7 +241,7 @@ class Game:
         drawn = self.deck.pop()
         player.hand.append(drawn)
 
-    def _end_turn(self) -> [Dict]:
+    def _end_turn(self) -> GameUpdate:
         """
         Tiene en cuenta que si el jugador al que le toca el turno no tiene
         cartas en la mano, deberá ser skipeado. Antes de pasar el turno el
@@ -253,7 +252,7 @@ class Game:
         completo.
         """
 
-        update = [{}] * len(self.players)
+        update = GameUpdate(self)
 
         # Se reestablecen los turnos AFK del usuario que ha terminado
         # correctamente la partida. No se hará para los posibles jugadores sean
@@ -271,10 +270,10 @@ class Game:
             # en concreto.
             while len(self.turn_player().hand) < 3:
                 self.draw_card(self.turn_player())
-            for u, player in zip(update, self.players):
-                if player == self.turn_player():
-                    u["hand"] = self.turn_player().hand
-                    break
+            update.add(
+                player_name=self.turn_player().name,
+                value={"hand": self.turn_player().hand},
+            )
 
             # Siguiente turno, y actualización del estado a todos los jugadores
             #
@@ -284,9 +283,8 @@ class Game:
                 self._turn = (self._turn + 1) % len(self.players)
                 if not self.turn_player().has_finished():
                     break
-            new_turn = {"current_turn": self.turn_player().name}
-            turn_update = [new_turn] * len(self.players)
-            update = self._merge_updates(update, turn_update)
+
+            update.repeat({"current_turn": self.turn_player().name})
             logger.info(f"{self.turn_player().name}'s turn has started")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
@@ -365,24 +363,8 @@ class Game:
         if self._turn_timer is not None:
             self._turn_timer.cancel()
 
-        self._turn_timer = PausableTimer(TIME_TURN_END, self._timer_end_turn)
+        self._turn_timer = Timer(TIME_TURN_END, self._timer_end_turn)
         self._turn_timer.start()
-
-    def _merge_updates(self, update1: List[Dict], update2: List[Dict]) -> List[Dict]:
-        """
-        Mezcla dos game_update, donde `update2` tiene preferencia sobre
-        `update1`.
-        """
-
-        nump = len(self.players)
-        if len(update1) != nump or len(update2) != nump:
-            raise Exception("Tamaños incompatibles mezclando game_updates")
-
-        updates = []
-        for u1, u2 in zip(update1, update2):
-            updates.append({**u1, **u2})
-
-        return updates
 
     def turn_player(self) -> Player:
         """
@@ -439,7 +421,7 @@ class Game:
 
         logger.info(f"{player.name} has finished at position {player.position}")
 
-    def finish(self) -> Dict:
+    def finish(self) -> GameUpdate:
         """
         Finaliza el juego y devuelve un game_update.
         """
@@ -452,9 +434,12 @@ class Game:
         if self._paused_timer is not None:
             self._paused_timer.cancel()
 
-        update = {
-            "finished": True,
-            "leaderboard": self._leaderboard(),
-            "playtime_mins": self._playtime_mins(),
-        }
-        return [update] * len(self.players)
+        update = GameUpdate(self)
+        update.repeat(
+            {
+                "finished": True,
+                "leaderboard": self._leaderboard(),
+                "playtime_mins": self._playtime_mins(),
+            }
+        )
+        return update

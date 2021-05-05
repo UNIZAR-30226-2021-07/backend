@@ -4,9 +4,9 @@ pilas de cartas dentro de los cuerpos.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
-from gatovid.game.common import GameLogicException
+from gatovid.game.common import GameLogicException, GameUpdate
 from gatovid.util import get_logger
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ class Action(ABC):
     """
 
     @abstractmethod
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
         pass
 
 
@@ -39,7 +39,7 @@ class Pass(Action):
     pasará el turno automáticamente en el juego.
     """
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
         logger.info(f"{caller.name} stops discarding cards")
 
         game.discarding = False
@@ -54,7 +54,7 @@ class Discard(Action):
         # Slot de la mano con la carta que queremos descartar.
         self.slot = data.get("slot")
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
         logger.info(f"{caller.name} discards a card")
 
         # Activa la fase de descarte
@@ -96,7 +96,7 @@ class PlayCard(Action):
         if self.slot is None:
             raise GameLogicException("Slot vacío")
 
-    def apply(self, caller: "Player", game: "Game") -> Dict:
+    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
         logger.info(f"{caller.name} plays a card")
 
         # No podrá jugar una carta si el mismo jugador está en proceso de

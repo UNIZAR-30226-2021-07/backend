@@ -8,9 +8,9 @@ from collections import deque
 from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
-from gatovid.game import Action, Game, GameLogicException
+from gatovid.game import Action, Game, GameLogicException, GameUpdate
 from gatovid.models import User
-from gatovid.util import get_logger
+from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
 matches = dict()
@@ -81,7 +81,7 @@ class Match:
     def is_paused(self) -> bool:
         self._game.is_paused()
 
-    def _turn_passed_auto(self, update: Dict, kicked: Optional[str]) -> None:
+    def _turn_passed_auto(self, update: GameUpdate, kicked: Optional[str]) -> None:
         """
         Callback invocado cuando la partida pasa de turno automáticamente por el
         timer. Esta acción posiblemente expulse a un usuario de la partida, en
@@ -98,8 +98,7 @@ class Match:
 
             # Se notifica el abandono del usuario
             match_update = self._match_info()
-            # TODO: refactor when GameUpdate is implemented
-            update = self._game._merge_updates(match_update, update)
+            update.merge_with(match_update)
 
         self.send_update(update)
 
@@ -133,26 +132,23 @@ class Match:
         socket.emit("start_game", room=self.code)
 
         # game_update con el inicio del juego
-        start_update = self._game.start()
+        update = self._game.start()
         # game_update con el inicio de la partida
         match_update = self._match_info()
 
         # Unión de ambos game_update
-        full_update = []
-        for start, match in zip(start_update, match_update):
-            full_update.append({**start, **match})
-        self.send_update(full_update)
+        update.merge_with(match_update)
+        self.send_update(update)
 
-    def _match_info(self) -> Dict:
+    def _match_info(self) -> GameUpdate:
         """
         Genera un game_update con información sobre la partida para cada
         jugador.
         """
 
-        update = []
+        update = GameUpdate(self._game)
         for current_user in self.users:
             data = {"players": []}
-
             for user in self.users:
                 # Información genérica del resto de usuarios
                 user_data = {
@@ -167,27 +163,28 @@ class Match:
 
                 data["players"].append(user_data)
 
-            update.append(data)
+            update.add(current_user.name, data)
 
         return update
 
-    def send_update(self, data: List[Dict]) -> None:
+    def send_update(self, update: GameUpdate) -> None:
         """
         Envía un game_update a cada uno de los participantes de la partida.
         """
 
-        for user, status in zip(self.users, data):
+        for user in self.users:
+            status = update.get(user.name)
             if status == {}:
                 continue
 
             socket.emit("game_update", status, room=user.sid)
 
-    def broadcast_update(self, status: Dict) -> None:
+    def broadcast_update(self, update: GameUpdate) -> None:
         """
         Envía un mismo game_update a todos los participantes de la partida.
         """
 
-        socket.emit("game_update", status, room=self.code)
+        socket.emit("game_update", update.get_any(), room=self.code)
 
     def run_action(self, caller: str, action: Action) -> None:
         """
@@ -212,11 +209,11 @@ class Match:
         if not self.is_started() or not self._game.is_finished():
             socket.emit("game_cancelled", room=self.code)
 
-            # Se termina manualmente el juego interno, pero al ser cancelado no
-            # se actualizarán los datos de los jugadores ni se enviará el
-            # game_update.
-            if self.is_started():
-                _ = self._game.finish()
+        # Se termina manualmente el juego interno, pero al ser cancelado no
+        # se actualizarán los datos de los jugadores ni se enviará el
+        # game_update.
+        if self.is_started():
+            _ = self._game.finish()
 
         logger.info(f"Match {self.code} has ended")
 
@@ -284,7 +281,7 @@ class PublicMatch(Match):
 
         # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
         # han conectado todos los jugadores.
-        self.start_timer = threading.Timer(TIME_UNTIL_START, self.start_check)
+        self.start_timer = Timer(TIME_UNTIL_START, self.start_check)
 
     def start(self):
         # Cancelamos el timer si sigue
@@ -354,9 +351,7 @@ class MatchManager:
             # En caso contrario, si se ha llegado al mínimo de usuarios se
             # inicia el timer.
             if len(self.users_waiting) == MIN_MATCH_USERS:
-                self._public_timer = threading.Timer(
-                    TIME_UNTIL_START, self.matchmaking_check
-                )
+                self._public_timer = Timer(TIME_UNTIL_START, self.matchmaking_check)
                 self._public_timer.start()
 
     def matchmaking_check(self):

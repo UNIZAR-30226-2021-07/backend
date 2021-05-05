@@ -7,10 +7,29 @@ on:
     branches: master
 
 jobs:
+  # Obtenemos todos los conjuntos de tests
+  list-python-tests:
+    name: List python tests
+    runs-on: ubuntu-20.04
+    outputs:
+      matrix: ${{steps.list_dirs.outputs.matrix}}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+      - id: list_dirs
+        run: |
+          echo $(ls tests | jq -cnR '[inputs | select(length>0) | select(. | contains("test_")) | rtrimstr(".py")]') >test_files.txt
+          echo "::set-output name=matrix::$(cat test_files.txt)"
+    
   # Tests con el procedimiento estándar
   python-tests:
     name: Python tests
     runs-on: ubuntu-20.04
+    needs: list-python-tests
+    strategy:
+      matrix:
+        test-path: ${{fromJson(needs.list-python-tests.outputs.matrix)}}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -21,7 +40,7 @@ jobs:
           docker-compose build
           docker-compose up -d
       - name: Run tests
-        run: docker-compose run api /usr/local/bin/python -m unittest -v
+        run: docker-compose run api /usr/local/bin/python -m unittest -v tests.${{ matrix.test-path }}
 
   # Linter con flake8
   python-linter:

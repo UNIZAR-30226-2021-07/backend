@@ -2,7 +2,6 @@
 Tests para la lógica del juego
 """
 
-import random
 import time
 
 from gatovid.create_db import GENERIC_USERS_NAME

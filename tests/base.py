@@ -4,6 +4,8 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from flask_testing import TestCase
 
+import gatovid.api.game.match
+import gatovid.game
 from gatovid.app import app
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
@@ -14,6 +16,10 @@ from gatovid.create_db import (
     db_test_data,
 )
 from gatovid.exts import db, socket
+
+DEFAULT_TIME_TURN_END = gatovid.game.TIME_TURN_END
+DEFAULT_TIME_UNTIL_RESUME = gatovid.game.TIME_UNTIL_RESUME
+DEFAULT_TIME_UNTIL_START = gatovid.api.game.match.TIME_UNTIL_START
 
 
 class BaseTestCase(TestCase):
@@ -168,6 +174,17 @@ class WsTestClient(GatovidTestClient):
             except RuntimeError:
                 # Ignoramos si el cliente no se ha conectado
                 pass
+
+        self.reset_timeouts()
+
+    def reset_timeouts(self) -> None:
+        """
+        Reinicia los timeouts establecidos para las pruebas de forma manual.
+        """
+
+        self.set_matchmaking_time(DEFAULT_TIME_UNTIL_START)
+        self.set_pause_timeout(DEFAULT_TIME_UNTIL_RESUME)
+        self.set_turn_timeout(DEFAULT_TIME_TURN_END)
 
     def create_client(self, user_data: Dict[str, str]):
         resp = self.request_token(user_data)

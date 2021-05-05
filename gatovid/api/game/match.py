@@ -81,7 +81,7 @@ class Match:
     def is_paused(self) -> bool:
         self._game.is_paused()
 
-    def _turn_passed_auto(self, update: Dict, kicked: Optional[str]) -> None:
+    def _turn_passed_auto(self, update: GameUpdate, kicked: Optional[str]) -> None:
         """
         Callback invocado cuando la partida pasa de turno automáticamente por el
         timer. Esta acción posiblemente expulse a un usuario de la partida, en
@@ -98,8 +98,7 @@ class Match:
 
             # Se notifica el abandono del usuario
             match_update = self._match_info()
-            # TODO: refactor when GameUpdate is implemented
-            update = self._game._merge_updates(match_update, update)
+            update.merge_with(match_update)
 
         self.send_update(update)
 
@@ -133,15 +132,15 @@ class Match:
         socket.emit("start_game", room=self.code)
 
         # game_update con el inicio del juego
-        start_update = self._game.start()
+        update = self._game.start()
         # game_update con el inicio de la partida
         match_update = self._match_info()
+        print(update)
+        print(match_update)
 
         # Unión de ambos game_update
-        full_update = []
-        for start, match in zip(start_update, match_update):
-            full_update.append({**start, **match})
-        self.send_update(full_update)
+        update.merge_with(match_update)
+        self.send_update(update)
 
     def _match_info(self) -> GameUpdate:
         """
@@ -152,7 +151,6 @@ class Match:
         update = GameUpdate(self._game)
         for current_user in self.users:
             data = {"players": []}
-
             for user in self.users:
                 # Información genérica del resto de usuarios
                 user_data = {
@@ -167,7 +165,7 @@ class Match:
 
                 data["players"].append(user_data)
 
-            update.append(data)
+            update.add(user.name, data)
 
         return update
 

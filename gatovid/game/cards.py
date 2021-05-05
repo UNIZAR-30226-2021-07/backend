@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Optional
 
-from gatovid.game.common import GameLogicException
+from gatovid.game.common import GameLogicException, GameUpdate
 from gatovid.models import CARDS
 from gatovid.util import get_logger
 
@@ -58,12 +58,14 @@ class SimpleCard(Card):
         if not self.organ_pile.can_place(self):
             raise GameLogicException("No se puede colocar la carta ahí")
 
-    def piles_update(self) -> Dict:
+    def piles_update(self, game: "Game") -> GameUpdate:
         """
         Genera un diccionario indicando cambios a la pila del target.
         """
 
-        return {"bodies": {self.target.name: self.target.body.piles}}
+        update = GameUpdate(game)
+        update.repeat({"bodies": {self.target.name: self.target.body.piles}})
+        return update
 
 
 @dataclass
@@ -78,7 +80,7 @@ class Organ(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "organ"
 
-    def apply(self, action: "PlayCard", game: "Game") -> Dict:
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         if self.target.name != action.caller.name:
@@ -88,7 +90,7 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        return [self.piles_update()] * len(game.players)
+        return self.piles_update(game)
 
 
 @dataclass
@@ -98,7 +100,7 @@ class Virus(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "virus"
 
-    def apply(self, action: "PlayCard", game: "Game") -> Dict:
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         if self.target.name == action.caller.name:
@@ -116,7 +118,7 @@ class Virus(SimpleCard):
         else:  # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
-        return [self.piles_update()] * len(game.players)
+        return self.piles_update(game)
 
 
 @dataclass
@@ -126,7 +128,7 @@ class Medicine(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "medicine"
 
-    def apply(self, action: "PlayCard", game: "Game") -> Dict:
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         if self.target.name != action.caller.name:
@@ -142,7 +144,7 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
-        return [self.piles_update()] * len(game.players)
+        return self.piles_update(game)
 
 
 @dataclass

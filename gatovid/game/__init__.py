@@ -129,12 +129,8 @@ class Game:
 
         # Genera el estado inicial con las manos y turno
         update = GameUpdate(self)
-        update.add_for_each(
-            lambda player: {
-                "hand": player.hand,
-                "current_turn": self.turn_player().name,
-            }
-        )
+        update.repeat({"current_turn": self.turn_player().name})
+        update.add_for_each(lambda player: {"hand": player.hand})
         return update
 
     def is_finished(self) -> bool:
@@ -219,11 +215,11 @@ class Game:
             # TODO: revisar fin de partida
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
-                update = self._merge_updates(finish_update, update)
+                update.merge_with(finish_update)
 
             if not self.discarding and not self._finished:
                 end_update = self._end_turn()
-                update = self._merge_updates(end_update, update)
+                update.merge_with(end_update)
 
             return update
 

@@ -17,7 +17,10 @@ class GameUpdate:
     Una clase para game_update por type safety y comodidad/legibilidad de uso.
     """
 
-    def __init__(self, game: Game) -> None:
+    game: "Game"
+    _data: Dict
+
+    def __init__(self, game: "Game") -> None:
         self.game = game
         # Los datos consisten en un diccionario con el nombre del jugador como
         # clave y su información en el valor.

@@ -348,13 +348,13 @@ def pause_game(paused):
     match = MM.get_match(session["game"])
     name = session["user"].name
 
-    if isinstance(match, PrivateMatch):
-        try:
-            match.set_paused(paused, paused_by=name)
-        except GameLogicException as e:
-            return {"error": str(e)}
-    else:
+    if not isinstance(match, PrivateMatch):
         return {"error": "No estás en una partida privada"}
+
+    try:
+        match.set_paused(paused, paused_by=name)
+    except GameLogicException as e:
+        return {"error": str(e)}
 
 
 @socket.on("chat")

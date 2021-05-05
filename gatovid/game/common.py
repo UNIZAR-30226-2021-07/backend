@@ -25,6 +25,8 @@ class GameUpdate:
         # Los datos consisten en un diccionario con el nombre del jugador como
         # clave y su información en el valor.
         self._data = {}
+        # Para saber si todos los valores son los mismos
+        self.is_repeated = True
 
         for player in self.game.players:
             self._data[player.name] = {}
@@ -42,20 +44,21 @@ class GameUpdate:
         es útil por ejemplo para hacer un broadcast del mismo mensaje.
         """
 
-        expected_val = next(iter(self._data.values()))
-        all_equal = all(val == expected_val for val in self._data.values())
-        if not all_equal:
+        if not self.is_repeated:
             raise ValueError("No todos los GameUpdate son iguales")
 
-        return expected_val
+        first_val = next(iter(self._data.values()))
+        return first_val
 
     def get(self, player_name: str) -> Dict:
         return self._data[player_name]
 
     def add(self, player_name: str, value: Dict) -> None:
+        self.is_repeated = False
         self._data[player_name] = {**self._data[player_name], **value}
 
     def add_for_each(self, mapping) -> None:
+        self.is_repeated = False
         for player in self.game.players:
             old_data = self._data[player.name]
             new_data = mapping(player)
@@ -72,6 +75,9 @@ class GameUpdate:
 
         if len(self._data) != len(other._data):
             raise ValueError("Tamaños incompatibles mezclando game_updates")
+
+        if not other.is_repeated:
+            self.is_repeated = False
 
         for player in self.game.players:
             data_self = self.get(player.name)

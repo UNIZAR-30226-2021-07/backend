@@ -1,4 +1,4 @@
-from gatovid.game import Game, GameUpdate
+from gatovid.game import Game, GameUpdate, GameLogicException
 from gatovid.models import User
 
 from .base import GatovidTestClient
@@ -65,3 +65,26 @@ class UpdateTest(GatovidTestClient):
                 "test_2": {"hand": 1234, "thing": "test_2", "from_new": 1.4},
             },
         )
+
+    def test_repeated(self):
+        """
+        Comprueba el caso especial en el que los datos son los mismos para todos
+        los usuarios para hacer un broadcast.
+        """
+
+        game = self.get_game()
+        game.start()
+
+        update = GameUpdate(game)
+        self.assertTrue(update.is_repeated)
+
+        update.repeat({"thing": "abc"})
+        self.assertEqual(
+            update.as_dict(), {"test_1": {"thing": "abc"}, "test_2": {"thing": "abc"}}
+        )
+        self.assertTrue(update.is_repeated)
+
+        update.add("test_1", {"foo": "bar"})
+        self.assertFalse(update.is_repeated)
+
+        self.assertRaises(ValueError, lambda: update.get_any())

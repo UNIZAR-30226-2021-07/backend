@@ -233,7 +233,7 @@ class Game:
         drawn = self.deck.pop()
         player.hand.append(drawn)
 
-    def _end_turn(self) -> [Dict]:
+    def _end_turn(self) -> GameUpdate:
         """
         Tiene en cuenta que si el jugador al que le toca el turno no tiene
         cartas en la mano, deberá ser skipeado. Antes de pasar el turno el
@@ -243,8 +243,6 @@ class Game:
         partida, incluyendo las manos, por lo que se devuelve un game_update
         completo.
         """
-
-        update = [{}] * len(self.players)
 
         # Se reestablecen los turnos AFK del usuario que ha terminado
         # correctamente la partida. No se hará para los posibles jugadores sean
@@ -262,10 +260,12 @@ class Game:
             # en concreto.
             while len(self.turn_player().hand) < 3:
                 self.draw_card(self.turn_player())
-            for u, player in zip(update, self.players):
-                if player == self.turn_player():
-                    u["hand"] = self.turn_player().hand
-                    break
+
+            hand_update = GameUpdate(self)
+            hand_update.add(
+                player_name=self.turn_player().name,
+                value={"hand": self.turn_player().hand},
+            )
 
             # Siguiente turno, y actualización del estado a todos los jugadores
             #
@@ -275,9 +275,10 @@ class Game:
                 self._turn = (self._turn + 1) % len(self.players)
                 if not self.turn_player().has_finished():
                     break
-            new_turn = {"current_turn": self.turn_player().name}
-            turn_update = [new_turn] * len(self.players)
-            update = self._merge_updates(update, turn_update)
+
+            turn_update = GameUpdate(self)
+            turn_update.repeat({"current_turn": self.turn_player().name})
+            turn_update.merge_with(hand_update)
             logger.info(f"{self.turn_player().name}'s turn has started")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
@@ -288,7 +289,7 @@ class Game:
 
         self._start_turn_timer()
 
-        return update
+        return turn_update
 
     def _timer_end_turn(self):
         """

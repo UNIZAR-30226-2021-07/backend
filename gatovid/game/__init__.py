@@ -30,8 +30,7 @@ MAX_AFK_TURNS = 3
 @dataclass(init=False)
 class GameUpdate:
     """
-    TODO: hacer una clase para game_update por type safety y
-    comodidad/legibilidad de uso.
+    Una clase para game_update por type safety y comodidad/legibilidad de uso.
     """
 
     def __init__(self, game: "Game") -> None:
@@ -43,11 +42,35 @@ class GameUpdate:
         for player in self.game.players:
             self._data[player.name] = {}
 
+    def __iter__(self):
+        for player_name, value in self._data:
+            yield player_name, value
+
     def as_dict(self) -> Dict:
         return self._data
 
+    def get_any(self) -> Dict:
+        """
+        Asumiendo que los valores de cada jugador son iguales, lo devuelve. Esto
+        es útil por ejemplo para hacer un broadcast del mismo mensaje.
+        """
+
+        expected_val = next(iter(self._data.values()))
+        all_equal = all(val == expected_val for val in self._data.values())
+        if not all_equal:
+            raise ValueError("No todos los GameUpdate son iguales")
+
+        return expected_val
+
+    def get(self, player_name: str) -> Dict:
+        return self._data[player_name]
+
     def add(self, player_name: str, value: any) -> None:
         self._data[player_name] = value
+
+    def add_for_each(self, mapping) -> None:
+        for player in self.game.players:
+            self._data[player.name] = mapping(player)
 
     def repeat(self, value: any) -> None:
         for player in self.game.players:
@@ -168,15 +191,11 @@ class Game:
         self._start_turn_timer()
 
         # Genera el estado inicial con las manos y turno
-        update = GameUpdate()
-        for player in self.players:
-            update.add(
-                player,
-                {
-                    "hand": player.hand,
-                    "current_turn": self.turn_player().name,
-                },
-            )
+        update = GameUpdate(self)
+        update.add_for_each(lambda player: {
+            "hand": player.hand,
+            "current_turn": self.turn_player().name,
+        })
         return update
 
     def is_finished(self) -> bool:
@@ -191,7 +210,7 @@ class Game:
 
     def set_paused(
         self, paused: bool, paused_by: str, resume_callback
-    ) -> Optional[Dict]:
+    ) -> Optional[GameUpdate]:
         with self._paused_lock:
             if self._paused == paused:
                 return None
@@ -222,10 +241,13 @@ class Game:
 
             self._paused = paused
             self._paused_by = paused_by
-            return {
+
+            update = GameUpdate(self)
+            update.repeat({
                 "paused": paused,
                 "paused_by": paused_by,
-            }
+            })
+            return update
 
     def is_paused(self) -> bool:
         self._paused
@@ -468,7 +490,7 @@ class Game:
         if self._paused_timer is not None:
             self._paused_timer.cancel()
 
-        update = GameUpdate()
+        update = GameUpdate(self)
         update.repeat(
             {
                 "finished": True,

@@ -8,7 +8,7 @@ from collections import deque
 from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
-from gatovid.game import Action, Game, GameLogicException
+from gatovid.game import Action, Game, GameLogicException, GameUpdate
 from gatovid.models import User
 from gatovid.util import get_logger
 
@@ -143,14 +143,13 @@ class Match:
             full_update.append({**start, **match})
         self.send_update(full_update)
 
-    def _match_info(self) -> Dict:
+    def _match_info(self) -> GameUpdate:
         """
         Genera un game_update con información sobre la partida para cada
         jugador.
         """
 
-        update = []
-        for current_user in self.users:
+        def generate_data(user: User):
             data = {"players": []}
 
             for user in self.users:
@@ -167,27 +166,35 @@ class Match:
 
                 data["players"].append(user_data)
 
+            return data
+
+        update = GameUpdate(self._game)
+        # TODO
+        update = []
+        for current_user in self.users:
+
             update.append(data)
 
         return update
 
-    def send_update(self, data: List[Dict]) -> None:
+    def send_update(self, update: GameUpdate) -> None:
         """
         Envía un game_update a cada uno de los participantes de la partida.
         """
 
-        for user, status in zip(self.users, data):
+        for user in self.users:
+            status = update.get(user.name)
             if status == {}:
                 continue
 
             socket.emit("game_update", status, room=user.sid)
 
-    def broadcast_update(self, status: Dict) -> None:
+    def broadcast_update(self, update: GameUpdate) -> None:
         """
         Envía un mismo game_update a todos los participantes de la partida.
         """
 
-        socket.emit("game_update", status, room=self.code)
+        socket.emit("game_update", update.get_any(), room=self.code)
 
     def run_action(self, caller: str, action: Action) -> None:
         """

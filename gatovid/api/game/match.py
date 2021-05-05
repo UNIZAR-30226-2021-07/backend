@@ -209,11 +209,11 @@ class Match:
         if not self.is_started() or not self._game.is_finished():
             socket.emit("game_cancelled", room=self.code)
 
-            # Se termina manualmente el juego interno, pero al ser cancelado no
-            # se actualizarán los datos de los jugadores ni se enviará el
-            # game_update.
-            if self.is_started():
-                _ = self._game.finish()
+        # Se termina manualmente el juego interno, pero al ser cancelado no
+        # se actualizarán los datos de los jugadores ni se enviará el
+        # game_update.
+        if self.is_started():
+            _ = self._game.finish()
 
         logger.info(f"Match {self.code} has ended")
 

@@ -110,7 +110,6 @@ class Game:
         Destructor que termina la partida si no se ha hecho ya anteriormente.
         """
 
-        print("ALLELUYA")
         if not self._finished:
             self.finish()
 

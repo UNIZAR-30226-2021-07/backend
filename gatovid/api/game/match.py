@@ -10,7 +10,7 @@ from typing import Dict, List, Optional
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException, GameUpdate
 from gatovid.models import User
-from gatovid.util import get_logger
+from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
 matches = dict()
@@ -281,7 +281,7 @@ class PublicMatch(Match):
 
         # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
         # han conectado todos los jugadores.
-        self.start_timer = threading.Timer(TIME_UNTIL_START, self.start_check)
+        self.start_timer = Timer(TIME_UNTIL_START, self.start_check)
 
     def start(self):
         # Cancelamos el timer si sigue
@@ -351,9 +351,7 @@ class MatchManager:
             # En caso contrario, si se ha llegado al mínimo de usuarios se
             # inicia el timer.
             if len(self.users_waiting) == MIN_MATCH_USERS:
-                self._public_timer = threading.Timer(
-                    TIME_UNTIL_START, self.matchmaking_check
-                )
+                self._public_timer = Timer(TIME_UNTIL_START, self.matchmaking_check)
                 self._public_timer.start()
 
     def matchmaking_check(self):

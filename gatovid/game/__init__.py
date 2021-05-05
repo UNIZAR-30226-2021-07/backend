@@ -13,7 +13,7 @@ from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
-from gatovid.game.common import GameLogicException
+from gatovid.game.common import GameLogicException, GameUpdate
 from gatovid.models import User
 from gatovid.util import PausableTimer, get_logger
 
@@ -25,69 +25,6 @@ TIME_UNTIL_RESUME = 15
 TIME_TURN_END = 30
 # Máximo de turnos antes de expulsar a un usuario por estar AFK
 MAX_AFK_TURNS = 3
-
-
-@dataclass(init=False)
-class GameUpdate:
-    """
-    Una clase para game_update por type safety y comodidad/legibilidad de uso.
-    """
-
-    def __init__(self, game: "Game") -> None:
-        self.game = game
-        # Los datos consisten en un diccionario con el nombre del jugador como
-        # clave y su información en el valor.
-        self._data = {}
-
-        for player in self.game.players:
-            self._data[player.name] = {}
-
-    def __iter__(self):
-        for player_name, value in self._data:
-            yield player_name, value
-
-    def as_dict(self) -> Dict:
-        return self._data
-
-    def get_any(self) -> Dict:
-        """
-        Asumiendo que los valores de cada jugador son iguales, lo devuelve. Esto
-        es útil por ejemplo para hacer un broadcast del mismo mensaje.
-        """
-
-        expected_val = next(iter(self._data.values()))
-        all_equal = all(val == expected_val for val in self._data.values())
-        if not all_equal:
-            raise ValueError("No todos los GameUpdate son iguales")
-
-        return expected_val
-
-    def get(self, player_name: str) -> Dict:
-        return self._data[player_name]
-
-    def add(self, player_name: str, value: any) -> None:
-        self._data[player_name] = value
-
-    def add_for_each(self, mapping) -> None:
-        for player in self.game.players:
-            self._data[player.name] = mapping(player)
-
-    def repeat(self, value: any) -> None:
-        for player in self.game.players:
-            self._data[player.name] = value
-
-    def merge_with(self, other: "GameUpdate") -> None:
-        if len(self._data) != len(other._data):
-            raise ValueError("Tamaños incompatibles mezclando game_updates")
-
-        if len(self._data) != len(self.game.players):
-            raise ValueError("Tamaño incompatible con el número de jugadores")
-
-        intersection = self._data.keys() & other._data.keys()
-        if len(intersection) != 0:
-            raise ValueError(f"Duplicate keys: {intersection}")
-
-        self._data = {**self._data, **other._data}
 
 
 @dataclass(init=False)
@@ -192,10 +129,12 @@ class Game:
 
         # Genera el estado inicial con las manos y turno
         update = GameUpdate(self)
-        update.add_for_each(lambda player: {
-            "hand": player.hand,
-            "current_turn": self.turn_player().name,
-        })
+        update.add_for_each(
+            lambda player: {
+                "hand": player.hand,
+                "current_turn": self.turn_player().name,
+            }
+        )
         return update
 
     def is_finished(self) -> bool:
@@ -243,10 +182,12 @@ class Game:
             self._paused_by = paused_by
 
             update = GameUpdate(self)
-            update.repeat({
-                "paused": paused,
-                "paused_by": paused_by,
-            })
+            update.repeat(
+                {
+                    "paused": paused,
+                    "paused_by": paused_by,
+                }
+            )
             return update
 
     def is_paused(self) -> bool:

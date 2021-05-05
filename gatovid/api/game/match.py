@@ -149,7 +149,8 @@ class Match:
         jugador.
         """
 
-        def generate_data(user: User):
+        update = GameUpdate(self._game)
+        for current_user in self.users:
             data = {"players": []}
 
             for user in self.users:
@@ -165,13 +166,6 @@ class Match:
                     user_data["board"] = user.board
 
                 data["players"].append(user_data)
-
-            return data
-
-        update = GameUpdate(self._game)
-        # TODO
-        update = []
-        for current_user in self.users:
 
             update.append(data)
 

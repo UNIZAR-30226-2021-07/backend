@@ -4,6 +4,8 @@ from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 
 from flask_testing import TestCase
 
+import gatovid.api.game.match
+import gatovid.game
 from gatovid.app import app
 from gatovid.create_db import (
     GENERIC_USERS_EMAIL,
@@ -14,6 +16,10 @@ from gatovid.create_db import (
     db_test_data,
 )
 from gatovid.exts import db, socket
+
+DEFAULT_TIME_TURN_END = gatovid.game.TIME_TURN_END
+DEFAULT_TIME_UNTIL_RESUME = gatovid.game.TIME_UNTIL_RESUME
+DEFAULT_TIME_UNTIL_START = gatovid.api.game.match.TIME_UNTIL_START
 
 
 class BaseTestCase(TestCase):
@@ -169,6 +175,17 @@ class WsTestClient(GatovidTestClient):
                 # Ignoramos si el cliente no se ha conectado
                 pass
 
+        self.reset_timeouts()
+
+    def reset_timeouts(self) -> None:
+        """
+        Reinicia los timeouts establecidos para las pruebas de forma manual.
+        """
+
+        self.set_matchmaking_time(DEFAULT_TIME_UNTIL_START)
+        self.set_pause_timeout(DEFAULT_TIME_UNTIL_RESUME)
+        self.set_turn_timeout(DEFAULT_TIME_TURN_END)
+
     def create_client(self, user_data: Dict[str, str]):
         resp = self.request_token(user_data)
 
@@ -241,6 +258,25 @@ class WsTestClient(GatovidTestClient):
         """
 
         time.sleep(self.pause_timeout * 1.2)
+
+    def set_turn_timeout(self, delay: float):
+        """
+        Para los tests se parchea el tiempo de timeout de los turnos, evitando
+        que se tenga que esperar a que acabe.
+        """
+
+        import gatovid.game
+
+        gatovid.game.TIME_TURN_END = delay
+        self.turn_time = delay
+
+    def wait_turn_timeout(self):
+        """
+        Espera el tiempo de turno, con un pequeño margen para el procesamiento
+        en el backend.
+        """
+
+        time.sleep(self.turn_time * 1.2)
 
     def create_game(self, players=6):
         clients = []

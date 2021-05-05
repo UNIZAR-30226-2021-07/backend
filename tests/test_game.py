@@ -2,12 +2,22 @@
 Tests para la lógica del juego
 """
 
+import time
+
 from gatovid.create_db import GENERIC_USERS_NAME
+from gatovid.util import get_logger
 
 from .base import WsTestClient
 
+logger = get_logger(__name__)
+
 
 class GameTest(WsTestClient):
+    def get_current_turn(self, client) -> str:
+        received = client.get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        return args["current_turn"]
+
     def test_start_game(self):
         """
         Comprueba el protocolo de inicio de la partida.
@@ -144,3 +154,74 @@ class GameTest(WsTestClient):
         self.assertEqual(args["paused"], False)
         self.assertIn("paused_by", args)
         self.assertEqual(args["paused_by"], GENERIC_USERS_NAME.format(0))
+
+    def test_auto_pass(self):
+        """
+        Comprueba que el turno se pasa automáticamente después de alcanzar el
+        tiempo límite de un turno.
+
+        Notar que no se puede asumir el orden del turno, así que únicamente se
+        comprueba si ha cambiado.
+        """
+
+        self.set_turn_timeout(0.2)
+        clients, code = self.create_game()
+
+        # Ciclo de turnos completo
+        start_turn = self.get_current_turn(clients[0])
+        for i in range(len(clients)):
+            self.wait_turn_timeout()
+            end_turn = self.get_current_turn(clients[0])
+            self.assertNotEqual(start_turn, end_turn)
+            start_turn = end_turn
+
+    def test_auto_pass_with_pause(self):
+        """
+        Comprueba que el turno se pasa automáticamente de forma correcta aun
+        cuando se pausa la partida.
+        """
+
+        self.set_turn_timeout(0.3)
+        clients, code = self.create_game()
+
+        def pause(paused):
+            callback_args = clients[0].emit("pause_game", paused, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        def recv_pause():
+            """
+            Lee los mensajes recibidos, asegurando que únicamente se tiene uno
+            de pausa en el buzón.
+            """
+
+            received = clients[0].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertIn("paused", args)
+            self.assertIn("paused_by", args)
+            self.assertNotIn("current_turn", args)
+            self.assertEqual(clients[0].get_received(), [])
+
+        # Ciclo de turnos completo
+        start_turn = self.get_current_turn(clients[0])
+        self.assertEqual(clients[0].get_received(), [])
+        # Pausa, se duerme, reanuda y vuelve a dormirse varias veces hasta
+        # que termina el turno.
+        logger.info(">> Waiting new turn")
+        for i in range(4):
+            # El tiempo dormido entre pausas no debería contar
+            pause(True)
+            recv_pause()
+            time.sleep(0.4)
+            pause(False)
+            recv_pause()
+
+            time.sleep(0.05)
+            logger.info(f">> Iteration {i + 1}/4 done, slept {0.1 * (i + 1)}/0.2s")
+
+        # Duerme el tiempo restante como margen fuera del bucle
+        time.sleep(0.15)
+        logger.info(">> Done waiting")
+
+        end_turn = self.get_current_turn(clients[0])
+        self.assertNotEqual(start_turn, end_turn)
+        self.assertEqual(clients[0].get_received(), [])

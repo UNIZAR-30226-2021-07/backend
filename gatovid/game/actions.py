@@ -110,8 +110,19 @@ class PlayCard(Action):
         # estado al eliminar la carta porque ya se hará cuando robe al final del
         # turno.
         card = caller.get_card(self.slot)
-        caller.remove_card(self.slot)
+
+        # NOTE: no hay ninguna carta que intercambie manos de jugadores, en ese
+        # caso habría que guardar el estado completo de la mano anterior y
+        # borrar la carta (para que cuando se intercambiase no hubiera
+        # problemas) y, en caso de fallo, restaurarla.
 
         # Usa la carta
-        update = card.apply(self, game)
+        try:
+            update = card.apply(self, game)
+        except GameLogicException as e:
+            logger.info(f"Error playing card: {e}")
+            raise
+        # Solo si hemos podido "aplicar" el comportamiento de la carta, la
+        # quitaremos de la mano.
+        caller.remove_card(self.slot)
         return update

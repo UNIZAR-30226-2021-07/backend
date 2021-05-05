@@ -66,6 +66,23 @@ class OrganPile:
             and isinstance(self.modifiers[1], Medicine)
         )
 
+    def has_possible_color(self, card: SimpleCard) -> bool:
+        """
+        Devuelve True si el color de la carta `card` es compatible con las
+        cartas de la pila.
+        """
+
+        if len(self.modifiers) == 0:
+            # Si no hay modificadores, comprobamos si el color del modificador es
+            # compatible con el del órgano.
+            last_color = self.organ.color
+        else:
+            # Si hay modificadores, comprobamos si el color es compatible con el
+            # anterior modificador.
+            last_color = self.modifiers[-1].color
+
+        return last_color == card.color or Color.Any in (last_color, card.color)
+
     def can_place(self, card: SimpleCard) -> bool:
         # Solo se puede colocar un órgano en un montón vacío
         if isinstance(card, Organ):
@@ -76,10 +93,7 @@ class OrganPile:
 
         # Comprobamos si los colores son iguales o alguna de las dos es un color
         # comodín.
-        if self.organ.color != card.color and Color.Any not in (
-            self.organ.color,
-            card.color,
-        ):
+        if not self.has_possible_color(card):
             return False
 
         # Si el órgano ya está inmunizado, no se pueden colocar más cartas.

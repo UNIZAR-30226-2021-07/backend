@@ -11,7 +11,10 @@ USERS = [
 
 class UpdateTest(GatovidTestClient):
     def get_game(self) -> Game:
-        game = Game(users=USERS, turn_callback=lambda **kwargs: {}, enable_ai=False)
+        def empty_callback(*args, **kwargs):
+            pass
+
+        game = Game(users=USERS, turn_callback=empty_callback, enable_ai=False)
         return game
 
     def test_full(self):

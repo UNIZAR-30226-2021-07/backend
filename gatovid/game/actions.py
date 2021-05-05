@@ -120,7 +120,7 @@ class PlayCard(Action):
         try:
             update = card.apply(self, game)
         except GameLogicException as e:
-            print(e)
+            logger.info(f"Error playing card: {e}")
             raise
         # Solo si hemos podido "aplicar" el comportamiento de la carta, la
         # quitaremos de la mano.

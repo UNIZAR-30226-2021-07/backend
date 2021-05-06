@@ -158,8 +158,6 @@ class Treatment(Card):
     card_type: str = "treatment"
     treatment_type: str
 
-    pass
-
 
 @dataclass
 class Transplant(Treatment):
@@ -190,10 +188,29 @@ class Infection(Treatment):
 
 @dataclass
 class LatexGlove(Treatment):
-    """ """
+    """
+    Todos los jugadores, excepto el que utiliza el guante, descartan su mano. Al
+    comienzo de su siguiente turno, al no tener cartas, estos jugadores tan solo
+    podrán robar una nueva mano, perdiendo así un turno de juego.
+    """
 
     treatment_type: str = "latex_glove"
 
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        logger.info(f"latex-glove played over {self.target.name}")
+
+        update = GameUpdate(game)
+
+        for player in game.players:
+            if player == action.caller:
+                continue
+
+            # Vaciamos la mano del oponente
+            player.hand = []
+            # Añadimos la mano vacía al GameUpdate
+            update.add(player.name, {"hand": []})
+
+        return update
 
 @dataclass
 class MedicalError(Treatment):

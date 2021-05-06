@@ -85,18 +85,15 @@ class Match:
         """
         Callback invocado cuando la partida pasa de turno automáticamente por el
         timer. Esta acción posiblemente expulse a un usuario de la partida, en
-        cuyo caso `kicked` no será `None`
+        cuyo caso `kicked` no será `None`.
         """
 
-        # TODO: esto también tendría que pasar un parámetro "finished", porque
-        # en caso de que se fueran todos los usuarios de la partida tendría que
-        # cancelarse.
         if kicked is not None:
             # Se elimina al usuario de la partida
             kicked_user = next(filter(lambda u: u.name == kicked, self.users))
             self.users.remove(kicked_user)
 
-            # Se notifica el abandono del usuario
+            # Se notifica el abandono del usuario a todos los jugadores
             match_update = self._match_info()
             update.merge_with(match_update)
 

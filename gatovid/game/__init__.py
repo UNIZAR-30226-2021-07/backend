@@ -39,7 +39,7 @@ class Player:
     hand: List[Card]
     body: Body
     afk_turns: int
-    kicked: bool
+    is_ai: bool
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -48,8 +48,8 @@ class Player:
         self.body = Body()
         # Turnos consecutivos que el usuario ha estado AFK
         self.afk_turns = 0
-        # Una vez se expulse al jugador
-        self.kicked = False
+        # Un jugador podrá ser reemplazado por la IA
+        self.is_ai = False
 
     def has_finished(self) -> bool:
         return self.position is not None
@@ -84,6 +84,7 @@ class Game:
         self.deck: List[Card] = []
         self._start_time = datetime.now()
         self._enabled_ai = enable_ai
+        self._bots_num = 0
 
         self._turn = 0
         self._turn_timer = None
@@ -350,14 +351,13 @@ class Game:
 
             update = GameUpdate(self)
 
-            # Expulsión de jugadores AFK.
-            # TODO: mover a método y devolver GameUpdate sin ese jugador.
+            # Expulsión de jugadores AFK en caso de que esté activada la IA.
             kicked = None
             self.turn_player().afk_turns += 1
-            if self.turn_player().afk_turns == MAX_AFK_TURNS:
-                logger.info(f"Expulsión del jugador {self.turn_player().name}")
-                kicked = self.turn_player().name
-                self.turn_player().kicked = True
+            if self._enabled_ai and self.turn_player().afk_turns == MAX_AFK_TURNS:
+                kicked = self.turn_player()
+                kick_update = self._remove_player(kicked)
+                update.merge_with(kick_update)
 
             # Al terminar un turno de forma automática se le tendrá que
             # descartar al jugador una carta de forma aleatoria, excepto cuando
@@ -431,6 +431,35 @@ class Game:
             }
 
         return leaderboard
+
+    def _remove_player(self, player: Player) -> GameUpdate:
+        """
+        Elimina un jugador de la partida.
+        """
+
+        logger.info(f"Eliminación del jugador {player.name}")
+
+        if self._enabled_ai:
+            player.is_ai = True
+            self._bots_num += 1
+
+        update = GameUpdate()
+        players = []
+        for player in self.players:
+            data = {}
+
+            if player.is_ai:
+                data = {
+                    "name": f"[BOT-{self._bots_num:02}]",
+                    "picture": 7,
+                    "is_ai": True
+                }
+            else:
+                data = {"name": player.name}
+
+            players.append(data)
+        update.repeat({"players": players})
+        return update
 
     def player_finished(self, player: Player) -> None:
         """

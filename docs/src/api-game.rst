@@ -327,13 +327,19 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         "playtime_mins": 4,
         // Nombre del usuario con el turno actual.
         "current_turn": "manolo22",
-        // Información de los jugadores, enviada únicamente al inicio de la
-        // partida.
+        // Información de los jugadores, enviada al inicio de la partida o
+        // cuando alguien abandone (y posiblemente sea reemplazado por la IA).
         "players": [
             {
                 "name": "marcuspkz",
+                // Verdadero si el usuario ha sido reemplazado por la IA.
+                // Opcional.
+                "is_ai": false,
+                // La foto puede cambiar si ha sido reemplazado por la IA.
+                // Opcional.
                 "picture": 4,
-                // El propio jugador también tendrá el tablero.
+                // El jugador que reciba el mensaje tendrá su tablero.
+                // Opcional.
                 "board": 2,
             },
             // ...

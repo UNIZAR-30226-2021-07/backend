@@ -30,6 +30,7 @@ BOARDS_PATH = os.path.join(CUR_DIR, "assets", "boards.json")
 PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
 BOARDS = json.loads(open(BOARDS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())
+BOT_PICTURE_ID = 7
 
 
 class InvalidModelException(Exception):
@@ -311,11 +312,16 @@ class Purchase(db.Model):
             except ValueError:
                 raise InvalidModelException("Tipo de objeto inválido")
 
+
         # Hacemos la comprobación en las dos iteraciones
         item_id = val if key == "item_id" else self.item_id
         item_type = val if key == "type" else self.type
         if None in (item_id, item_type):
             return val  # No validamos hasta la siguiente iteración
+
+        # Imágenes reservadas
+        if item_id == BOT_PICTURE_ID and item_type == PurchasableType.PROFILE_PIC:
+            raise InvalidModelException("Imagen reservada")
 
         item_list = self.get_item_list(item_type)
 

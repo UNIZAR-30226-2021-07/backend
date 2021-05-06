@@ -32,6 +32,17 @@ class ShopTests(GatovidTestClient):
         resp = self.request_shop_buy(item_id=3, item_type="profile_pic", token=token)
         self.assertRequestOk(resp)
 
+    def test_buy_reserved_pic(self):
+        """
+        La séptima imagen está reservada para los bots.
+        """
+
+        resp = self.request_token(self.user_data)
+        token = resp.json["access_token"]
+
+        resp = self.request_shop_buy(item_id=7, item_type="profile_pic", token=token)
+        self.assertRequestErr(resp)
+
     def test_wrong_input(self):
         resp = self.request_token(self.user_data)
         token = resp.json["access_token"]

@@ -3,8 +3,9 @@ Tests para el manejo de conexiones de las partidas Se añade a continuación un
 resumen de la funcionalidad de abandono y la funcionalidad de reconexión.
 
 El botón de abandonar es pulsado:
-- Pública: te echan y no se puede volver; el jugador es reemplazado por la IA.
-- Privada: te echan y no se puede volver; las cartas del jugador van a la
+- Pública: es eliminado y no se puede volver; el jugador es reemplazado por la
+  IA.
+- Privada: es eliminado y no se puede volver; las cartas del jugador van a la
   baraja.
 
 Desconexión por error o botón de reanudar más tarde pulsado:
@@ -28,6 +29,7 @@ class CardsTest(WsTestClient):
         cancelada.
         """
 
+        self.set_matchmaking_time(0.2)
         clients, code = self.create_game()
 
         # Iteración completa antes de que el primer usuario sea eliminado

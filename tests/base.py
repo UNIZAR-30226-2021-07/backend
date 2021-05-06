@@ -153,6 +153,7 @@ class WsTestClient(GatovidTestClient):
 
     users_data = [
         {
+            "name": GENERIC_USERS_NAME.format(i),
             "email": GENERIC_USERS_EMAIL.format(i),
             "password": GENERIC_USERS_PASSWORD,
         }
@@ -300,3 +301,53 @@ class WsTestClient(GatovidTestClient):
         self.assertNotIn("error", callback_args)
 
         return clients, code
+
+    def get_game_update(self, client) -> Dict:
+        received = client.get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        return args
+
+    def discard_ok(self, client, position: int = 0) -> Dict:
+        callback_args = client.emit("play_discard", position, callback=True)
+        self.assertNotIn("error", callback_args)
+        args = self.get_game_update(client)
+        self.assertIn("hand", args)
+        self.assertNotIn("current_turn", args)
+        return args
+
+    def discard_err(self, client, position: int) -> Dict:
+        callback_args = client.emit("play_discard", position, callback=True)
+        self.assertIn("error", callback_args)
+        return callback_args
+
+    def pass_ok(self, client) -> Dict:
+        callback_args = client.emit("play_pass", callback=True)
+        self.assertNotIn("error", callback_args)
+        args = self.get_game_update(client)
+        self.assertIn("hand", args)
+        return args
+
+    def pass_err(self, client) -> Dict:
+        callback_args = client.emit("play_pass", callback=True)
+        self.assertIn("error", callback_args)
+        return callback_args
+
+    def get_current_turn(self, client) -> str:
+        received = client.get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        return args["current_turn"]
+
+    def get_client_from_name(self, clients, name: str):
+        for user, client in zip(self.users_data, clients):
+            if user["name"] == name:
+                return client
+
+        raise Exception("Couldn't find client with current turn")
+
+    def get_current_turn_client(self, clients):
+        current_turn = self.get_current_turn(clients[0])
+        return self.get_client_from_name(clients, current_turn)
+
+    def clean_messages(self, clients):
+        for client in clients:
+            client.get_received()

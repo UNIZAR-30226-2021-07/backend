@@ -13,11 +13,6 @@ logger = get_logger(__name__)
 
 
 class GameTest(WsTestClient):
-    def get_current_turn(self, client) -> str:
-        received = client.get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
-        return args["current_turn"]
-
     def test_start_game(self):
         """
         Comprueba el protocolo de inicio de la partida.
@@ -71,8 +66,7 @@ class GameTest(WsTestClient):
             callback_args = client.emit("pause_game", True, callback=True)
             self.assertNotIn("error", callback_args)
 
-            received = client.get_received()
-            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            args = self.get_game_update(client)
             self.assertIn("paused", args)
             self.assertEqual(args["paused"], True)
             self.assertIn("paused_by", args)
@@ -99,8 +93,7 @@ class GameTest(WsTestClient):
         self.assertNotIn("error", callback_args)
 
         # Otro jugador espera recibir pausa
-        received = clients[1].get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        args = self.get_game_update(clients[1])
         self.assertIn("paused", args)
         self.assertEqual(args["paused"], True)
         self.assertIn("paused_by", args)
@@ -119,8 +112,7 @@ class GameTest(WsTestClient):
         self.assertNotIn("error", callback_args)
 
         # Otro jugador espera recibir reanudacion
-        received = clients[1].get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        args = self.get_game_update(clients[1])
         self.assertIn("paused", args)
         self.assertEqual(args["paused"], False)
         self.assertIn("paused_by", args)
@@ -148,8 +140,7 @@ class GameTest(WsTestClient):
         self.wait_pause_timeout()
 
         # Otro jugador espera recibir pausa
-        received = clients[1].get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        args = self.get_game_update(clients[1])
         self.assertIn("paused", args)
         self.assertEqual(args["paused"], False)
         self.assertIn("paused_by", args)
@@ -160,6 +151,9 @@ class GameTest(WsTestClient):
         Comprueba que el turno se pasa automáticamente después de alcanzar el
         tiempo límite de un turno.
 
+        Al pasar el turno de forma automática se debería descartar una carta y
+        robar una nueva.
+
         Notar que no se puede asumir el orden del turno, así que únicamente se
         comprueba si ha cambiado.
         """
@@ -167,11 +161,20 @@ class GameTest(WsTestClient):
         self.set_turn_timeout(0.2)
         clients, code = self.create_game()
 
-        # Ciclo de turnos completo
         start_turn = self.get_current_turn(clients[0])
+
+        # Ciclo de turnos completo a partir del cliente que tenga el turno
+        # inicial.
         for i in range(len(clients)):
+            self.clean_messages(clients)
+            client = self.get_client_from_name(clients, start_turn)
+
             self.wait_turn_timeout()
-            end_turn = self.get_current_turn(clients[0])
+            args = self.get_game_update(client)
+            self.assertIn("hand", args)
+            self.assertIn("current_turn", args)
+
+            end_turn = args["current_turn"]
             self.assertNotEqual(start_turn, end_turn)
             start_turn = end_turn
 
@@ -194,8 +197,7 @@ class GameTest(WsTestClient):
             de pausa en el buzón.
             """
 
-            received = clients[0].get_received()
-            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            args = self.get_game_update(clients[0])
             self.assertIn("paused", args)
             self.assertIn("paused_by", args)
             self.assertNotIn("current_turn", args)
@@ -225,3 +227,101 @@ class GameTest(WsTestClient):
         end_turn = self.get_current_turn(clients[0])
         self.assertNotEqual(start_turn, end_turn)
         self.assertEqual(clients[0].get_received(), [])
+
+    def test_discard(self):
+        """
+        Comprueba que la acción de descarte funciona correctamente.
+        """
+
+        clients, code = self.create_game()
+        client = self.get_current_turn_client(clients)
+        self.clean_messages(clients)
+
+        # Inicialmente no se puede pasar porque no está en fase de descarte.
+        logger.info("Attempting pass that should fail")
+        self.pass_err(client)
+
+        # Descarta una carta de forma correcta
+        logger.info("Discarding in test")
+        args = self.discard_ok(client, 2)
+        self.assertEqual(len(args["hand"]), 2)
+
+        # Descarta una carta que no existe en la mano del jugador (la tercera,
+        # porque ha sido descartada anteriormente)
+        self.discard_err(client, 2)
+
+        args = self.discard_ok(client, 0)
+        self.assertEqual(len(args["hand"]), 1)
+        self.discard_err(client, 1)
+        self.discard_err(client, 2)
+
+        # Notar que al descartar la posición de las cartas también cambia
+        args = self.discard_ok(client, 0)
+        self.assertEqual(len(args["hand"]), 0)
+        # Se queda sin cartas e intenta descartar.
+        self.discard_err(client, 0)
+        self.discard_err(client, 1)
+        self.discard_err(client, 2)
+        self.discard_err(client, 3)
+
+        # Pasa de turno, tendrá ahora 3 cartas de nuevo
+        logger.info("Passing next turn")
+        args = self.pass_ok(client)
+        self.assertIn("current_turn", args)
+        self.assertEqual(len(args["hand"]), 3)
+
+        # Ya no puede pasar ni descartar
+        args = self.discard_err(client, 0)
+        args = self.pass_err(client)
+
+    def test_auto_pass_discard(self):
+        """
+        Comprueba que si un usuario se olvida de pasar el turno se le descarta
+        una carta y roba. Si el jugador está descartando esto no se debería
+        hacer.
+
+        Como no se puede asumir que las cartas robadas sean diferentes a las
+        descartadas, no se puede saber si se ha descartado una adicional al
+        final del turno, y por tanto es imposible hacer un test unitario de
+        esto.
+        """
+
+        self.set_turn_timeout(0.5)
+        clients, code = self.create_game()
+
+        # Se tiene que acceder a la partida directamente para tener la mano del
+        # jugador actual.
+        from gatovid.api.game.match import MM
+
+        match = MM.get_match(code)
+        game = match._game
+        current_player = game.turn_player()
+        start_hand = [id(card) for card in current_player.hand]
+
+        # Caso base (cambia la mano al final):
+        client = self.get_current_turn_client(clients)
+        client.get_received()  # Limpia recibidos
+
+        # Espera el tiempo de partida y comprueba que la mano no sea la misma,
+        # comparando las instancias y no los datos de las cartas.
+        self.wait_turn_timeout()
+        end_hand = [id(card) for card in current_player.hand]
+        self.assertNotEqual(start_hand, end_hand)
+
+        # Caso de descarte (no cambia la mano al final):
+        client = self.get_current_turn_client(clients)
+        client.get_received()  # Limpia recibidos
+
+        # Descarte de 2 cartas
+        self.discard_ok(client)
+        self.discard_ok(client)
+
+        current_player = game.turn_player()
+        start_hand = [id(card) for card in current_player.hand]
+        # Espera a fin de turno y se asegura que la última carta que quedaba (en
+        # la posición 0) no ha sido modificada, es decir, que únicamente se han
+        # descartado las dos cartas indicadas en el proceso de descarte.
+        # esperado.
+        self.wait_turn_timeout()
+        end_hand = [id(card) for card in current_player.hand]
+        self.assertEqual(start_hand[0], end_hand[0])

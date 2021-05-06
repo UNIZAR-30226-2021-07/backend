@@ -13,11 +13,6 @@ logger = get_logger(__name__)
 
 
 class GameTest(WsTestClient):
-    def get_current_turn(self, client) -> str:
-        received = client.get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
-        return args["current_turn"]
-
     def test_start_game(self):
         """
         Comprueba el protocolo de inicio de la partida.
@@ -233,20 +228,49 @@ class GameTest(WsTestClient):
         Comprueba que la acción de descarte funciona correctamente.
         """
 
-        self.set_turn_timeout(0.3)
         clients, code = self.create_game()
+        client = self.get_current_turn_client(clients)
 
-        args = self.get_game_update(clients[0])
-        print(args)
+        # Mensaje inicial
+        args = self.get_game_update(client)
+        self.assertEqual(len(args["hand"]), 3)
 
-        # Descarta una carta
-        callback_args = clients[0].emit("play_discard", True, callback=True)
-        self.assertNotIn("error", callback_args)
-        args = self.get_game_update(clients[0])
-        self.assertIn("hand", args)
-        self.assertNotIn("current_turn", args)
+        # Inicialmente no se puede pasar porque no está en fase de descarte.
+        logger.info("Attempting pass that should fail")
+        self.pass_err(client)
 
-        # asdf
+        # Descarta una carta de forma correcta
+        logger.info("Discarding in test")
+        args = self.discard_ok(client, 2)
+        self.assertEqual(len(args["hand"]), 2)
+
+        # Descarta una carta que no existe en la mano del jugador (la tercera,
+        # porque ha sido descartada anteriormente)
+        self.discard_err(client, 2)
+
+        args = self.discard_ok(client, 0)
+        self.assertEqual(len(args["hand"]), 1)
+        self.discard_err(client, 1)
+        self.discard_err(client, 2)
+
+        # Notar que al descartar la posición de las cartas también cambia
+        args = self.discard_ok(client, 0)
+        self.assertEqual(len(args["hand"]), 0)
+        # Se queda sin cartas e intenta descartar.
+        self.discard_err(client, 0)
+        self.discard_err(client, 1)
+        self.discard_err(client, 2)
+        self.discard_err(client, 3)
+
+        # Pasa de turno, tendrá ahora 3 cartas de nuevo
+        logger.info("Passing next turn")
+        args = self.pass_ok(client)
+        self.assertIn("current_turn", args)
+        self.assertEqual(len(args["hand"]), 3)
+
+        # Ya no puede pasar ni descartar
+        args = self.discard_err(client, 0)
+        args = self.pass_err(client)
 
     def test_discard_auto_pass(self):
         """

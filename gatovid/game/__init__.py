@@ -218,7 +218,11 @@ class Game:
                 raise GameLogicException("No es tu turno")
 
             player = self.get_player(caller)
-            update = action.apply(player, game=self)
+            try:
+                update = action.apply(player, game=self)
+            except GameLogicException as e:
+                logger.info(f"Error running action: {e}")
+                raise
 
             # TODO: revisar fin de partida
             if self._players_finished == len(self.players) - 1:

@@ -406,29 +406,36 @@ def chat(msg):
 
 @socket.on("play_discard")
 @_requires_game(started=True)
-def play_discard(cards):
+def play_discard(card):
     """
-    .. warning:: Este endpoint está en construcción aún.
+    Descarta la carta indicada de la mano del usuario. Esta acción se puede
+    repetir varias veces hasta que se pase el turno de forma automática o con
+    ``play_pass``.
 
-    Descarta las cartas indicadas de la mano del usuario.
+    La carta a descartar se puede indicar con el índice de ésta en su mano.
 
     Requiere que el usuario esté en una partida y que esté empezada o se
     devolverá un :ref:`error <errores>`.
 
-    :param cards: Los slots de cartas del usuario a descartar
-    :type cards: List[int]
+    :param card: La carta del usuario a descartar
+    :type card: int
 
     :return: Un mensaje :ref:`msg_game_update` para cada jugador.
 
         Si el usuario no está en una partida se devolverá un :ref:`error
-        <errores>`.
+        <errores>`. También se devolverá uno en caso de que el jugador no tenga
+        cartas restantes para descartar o si la carta indicada no existe en la
+        mano del jugador.
     """
+
+    if not isinstance(card, int):
+        return {"error": "Tipo incorrecto para la carta"}
 
     match = MM.get_match(session["game"])
     name = session["user"].name
 
     try:
-        match.run_action(name, Discard(name, cards))
+        match.run_action(name, Discard(card))
     except GameLogicException as e:
         return {"error": str(e)}
 
@@ -454,7 +461,7 @@ def play_pass():
     name = session["user"].name
 
     try:
-        match.run_action(name, Pass(name))
+        match.run_action(name, Pass())
     except GameLogicException as e:
         return {"error": str(e)}
 

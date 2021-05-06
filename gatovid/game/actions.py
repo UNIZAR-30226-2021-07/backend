@@ -40,9 +40,14 @@ class Pass(Action):
     """
 
     def apply(self, caller: "Player", game: "Game") -> GameUpdate:
+        if not game.discarding:
+            raise GameLogicException("El jugador no está en la fase de descarte")
+
         logger.info(f"{caller.name} stops discarding cards")
 
         game.discarding = False
+
+        return GameUpdate(game)
 
 
 class Discard(Action):
@@ -50,12 +55,11 @@ class Discard(Action):
     Descarta una única carta.
     """
 
-    def __init__(self, data) -> None:
-        # Slot de la mano con la carta que queremos descartar.
-        self.slot = data.get("slot")
+    def __init__(self, position: int) -> None:
+        self.position = position
 
     def apply(self, caller: "Player", game: "Game") -> GameUpdate:
-        logger.info(f"{caller.name} discards a card")
+        logger.info(f"{caller.name} discards their card at position {self.position}")
 
         # Activa la fase de descarte
         game.discarding = True
@@ -64,17 +68,13 @@ class Discard(Action):
             raise GameLogicException("El jugador no tiene cartas")
 
         # Elimina la carta de la mano del jugador y la añade al principio del
-        # mazo.
-        card = caller.get_card(self.slot)
-        caller.remove_card(self.slot)
+        # mazo, como indican las reglas del juego.
+        card = caller.get_card(self.position)
+        caller.remove_card(self.position)
         game.deck.insert(0, card)
 
-        update = [{}] * len(game.players)
-        for u, player in zip(update, game.players):
-            if player == game.turn_player():
-                u["hand"] = game.turn_player().hand
-                break
-
+        update = GameUpdate(game)
+        update.add(caller.name, {"hand": caller.hand})
         return update
 
 
@@ -117,11 +117,7 @@ class PlayCard(Action):
         # problemas) y, en caso de fallo, restaurarla.
 
         # Usa la carta
-        try:
-            update = card.apply(self, game)
-        except GameLogicException as e:
-            logger.info(f"Error playing card: {e}")
-            raise
+        update = card.apply(self, game)
         # Solo si hemos podido "aplicar" el comportamiento de la carta, la
         # quitaremos de la mano.
         caller.remove_card(self.slot)

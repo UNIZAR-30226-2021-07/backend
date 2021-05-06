@@ -32,8 +32,13 @@ BOARDS = json.loads(open(BOARDS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())
 BOT_PICTURE_ID = 7
 
+# Rango de usuarios permitido en las partidas
 MIN_MATCH_USERS = 2
 MAX_MATCH_USERS = 6
+# Máximo de turnos antes de expulsar a un usuario por estar AFK
+MAX_AFK_TURNS = 3
+# Máximo turno de cartas en la mano
+MIN_HAND_CARDS = 3
 
 
 class InvalidModelException(Exception):

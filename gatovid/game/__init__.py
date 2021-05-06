@@ -14,7 +14,13 @@ from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
-from gatovid.models import BOT_PICTURE_ID, MIN_MATCH_USERS, User
+from gatovid.models import (
+    BOT_PICTURE_ID,
+    MAX_AFK_TURNS,
+    MIN_HAND_CARDS,
+    MIN_MATCH_USERS,
+    User,
+)
 from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
@@ -23,8 +29,6 @@ logger = get_logger(__name__)
 TIME_UNTIL_RESUME = 15
 # Tiempo máximo del turno
 TIME_TURN_END = 30
-# Máximo de turnos antes de expulsar a un usuario por estar AFK
-MAX_AFK_TURNS = 3
 
 
 @dataclass(init=False)
@@ -274,9 +278,9 @@ class Game:
             logger.info(f"{self.turn_player().name}'s turn has ended")
             self._turn_number += 1
 
-            # Roba cartas hasta tener 3, se actualiza el estado de ese jugador
-            # en concreto.
-            while len(self.turn_player().hand) < 3:
+            # Roba cartas hasta tener las necesarias, se actualiza el estado de
+            # ese jugador en concreto.
+            while len(self.turn_player().hand) < MIN_HAND_CARDS:
                 self.draw_card(self.turn_player())
             update.add(
                 player_name=self.turn_player().name,

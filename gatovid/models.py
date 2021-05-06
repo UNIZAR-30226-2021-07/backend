@@ -312,7 +312,6 @@ class Purchase(db.Model):
             except ValueError:
                 raise InvalidModelException("Tipo de objeto inválido")
 
-
         # Hacemos la comprobación en las dos iteraciones
         item_id = val if key == "item_id" else self.item_id
         item_type = val if key == "type" else self.type

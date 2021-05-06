@@ -2,6 +2,8 @@
 Tests para las consultas de la tienda de objetos.
 """
 
+from gatovid.models import BOT_PICTURE_ID
+
 from .base import GatovidTestClient
 
 
@@ -40,7 +42,9 @@ class ShopTests(GatovidTestClient):
         resp = self.request_token(self.user_data)
         token = resp.json["access_token"]
 
-        resp = self.request_shop_buy(item_id=7, item_type="profile_pic", token=token)
+        resp = self.request_shop_buy(
+            item_id=BOT_PICTURE_ID, item_type="profile_pic", token=token
+        )
         self.assertRequestErr(resp)
 
     def test_wrong_input(self):

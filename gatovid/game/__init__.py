@@ -14,7 +14,7 @@ from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
-from gatovid.models import User
+from gatovid.models import BOT_PICTURE_ID, User
 from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
@@ -451,8 +451,8 @@ class Game:
             if player.is_ai:
                 data = {
                     "name": f"[BOT-{self._bots_num:02}]",
-                    "picture": 7,
-                    "is_ai": True
+                    "picture": BOT_PICTURE_ID,
+                    "is_ai": True,
                 }
             else:
                 data = {"name": player.name}

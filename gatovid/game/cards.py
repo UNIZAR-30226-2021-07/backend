@@ -156,6 +156,7 @@ class Treatment(Card):
 
     # Usado para la codificación JSON
     card_type: str = "treatment"
+    treatment_type: str
 
     pass
 
@@ -164,12 +165,16 @@ class Treatment(Card):
 class Transplant(Treatment):
     """ """
 
+    treatment_type: str = "transplant"
+
     pass
 
 
 @dataclass
 class OrganThief(Treatment):
     """ """
+
+    treatment_type: str = "organ_thief"
 
     pass
 
@@ -178,6 +183,8 @@ class OrganThief(Treatment):
 class Infection(Treatment):
     """ """
 
+    treatment_type: str = "infection"
+
     pass
 
 
@@ -185,13 +192,14 @@ class Infection(Treatment):
 class LatexGlove(Treatment):
     """ """
 
-    pass
+    treatment_type: str = "latex_glove"
 
 
 @dataclass
 class MedicalError(Treatment):
     """ """
 
+    treatment_type: str = "medical_error"
 
 def parse_card(data: Dict) -> (object, Dict):
     """

@@ -347,7 +347,8 @@ class Game:
 
             update = GameUpdate(self)
 
-            # Expulsión de jugadores AFK
+            # Expulsión de jugadores AFK.
+            # TODO: mover a método y devolver GameUpdate sin ese jugador.
             kicked = None
             self.turn_player().afk_turns += 1
             if self.turn_player().afk_turns == MAX_AFK_TURNS:
@@ -361,7 +362,7 @@ class Game:
             #
             # La carta ya se le robará de forma automática al terminar el turno.
             if not self.discarding and len(self.turn_player().hand) > 0:
-                logger.info("Descarte por olvidarse de jugar")
+                logger.info(f"{self.turn_player().name} discards due to turn timeout")
                 discarded = random.randint(0, len(self.turn_player().hand) - 1)
                 action = Discard(discarded)
                 discard_update = action.apply(self.turn_player(), game=self)

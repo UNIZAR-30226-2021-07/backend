@@ -337,10 +337,17 @@ class WsTestClient(GatovidTestClient):
         _, args = self.get_msg_in_received(received, "game_update", json=True)
         return args["current_turn"]
 
-    def get_current_turn_client(self, clients):
-        current_turn = self.get_current_turn(clients[0])
+    def get_client_from_name(self, clients, name: str):
         for user, client in zip(self.users_data, clients):
-            if user["name"] == current_turn:
+            if user["name"] == name:
                 return client
 
         raise Exception("Couldn't find client with current turn")
+
+    def get_current_turn_client(self, clients):
+        current_turn = self.get_current_turn(clients[0])
+        return self.get_client_from_name(clients, current_turn)
+
+    def clean_messages(self, clients):
+        for client in clients:
+            client.get_received()

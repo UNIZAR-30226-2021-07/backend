@@ -161,9 +161,14 @@ class GameTest(WsTestClient):
         self.set_turn_timeout(0.2)
         clients, code = self.create_game()
 
-        # Ciclo de turnos completo
         start_turn = self.get_current_turn(clients[0])
-        for client in clients:
+
+        # Ciclo de turnos completo a partir del cliente que tenga el turno
+        # inicial.
+        for i in range(len(clients)):
+            self.clean_messages(clients)
+            client = self.get_client_from_name(clients, start_turn)
+
             self.wait_turn_timeout()
             args = self.get_game_update(client)
             self.assertIn("hand", args)
@@ -230,7 +235,6 @@ class GameTest(WsTestClient):
 
         clients, code = self.create_game()
         client = self.get_current_turn_client(clients)
-        client.get_received()  # Limpia recibidos
 
         # Mensaje inicial
         args = self.get_game_update(client)

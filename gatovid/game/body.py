@@ -81,7 +81,7 @@ class OrganPile:
             # anterior modificador.
             last_color = self.modifiers[-1].color
 
-        return last_color == card.color or Color.Any in (last_color, card.color)
+        return last_color == card.color or Color.All in (last_color, card.color)
 
     def can_place(self, card: SimpleCard) -> bool:
         # Solo se puede colocar un órgano en un montón vacío

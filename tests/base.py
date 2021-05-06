@@ -300,3 +300,8 @@ class WsTestClient(GatovidTestClient):
         self.assertNotIn("error", callback_args)
 
         return clients, code
+
+    def get_game_update(self, client) -> Dict:
+        received = client.get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        return args

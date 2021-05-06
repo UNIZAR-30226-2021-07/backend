@@ -235,10 +235,7 @@ class GameTest(WsTestClient):
 
         clients, code = self.create_game()
         client = self.get_current_turn_client(clients)
-
-        # Mensaje inicial
-        args = self.get_game_update(client)
-        self.assertEqual(len(args["hand"]), 3)
+        self.clean_messages(clients)
 
         # Inicialmente no se puede pasar porque no está en fase de descarte.
         logger.info("Attempting pass that should fail")

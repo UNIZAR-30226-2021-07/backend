@@ -263,6 +263,9 @@ class Game:
         # skipeados.
         self.turn_player().afk_turns = 0
 
+        # Termina la fase de descarte si estaba activada
+        self.discarding = False
+
         while True:
             # TODO: si el usuario está kickeado se le debería pasar el turno o
             # la IA debería jugar por él.

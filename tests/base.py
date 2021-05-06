@@ -307,7 +307,7 @@ class WsTestClient(GatovidTestClient):
         _, args = self.get_msg_in_received(received, "game_update", json=True)
         return args
 
-    def discard_ok(self, client, position: int) -> Dict:
+    def discard_ok(self, client, position: int = 0) -> Dict:
         callback_args = client.emit("play_discard", position, callback=True)
         self.assertNotIn("error", callback_args)
         args = self.get_game_update(client)

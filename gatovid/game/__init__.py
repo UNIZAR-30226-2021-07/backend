@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from gatovid.game.actions import Action
+from gatovid.game.actions import Action, Discard
 from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
 
@@ -345,15 +345,31 @@ class Game:
             if self._turn_number != initial_turn:
                 return
 
+            update = GameUpdate(self)
+
             # Expulsión de jugadores AFK
             kicked = None
             self.turn_player().afk_turns += 1
             if self.turn_player().afk_turns == MAX_AFK_TURNS:
+                logger.info(f"Expulsión del jugador {self.turn_player().name}")
                 kicked = self.turn_player().name
                 self.turn_player().kicked = True
 
+            # Al terminar un turno de forma automática se le tendrá que
+            # descartar al jugador una carta de forma aleatoria, excepto cuando
+            # esté en la fase de descarte.
+            #
+            # La carta ya se le robará de forma automática al terminar el turno.
+            if not self.discarding and len(self.turn_player().hand) > 0:
+                logger.info("Descarte por olvidarse de jugar")
+                discarded = random.randint(0, len(self.turn_player().hand) - 1)
+                action = Discard(discarded)
+                discard_update = action.apply(self.turn_player(), game=self)
+                update.merge_with(discard_update)
+
             # Terminación automática del turno
-            update = self._end_turn()
+            end_update = self._end_turn()
+            update.merge_with(end_update)
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.

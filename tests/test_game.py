@@ -230,6 +230,7 @@ class GameTest(WsTestClient):
 
         clients, code = self.create_game()
         client = self.get_current_turn_client(clients)
+        client.get_received()  # Limpia recibidos
 
         # Mensaje inicial
         args = self.get_game_update(client)
@@ -272,26 +273,54 @@ class GameTest(WsTestClient):
         args = self.discard_err(client, 0)
         args = self.pass_err(client)
 
-    def test_discard_auto_pass(self):
+    def test_auto_pass_discard(self):
         """
-        Comprueba que si un usuario se olvida de pasar el turno cuando está
-        descartando, no se le descarta y roba, como sucede de normal.
+        Comprueba que si un usuario se olvida de pasar el turno se le descarta
+        una carta y roba. Si el jugador está descartando esto no se debería
+        hacer.
+
+        Como no se puede asumir que las cartas robadas sean diferentes a las
+        descartadas, no se puede saber si se ha descartado una adicional al
+        final del turno, y por tanto es imposible hacer un test unitario de
+        esto.
         """
 
-        self.set_turn_timeout(0.2)
+        self.set_turn_timeout(0.5)
         clients, code = self.create_game()
 
-        # Descarte de 2 cartas
-        for i in range(2):
-            callback_args = clients[0].emit("play_discard", True, callback=True)
-            self.assertNotIn("error", callback_args)
-            args = self.get_game_update(clients[0])
-            self.assertIn("hand", args)
-            self.assertNotIn("current_turn", args)
+        # Se tiene que acceder a la partida directamente para tener la mano del
+        # jugador actual.
+        from gatovid.api.game.match import MM
 
-        # Espera a fin de turno y se asegura de que el mensaje recibido es el
+        match = MM.get_match(code)
+        game = match._game
+        current_player = game.turn_player()
+        start_hand = [id(card) for card in current_player.hand]
+
+        # Caso base (cambia la mano al final):
+        client = self.get_current_turn_client(clients)
+        client.get_received()  # Limpia recibidos
+
+        # Espera el tiempo de partida y comprueba que la mano no sea la misma,
+        # comparando las instancias y no los datos de las cartas.
+        self.wait_turn_timeout()
+        end_hand = [id(card) for card in current_player.hand]
+        self.assertNotEqual(start_hand, end_hand)
+
+        # Caso de descarte (no cambia la mano al final):
+        client = self.get_current_turn_client(clients)
+        client.get_received()  # Limpia recibidos
+
+        # Descarte de 2 cartas
+        self.discard_ok(client)
+        self.discard_ok(client)
+
+        current_player = game.turn_player()
+        start_hand = [id(card) for card in current_player.hand]
+        # Espera a fin de turno y se asegura que la última carta que quedaba (en
+        # la posición 0) no ha sido modificada, es decir, que únicamente se han
+        # descartado las dos cartas indicadas en el proceso de descarte.
         # esperado.
         self.wait_turn_timeout()
-        args = self.get_game_update(clients[0])
-        self.assertNotIn("hand", args)
-        self.assertIn("current_turn", args)
+        end_hand = [id(card) for card in current_player.hand]
+        self.assertEqual(start_hand[0], end_hand[0])

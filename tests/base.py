@@ -302,6 +302,30 @@ class WsTestClient(GatovidTestClient):
 
         return clients, code
 
+    def create_public_game(self, players=6):
+        clients = []
+        # Buscan una partida a la vez
+        for i in range(players):
+            clients.append(self.create_client(self.users_data[i]))
+
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+
+        self.wait_matchmaking_time()
+
+        # Se unen a la partida
+        code = None
+        for client in clients:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+            code = args["code"]
+            callback_args = client.emit("join", code, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        return clients, code
+
     def get_game_update(self, client) -> Dict:
         received = client.get_received()
         _, args = self.get_msg_in_received(received, "game_update", json=True)

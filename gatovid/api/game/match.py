@@ -9,13 +9,11 @@ from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException, GameUpdate
-from gatovid.models import User
+from gatovid.models import MAX_MATCH_USERS, MIN_MATCH_USERS, User
 from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
 matches = dict()
-MIN_MATCH_USERS = 2
-MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
 # Caracteres permitidos para los códigos de las partidas.
@@ -81,12 +79,24 @@ class Match:
     def is_paused(self) -> bool:
         self._game.is_paused()
 
-    def _turn_passed_auto(self, update: GameUpdate, kicked: Optional[str]) -> None:
+    def _turn_passed_auto(
+        self, update: Optional[GameUpdate], kicked: Optional[str], finished: bool
+    ) -> None:
         """
         Callback invocado cuando la partida pasa de turno automáticamente por el
         timer. Esta acción posiblemente expulse a un usuario de la partida, en
         cuyo caso `kicked` no será `None`.
+
+        Cuando se hayan expulsado suficientes jugadores hasta no poderse seguir
+        jugando, `finished` será `True` (los demás parámetros `None`) y se
+        cancelará la partida.
         """
+
+        if finished:
+            logger.info(f"Not enough players to continue in {self.code}")
+            self.end()
+            MM.remove_game(self.code)
+            return
 
         if kicked is not None:
             # Se elimina al usuario de la partida
@@ -281,6 +291,8 @@ class PublicMatch(Match):
         self.start_timer = Timer(TIME_UNTIL_START, self.start_check)
 
     def start(self):
+        logger.info(f"Starting public game {self.code} with {len(self.users)} users")
+
         # Cancelamos el timer si sigue
         self.start_timer.cancel()
 

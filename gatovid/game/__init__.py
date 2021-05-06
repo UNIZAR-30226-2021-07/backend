@@ -14,7 +14,7 @@ from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
-from gatovid.models import BOT_PICTURE_ID, User
+from gatovid.models import BOT_PICTURE_ID, MIN_MATCH_USERS, User
 from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
@@ -359,6 +359,14 @@ class Game:
                 kick_update = self._remove_player(kicked)
                 update.merge_with(kick_update)
 
+            # Si no quedan suficientes jugadores se acaba la partida.
+            remaining = len(self.players)
+            if self._enabled_ai:
+                remaining -= self._bots_num
+            if remaining < MIN_MATCH_USERS:
+                self._turn_callback(None, None, True)
+                return
+
             # Al terminar un turno de forma automática se le tendrá que
             # descartar al jugador una carta de forma aleatoria, excepto cuando
             # esté en la fase de descarte.
@@ -377,7 +385,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked)
+            self._turn_callback(update, kicked, False)
 
     def _start_turn_timer(self):
         """

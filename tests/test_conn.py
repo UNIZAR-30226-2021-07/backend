@@ -21,16 +21,22 @@ from .base import WsTestClient
 # logger = get_logger(__name__)
 
 
-class CardsTest(WsTestClient):
+class ConnTest(WsTestClient):
     def test_abandon_public(self):
         """
-        Se puede dar el caso de abandono en una pública al estar AFK o de forma
-        manual. Cuando la partida se quede con menos de 2 usuarios será
-        cancelada.
+        Comprueba el abandono manual de una partida pública.
+        """
+
+    def test_kicked_public(self):
+        """
+        Comprueba el caso en el que se elimina al usuario por estar AFK, y
+        también cuando la partida es cancelada cuando se queda sin suficientes
+        usuarios.
         """
 
         self.set_matchmaking_time(0.2)
-        clients, code = self.create_game()
+        self.set_turn_timeout(0.2)
+        clients, code = self.create_public_game()
 
         # Iteración completa antes de que el primer usuario sea eliminado
         for i in range(2):
@@ -38,14 +44,19 @@ class CardsTest(WsTestClient):
                 self.wait_turn_timeout()
 
         # En la siguiente iteración los usuarios son eliminados
+        self.clean_messages(clients)
         for i in range(len(clients)):
-            client = self.get_current_turn_client(clients)
-            print(client.get_received())
             self.wait_turn_timeout()
 
+            client = self.get_current_turn_client(clients)
+            print(client.get_received())
+
             # Intenta hacer cualquier acción pero devolverá un error
+            received = clients[0].get_received()
+            print(received)
 
             # Se continúa con el siguiente usuario a ser kickeado
+            self.clean_messages(clients)
             clients.remove(client)
 
     def test_abandon_private(self):

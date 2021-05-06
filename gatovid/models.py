@@ -32,6 +32,9 @@ BOARDS = json.loads(open(BOARDS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())
 BOT_PICTURE_ID = 7
 
+MIN_MATCH_USERS = 2
+MAX_MATCH_USERS = 6
+
 
 class InvalidModelException(Exception):
     """

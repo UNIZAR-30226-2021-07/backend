@@ -127,7 +127,6 @@ class ConnTest(WsTestClient):
 
         logger.info(">> Starting loop that should work")
         for i in range(len(clients)):
-            print(turn)
             client = clients[turn]
 
             # Se pueden descartar cartas sin problemas

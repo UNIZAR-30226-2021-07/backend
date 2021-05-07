@@ -80,9 +80,9 @@ def disconnect():
     if session["user"] in MM.users_waiting:
         MM.stop_waiting(session["user"])
 
-    # Puede estar metido en una partida, tenemos que hacer que salga.
-    if session.get("game"):
-        leave()
+    # NOTE: si el usuario está metido en una partida no se hará nada, y se
+    # cuenta como una desconexión temporal. Si es una pública ya se le eliminará
+    # automáticamente.
 
 
 @socket.on("search_game")

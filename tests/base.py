@@ -205,13 +205,25 @@ class WsTestClient(GatovidTestClient):
         return dict((key, arg[key]) for arg in args for key in arg)
 
     def get_msg_in_received(
-        self, received: List, msg_type: str, json: bool = False
+        self, received: List, msg_type: str, json: bool = False, last: bool = False
     ) -> (Optional[Dict], Optional[List[Dict]]):
         """
         Devuelve la primera aparición de un mensaje de tipo `msg_type` en
         `received`.
+
+        Si `last` es verdadero, devolverá el último encontrado.
         """
-        raw = next(iter(filter(lambda msg: msg["name"] == msg_type, received)), None)
+
+        def query(msg):
+            return msg["name"] == msg_type
+
+        if last:
+            raw = None
+            for raw in filter(query, received):
+                pass
+        else:
+            raw = next(iter(filter(query, received)), None)
+
         if raw is None:
             return None, None
 
@@ -358,7 +370,9 @@ class WsTestClient(GatovidTestClient):
 
     def get_current_turn(self, client) -> str:
         received = client.get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        _, args = self.get_msg_in_received(
+            received, "game_update", json=True, last=True
+        )
         return args["current_turn"]
 
     def get_client_from_name(self, clients, name: str):

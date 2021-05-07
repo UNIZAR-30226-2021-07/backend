@@ -16,6 +16,8 @@ Desconexión por error o botón de reanudar más tarde pulsado:
   partidas privadas no se eliminan jugadores AFK.
 """
 
+import time
+
 from gatovid.util import get_logger
 
 from .base import WsTestClient
@@ -24,10 +26,30 @@ logger = get_logger(__name__)
 
 
 class ConnTest(WsTestClient):
-    def test_abandon_public(self):
+    def abandon_and_check(self, clients, code: str, can_pause: bool) -> None:
         """
-        Comprueba el abandono manual de una partida pública.
+        Método genérico para pruebas en las que se abandona la partida de forma
+        manual y se comprueba que el comportamiento es el esperado.
         """
+
+        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
+        # partida.
+        for client in clients:
+            callback_args = client.emit("leave", callback=True)
+            self.assertNotIn("error", callback_args)
+
+            # Ya no se puede jugar
+            callback_args = client.emit("play_discard", True, callback=True)
+            self.assertIn("error", callback_args)
+
+            if can_pause:
+                # Ya no se puede pausar
+                callback_args = client.emit("pause_game", True, callback=True)
+                self.assertIn("error", callback_args)
+
+            # Ni volverse a unir a la partida
+            callback_args = client.emit("join", code, callback=True)
+            self.assertIn("error", callback_args)
 
     def test_kicked_public(self):
         """
@@ -62,6 +84,10 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("pause_game", True, callback=True)
             self.assertIn("error", callback_args)
 
+            # Ya no se puede jugar
+            callback_args = client.emit("play_discard", True, callback=True)
+            self.assertIn("error", callback_args)
+
             # Tampoco podrá volver a entrar a la partida
             callback_args = client.emit("join", code, callback=True)
             self.assertIn("error", callback_args)
@@ -84,36 +110,51 @@ class ConnTest(WsTestClient):
 
     def test_abandon_private(self):
         """
-        Se da el caso únicamente de forma manual.
+        Comprueba el abandono manual de una partida privada.
         """
 
-        self.set_turn_timeout(0.1)
+        timeout = 0.1
+        self.set_turn_timeout(timeout)
         clients, code = self.create_game()
 
         # Iterando más de 3 turnos para asegurarse de que ninguno de ellos es
         # eliminado de la partida.
-        for client in clients:
-            self.wait_turn_timeout()
+        time.sleep(timeout * len(clients) * 4)
 
-            # Se puede pausar y despausar sin problemas
+        # Para saber el orden de los turnos
+        starting_turn = self.get_current_turn_client(clients)
+        turn = clients.index(starting_turn)
+
+        logger.info(">> Starting loop that should work")
+        for i in range(len(clients)):
+            print(turn)
+            client = clients[turn]
+
+            # Se pueden descartar cartas sin problemas
+            callback_args = client.emit("play_discard", True, callback=True)
+            self.assertNotIn("error", callback_args)
+            callback_args = client.emit("play_pass", callback=True)
+            self.assertNotIn("error", callback_args)
+
+            # Se puede pausar y reanudar sin problemas
             callback_args = client.emit("pause_game", True, callback=True)
             self.assertNotIn("error", callback_args)
             callback_args = client.emit("pause_game", False, callback=True)
             self.assertNotIn("error", callback_args)
 
-        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
-        # partida.
-        for client in clients:
-            callback_args = client.emit("leave", callback=True)
-            self.assertNotIn("error", callback_args)
+            turn = (turn + 1) % len(clients)
 
-            # Ya no se puede pausar
-            callback_args = client.emit("pause_game", True, callback=True)
-            self.assertIn("error", callback_args)
+        self.abandon_and_check(clients, code, can_pause=True)
 
-            # Ni volverse a unir a la partida
-            callback_args = client.emit("join", code, callback=True)
-            self.assertIn("error", callback_args)
+    def test_abandon_public(self):
+        """
+        Comprueba el abandono manual de una partida pública.
+        """
+
+        self.set_matchmaking_time(0.2)
+        self.set_turn_timeout(0.1)
+        clients, code = self.create_public_game()
+        self.abandon_and_check(clients, code, can_pause=False)
 
     def test_temporary_abandon_public(self):
         """

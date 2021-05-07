@@ -236,12 +236,14 @@ class MedicalError(Treatment):
         # Intercambiamos los cuerpos de ambos jugadores
         action.caller.body, target.body = target.body, action.caller.body
         # Añadimos los dos cuerpos al GameUpdate
-        update.repeat({
-            "bodies": {
-                self.target.name: self.target.body.piles,
-                action.caller.name: action.caller.body.piles,
-            },
-        })
+        update.repeat(
+            {
+                "bodies": {
+                    self.target.name: self.target.body.piles,
+                    action.caller.name: action.caller.body.piles,
+                },
+            }
+        )
 
         return update
 

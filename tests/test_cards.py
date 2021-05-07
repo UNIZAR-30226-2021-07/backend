@@ -8,7 +8,7 @@ from dataclasses import asdict
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
 from gatovid.game.body import Body
-from gatovid.game.cards import Color, LatexGlove, Medicine, Organ, Virus
+from gatovid.game.cards import Color, LatexGlove, MedicalError, Medicine, Organ, Virus
 
 from .base import WsTestClient
 
@@ -341,6 +341,12 @@ class CardsTest(WsTestClient):
         )
 
     def test_treatment_latex_glove(self):
+        """
+        Se prueba a usar el tratamiento Guante de látex y se comprueba que el
+        resto de jugadores han descartado las cartas, mientras que el jugador
+        que lanza el tratamiento conserva su mano (excepto la carta de
+        tratamiento).
+        """
         # HACK: Establecemos siempre la misma semilla para evitar el caso en el
         # que el random genere una mano igual a la que se tenia anteriormente.
         random.seed(10)
@@ -397,3 +403,57 @@ class CardsTest(WsTestClient):
         print(args["hand"])
         self.assertEqual(args["hand"][0], last_hand[1])
         self.assertEqual(args["hand"][1], last_hand[2])
+
+    def test_treatment_medical_error(self):
+        """
+        Se prueba a usar el tratamiento Error Médico.
+        """
+        clients, code = self.create_game()
+
+        caller_name = GENERIC_USERS_NAME.format(0)
+        target_name = GENERIC_USERS_NAME.format(1)
+
+        # Primero se tendrá el game_update inicial
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
+
+        game = MM.get_match(code)._game
+        # Forzamos el turno al client 0
+        game._turn = 0
+
+        caller_player = game.players[game._turn]
+        caller_player.hand[0] = MedicalError()
+        clients[0].last_body = asdict(caller_player.body)
+
+        # Ignoramos los eventos anteriores con el target
+        received = clients[1].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        # Guardamos en el cliente el cuerpo anterior
+        clients[1].last_body = args["bodies"][target_name].copy()
+
+        # Ignoramos los eventos anteriores con el resto de los clientes
+        for client in clients[2:]:
+            _ = client.get_received()
+
+        # Usamos la carta desde el cliente 0
+        callback_args = clients[0].emit(
+            "play_card",
+            {
+                "slot": 0,
+            },
+            callback=True,
+        )
+        self.assertNotIn("error", callback_args)
+
+        # Comprobamos que todos los clientes reciben los cuerpos intercambiados.
+        for client in clients:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertNotIn("error", args)
+
+            self.assertIn("bodies", args)
+            self.assertIn(caller_name, args["bodies"])
+            self.assertIn(target_name, args["bodies"])
+            self.assertEqual(args["bodies"][caller_name], clients[1].last_body)
+            self.assertEqual(args["bodies"][target_name], clients[0].last_body)

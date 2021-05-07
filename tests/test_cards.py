@@ -463,8 +463,6 @@ class CardsTest(WsTestClient):
         self.assertNotIn("error", args)
 
         self.assertIn("hand", args)
-        print(last_hand)
-        print(args["hand"])
         self.assertEqual(args["hand"][0], last_hand[1])
         self.assertEqual(args["hand"][1], last_hand[2])
 
@@ -488,13 +486,26 @@ class CardsTest(WsTestClient):
 
         caller_player = game.players[game._turn]
         caller_player.hand[0] = MedicalError()
-        clients[0].last_body = asdict(caller_player.body)
+        caller_player.body = Body._from_data(
+            piles=[
+                OrganPile(),
+                OrganPile._from_data(organ=Organ(color=Color.Red)),
+                OrganPile._from_data(
+                    organ=Organ(color=Color.Blue),
+                    modifiers=[
+                        Virus(color=Color.Red),
+                    ],
+                ),
+                OrganPile(),
+            ]
+        )
+        clients[0].last_body = asdict(caller_player.body)["piles"]
 
         # Ignoramos los eventos anteriores con el target
         received = clients[1].get_received()
         _, args = self.get_msg_in_received(received, "game_update", json=True)
         # Guardamos en el cliente el cuerpo anterior
-        clients[1].last_body = args["bodies"][target_name].copy()
+        clients[1].last_body = asdict(Body())["piles"]
 
         # Ignoramos los eventos anteriores con el resto de los clientes
         for client in clients[2:]:
@@ -505,6 +516,7 @@ class CardsTest(WsTestClient):
             "play_card",
             {
                 "slot": 0,
+                "target": target_name,
             },
             callback=True,
         )

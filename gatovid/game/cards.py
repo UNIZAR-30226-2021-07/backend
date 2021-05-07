@@ -229,15 +229,20 @@ class MedicalError(Treatment):
     def get_action_data(self, action: "PlayCard", game: "Game") -> None:
         # Jugador con el que queremos intercambiar el cuerpo
         self.target_name = action.data.get("target")
+        if self.target_name in (None, ""):
+            raise GameLogicException("Parámetro target vacío")
+
+        self.target = game.get_player(self.target_name)
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        self.get_action_data(action, game)
+
         logger.info("medical-error played")
 
         update = GameUpdate(game)
 
-        target = game.get_player(self.target_name)
         # Intercambiamos los cuerpos de ambos jugadores
-        action.caller.body, target.body = target.body, action.caller.body
+        action.caller.body, self.target.body = self.target.body, action.caller.body
         # Añadimos los dos cuerpos al GameUpdate
         update.repeat(
             {

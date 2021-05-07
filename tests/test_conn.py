@@ -37,56 +37,50 @@ class ConnTest(WsTestClient):
         """
 
         self.set_matchmaking_time(0.2)
-        self.set_turn_timeout(0.5)
+        self.set_turn_timeout(0.1)
         clients, code = self.create_public_game()
 
-        def active_turn_wait(client):
-            print("STARTING")
-            while True:
-                received = client.get_received()
-                if len(received) == 0:
-                    continue
-
-                print(received)
-                _, args = self.get_msg_in_received(received, "game_update", json=True)
-                if args is None:
-                    continue
-                if args.get("current_turn") is not None:
-                    print("DONE")
-                    return
+        # Para saber el orden de los turnos
+        starting_turn = self.get_current_turn_client(clients)
+        turn = clients.index(starting_turn)
 
         # Iteración completa antes de que el primer usuario sea eliminado.
-        #
-        # Tiene que ser más preciso que en el resto de tests porque es
-        # acumulado, por lo que no se usa self.wait_turn_timeout() sino una
-        # espera activa. Esto no debería ser un gran problema porque el tiempo
-        # de espera es bajo.
         logger.info(">> Getting ready for players to be removed")
         self.clean_messages(clients)
         for i in range(2):  # Itera 2 veces
-            for i in range(len(clients)):  # Por cada cliente
+            for i in range(len(clients) - 1):  # Por cada cliente
                 self.wait_turn_timeout()
-                print("repeated", clients[0].get_received())
-                # active_turn_wait(clients[0])
-
-            print("iter",clients[1].get_received())
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")
         for i in range(len(clients)):
-            self.clean_messages(clients)
-            active_turn_wait(clients[0])
+            client = clients[turn]
+            self.wait_turn_timeout()
 
-            client = self.get_current_turn_client(clients)
-            print(client.get_received())
+            # El cliente ha sido eliminado de la partida y por tanto no podrá
+            # jugar ya; la pausa no funcionará, por ejemplo.
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertIn("error", callback_args)
 
-            # Intenta hacer cualquier acción pero devolverá un error
-            received = clients[0].get_received()
-            print(received)
+            # Tampoco podrá volver a entrar a la partida
+            callback_args = client.emit("join", code, callback=True)
+            self.assertIn("error", callback_args)
+
+            # Si se cancela la partida no hace falta hacer más, pero en caso
+            # contrario el protocolo establece que tendrán que salir ellos
+            # manualmente.
+            received = clients[turn].get_received()
+            _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
+            callback_args = client.emit("leave", callback=True)
+            if args is None:
+                # Si no se ha cancelado irá con éxito
+                self.assertNotIn("error", callback_args)
+            else:
+                # En caso contrario se recibirá un error
+                self.assertIn("error", callback_args)
 
             # Se continúa con el siguiente usuario a ser kickeado
-            self.clean_messages(clients)
-            clients.remove(client)
+            turn = (turn + 1) % len(clients)
 
     def test_abandon_private(self):
         """

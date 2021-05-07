@@ -114,7 +114,6 @@ class Match:
             update.merge_with(match_update)
 
         self.send_update(update)
-        print("-----")
 
     def start(self) -> None:
         """

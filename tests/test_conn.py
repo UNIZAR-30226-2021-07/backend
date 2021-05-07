@@ -87,6 +87,34 @@ class ConnTest(WsTestClient):
         Se da el caso únicamente de forma manual.
         """
 
+        self.set_turn_timeout(0.1)
+        clients, code = self.create_game()
+
+        # Iterando más de 3 turnos para asegurarse de que ninguno de ellos es
+        # eliminado de la partida.
+        for client in clients:
+            self.wait_turn_timeout()
+
+            # Se puede pausar y despausar sin problemas
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+            callback_args = client.emit("pause_game", False, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
+        # partida.
+        for client in clients:
+            callback_args = client.emit("leave", callback=True)
+            self.assertNotIn("error", callback_args)
+
+            # Ya no se puede pausar
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertIn("error", callback_args)
+
+            # Ni volverse a unir a la partida
+            callback_args = client.emit("join", code, callback=True)
+            self.assertIn("error", callback_args)
+
     def test_temporary_abandon_public(self):
         """
         Si el jugador que abandona temporalmente entra antes del tercer turno

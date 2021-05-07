@@ -238,6 +238,10 @@ class Game:
                 end_update = self._end_turn()
                 update.merge_with(end_update)
 
+            # Se reestablecen los turnos AFK del usuario que ha terminado
+            # correctamente la partida.
+            player.afk_turns = 0
+
             return update
 
     def draw_card(self, player: Player) -> None:
@@ -262,11 +266,6 @@ class Game:
         """
 
         update = GameUpdate(self)
-
-        # Se reestablecen los turnos AFK del usuario que ha terminado
-        # correctamente la partida. No se hará para los posibles jugadores sean
-        # skipeados.
-        self.turn_player().afk_turns = 0
 
         # Termina la fase de descarte si estaba activada
         self.discarding = False
@@ -296,15 +295,22 @@ class Game:
                 if not self.turn_player().has_finished():
                     break
 
-            update.repeat({"current_turn": self.turn_player().name})
             logger.info(f"{self.turn_player().name}'s turn has started")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
             # disponibles.
-            if len(self.turn_player().hand) != 0:
-                break
-            logger.info(f"{self.turn_player().name} skipped (no cards)")
+            if len(self.turn_player().hand) == 0:
+                logger.info(f"{self.turn_player().name} skipped (no cards)")
+                continue
 
+            if self.turn_player().is_ai:
+                # TODO: la IA debería jugar aquí, ya que se puede pasar su turno
+                # automáticamente.
+                continue
+
+            break
+
+        update.repeat({"current_turn": self.turn_player().name})
         self._start_turn_timer()
 
         return update
@@ -353,35 +359,42 @@ class Game:
             if self._turn_number != initial_turn:
                 return
 
+            logger.info(
+                f"Turn timeout for {self.turn_player().name}"
+                f" ({self.turn_player().afk_turns} in a row)"
+            )
+
             update = GameUpdate(self)
 
             # Expulsión de jugadores AFK en caso de que esté activada la IA.
             kicked = None
             self.turn_player().afk_turns += 1
-            if self._enabled_ai and self.turn_player().afk_turns == MAX_AFK_TURNS:
-                kicked = self.turn_player()
-                kick_update = self._remove_player(kicked)
+            is_afk = self._enabled_ai and self.turn_player().afk_turns == MAX_AFK_TURNS
+            if is_afk:
+                kicked = self.turn_player().name
+                logger.info(f"Player {kicked} is AFK")
+                kick_update = self._remove_player(self.turn_player())
                 update.merge_with(kick_update)
 
-            # Si no quedan suficientes jugadores se acaba la partida.
-            remaining = len(self.players)
-            if self._enabled_ai:
-                remaining -= self._bots_num
-            if remaining < MIN_MATCH_USERS:
-                self._turn_callback(None, None, True)
-                return
-
-            # Al terminar un turno de forma automática se le tendrá que
-            # descartar al jugador una carta de forma aleatoria, excepto cuando
-            # esté en la fase de descarte.
-            #
-            # La carta ya se le robará de forma automática al terminar el turno.
-            if not self.discarding and len(self.turn_player().hand) > 0:
-                logger.info(f"{self.turn_player().name} discards due to turn timeout")
-                discarded = random.randint(0, len(self.turn_player().hand) - 1)
-                action = Discard(discarded)
-                discard_update = action.apply(self.turn_player(), game=self)
-                update.merge_with(discard_update)
+                # Si no quedan suficientes jugadores se acaba la partida.
+                remaining = len(self.players)
+                if self._enabled_ai:
+                    remaining -= self._bots_num
+                if remaining < MIN_MATCH_USERS:
+                    self._turn_callback(None, None, True)
+                    return
+            else:
+                # Al terminar un turno de forma automática se le tendrá que
+                # descartar al jugador una carta de forma aleatoria, excepto
+                # cuando esté en la fase de descarte.
+                #
+                # La carta ya se le robará de forma automática al terminar el
+                # turno.
+                if not self.discarding and len(self.turn_player().hand) > 0:
+                    discarded = random.randint(0, len(self.turn_player().hand) - 1)
+                    action = Discard(discarded)
+                    discard_update = action.apply(self.turn_player(), game=self)
+                    update.merge_with(discard_update)
 
             # Terminación automática del turno
             end_update = self._end_turn()
@@ -389,7 +402,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked, False)
+            self._turn_callback(update, None, False)
 
     def _start_turn_timer(self):
         """
@@ -449,13 +462,13 @@ class Game:
         Elimina un jugador de la partida.
         """
 
-        logger.info(f"Eliminación del jugador {player.name}")
+        logger.info(f"Player {player.name} is being removed")
 
         if self._enabled_ai:
             player.is_ai = True
             self._bots_num += 1
 
-        update = GameUpdate()
+        update = GameUpdate(self)
         players = []
         for player in self.players:
             data = {}

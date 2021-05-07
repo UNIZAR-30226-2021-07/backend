@@ -16,9 +16,11 @@ Desconexión por error o botón de reanudar más tarde pulsado:
   partidas privadas no se eliminan jugadores AFK.
 """
 
+from gatovid.util import get_logger
+
 from .base import WsTestClient
 
-# logger = get_logger(__name__)
+logger = get_logger(__name__)
 
 
 class ConnTest(WsTestClient):
@@ -35,18 +37,41 @@ class ConnTest(WsTestClient):
         """
 
         self.set_matchmaking_time(0.2)
-        self.set_turn_timeout(0.2)
+        self.set_turn_timeout(0.5)
         clients, code = self.create_public_game()
 
-        # Iteración completa antes de que el primer usuario sea eliminado
-        for i in range(2):
-            for i in range(len(clients)):
-                self.wait_turn_timeout()
+        def active_turn_wait(client):
+            print("STARTING")
+            while True:
+                received = client.get_received()
+                if len(received) == 0:
+                    continue
+
+                print(received)
+                _, args = self.get_msg_in_received(received, "game_update", json=True)
+                if args is None:
+                    continue
+                if args.get("current_turn") is not None:
+                    print("DONE")
+                    return
+
+        # Iteración completa antes de que el primer usuario sea eliminado.
+        #
+        # Tiene que ser más preciso que en el resto de tests porque es
+        # acumulado, por lo que no se usa self.wait_turn_timeout() sino una
+        # espera activa. Esto no debería ser un gran problema porque el tiempo
+        # de espera es bajo.
+        logger.info(">> Getting ready for players to be removed")
+        self.clean_messages(clients)
+        for i in range(2):  # Itera 2 veces
+            for i in range(len(clients)):  # Por cada cliente
+                active_turn_wait(clients[0])
 
         # En la siguiente iteración los usuarios son eliminados
-        self.clean_messages(clients)
+        logger.info(">> Starting player removal loop")
         for i in range(len(clients)):
-            self.wait_turn_timeout()
+            self.clean_messages(clients)
+            active_turn_wait(clients[0])
 
             client = self.get_current_turn_client(clients)
             print(client.get_received())

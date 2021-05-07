@@ -79,6 +79,12 @@ class Match:
     def is_paused(self) -> bool:
         self._game.is_paused()
 
+    def get_user(self, name: str) -> Optional[User]:
+        try:
+            return next(filter(lambda u: u.name == name, self.users))
+        except StopIteration:
+            return None
+
     def _turn_passed_auto(
         self, update: Optional[GameUpdate], kicked: Optional[str], finished: bool
     ) -> None:
@@ -100,7 +106,7 @@ class Match:
 
         if kicked is not None:
             # Se elimina al usuario de la partida
-            kicked_user = next(filter(lambda u: u.name == kicked, self.users))
+            kicked_user = self.get_user(kicked)
             self.users.remove(kicked_user)
 
             # Se notifica el abandono del usuario a todos los jugadores
@@ -108,6 +114,7 @@ class Match:
             update.merge_with(match_update)
 
         self.send_update(update)
+        print("im done")
 
     def start(self) -> None:
         """
@@ -183,6 +190,9 @@ class Match:
             status = update.get(user.name)
             if status == {}:
                 continue
+
+            if user.name == 'genuser0':
+                logger.info(f"Sending {update.get('genuser0')}")
 
             socket.emit("game_update", status, room=user.sid)
 

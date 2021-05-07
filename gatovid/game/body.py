@@ -30,6 +30,23 @@ class OrganPile:
         # órgano.
         self.modifiers: List[SimpleCard] = []
 
+    @classmethod
+    def from_data(
+        cls, organ: Organ = None, modifiers: List[SimpleCard] = []
+    ) -> "OrganPile":
+        """
+        Devuelve una pila a partir de los datos introducidos. Usado para
+        pruebas.
+        """
+        out = OrganPile()
+
+        if organ is not None:
+            out.set_organ(organ)
+            for mod in modifiers:
+                out.add_modifier(mod)
+
+        return out
+
     def set_organ(self, organ: Organ):
         """
         Establece el órgano como base de la pila.
@@ -118,6 +135,16 @@ class Body:
         for i in range(4):
             self.piles.append(OrganPile())
 
+    @classmethod
+    def from_data(cls, piles: List[OrganPile]) -> "Body":
+        """
+        Devuelve un cuerpo a partir de los datos introducidos. Usado para
+        pruebas.
+        """
+        out = Body()
+        out.piles = piles
+        return out
+
     def get_pile(self, pile: int) -> OrganPile:
         if pile < 0 or pile > 3:
             raise GameLogicException("Slot de pila inválido")
@@ -125,3 +152,19 @@ class Body:
         if self.piles[pile] is None:
             self.piles[pile] = OrganPile()
         return self.piles[pile]
+
+    def organ_unique(self, organ: Organ) -> bool:
+        """
+        Devuelve True si el órgano no está repetido en el cuerpo.
+        """
+        if organ.color == Color.All:
+            return True
+
+        for pile in self.piles:
+            if pile.organ is None:
+                continue
+
+            if pile.organ.color == organ.color:
+                return False
+
+        return True

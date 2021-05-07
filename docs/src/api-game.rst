@@ -329,6 +329,12 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         "current_turn": "manolo22",
         // Información de los jugadores, enviada al inicio de la partida o
         // cuando alguien abandone (y posiblemente sea reemplazado por la IA).
+        //
+        // IMPORTANTE: es posible que el mismo usuario que recibe el mensaje no
+        // aparezca en esta lista, lo que significa que ha sido eliminado de la
+        // partida por estar AFK o porque ha pulsado el botón de abandono. En
+        // caso de no encontrarse a sí mismo en este campo, el usuario tendrá
+        // que llamar al endpoint "leave" para abandonar la partida manualmente.
         "players": [
             {
                 "name": "marcuspkz",

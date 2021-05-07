@@ -70,6 +70,12 @@ class OrganPile:
     def is_empty(self) -> bool:
         return not self.organ
 
+    def is_healthy(self) -> bool:
+        return self.organ is not None and not self.is_infected()
+
+    def is_free(self) -> bool:
+        return not is_empty() and len(self.modifiers) == 0
+
     def is_infected(self) -> bool:
         return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Virus)
 
@@ -83,12 +89,10 @@ class OrganPile:
             and isinstance(self.modifiers[1], Medicine)
         )
 
-    def has_possible_color(self, card: SimpleCard) -> bool:
+    def get_top_color(self) -> Color:
         """
-        Devuelve True si el color de la carta `card` es compatible con las
-        cartas de la pila.
+        Devuelve el color de la última carta de la pila.
         """
-
         if len(self.modifiers) == 0:
             # Si no hay modificadores, comprobamos si el color del modificador es
             # compatible con el del órgano.
@@ -98,6 +102,13 @@ class OrganPile:
             # anterior modificador.
             last_color = self.modifiers[-1].color
 
+    def has_possible_color(self, card: SimpleCard) -> bool:
+        """
+        Devuelve True si el color de la carta `card` es compatible con las
+        cartas de la pila.
+        """
+
+        last_color = self.get_top_color()
         return last_color == card.color or Color.All in (last_color, card.color)
 
     def can_place(self, card: SimpleCard) -> bool:

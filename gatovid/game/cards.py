@@ -1,3 +1,5 @@
+import random
+
 from dataclasses import dataclass
 from enum import Enum
 from typing import TYPE_CHECKING, Dict, List, Optional
@@ -182,11 +184,67 @@ class OrganThief(Treatment):
 
 @dataclass
 class Infection(Treatment):
-    """ """
+    """
+    Traslada tantos virus como puedas de tus órganos infectados a los órganos de
+    los demás jugadores. No puedes utilizar el contagio sobre órganos vacunados
+    o infectados, sólo podrás contagiar órganos libres.
+    """
 
     treatment_type: str = "infection"
 
-    pass
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        logger.info("infection played")
+
+        # Diccionario: color -> lista de pilas con virus de ese color
+        virus = dict()
+        for color in Color:
+            virus[color] = []
+
+        # Listamos los virus que tiene en el cuerpo accediendo en orden
+        # aleatorio a las pilas.
+        for pile in random.sample(action.caller.body.piles, 4):
+            if pile.is_infected():
+                color = pile.get_top_color()
+                virus[color].append(pile)
+
+        # Lista de pilas libres de todos los jugadores
+        candidates = []
+
+        # Accederemos a los jugadores en orden aleatorio
+        for player in random.sample(game.players, len(game.players)):
+            # Eliminamos al caller de la iteracion
+            if player == action.caller:
+                continue
+
+            # Añadimos las pilas libres a la lista de candidatas
+            candidates.append(filter(lambda p : p.is_free(), player.body.piles))
+
+        # Aplicamos un orden aleatorio también a las pilas candidatas
+        for candidate_pile in random.sample(candidates, len(candidates)):
+            color = candidate_pile.get_top_color()
+
+            # Asignamos el primer virus de ese color y lo quitamos de los
+            # posibles.
+            if len(virus[color]) > 0:
+                pile = virus[color].pop()
+            elif len(virus[Color.All]) > 0:
+                pile = virus[Color.All].pop()
+            else:
+                continue
+
+            # Eliminamos el virus del cuerpo del caller
+            pile.pop_modifiers()
+            # Lo colocamos en la pila candidata
+            candidate_pile.add_modifier(Virus(color=color))
+
+        # Por simplificar, devolvemos el cuerpo de todos los jugadores
+        update = GameUpdate(game)
+        for player in game.players:
+            body_update = GameUpdate(game)
+            body_update.repeat({"bodies": {player.name: player.body.piles}})
+            update.merge_with(body_update)
+
+        return update
 
 
 @dataclass

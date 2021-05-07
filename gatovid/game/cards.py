@@ -86,6 +86,9 @@ class Organ(SimpleCard):
         if self.target.name != action.caller.name:
             raise GameLogicException("No puedes colocar un órgano en otro cuerpo")
 
+        if not self.target.body.organ_unique(self):
+            raise GameLogicException("No puedes colocar un órgano repetido")
+
         logger.info(f"{self.color}-colored organ played over {self.target.name}")
 
         self.organ_pile.set_organ(self)

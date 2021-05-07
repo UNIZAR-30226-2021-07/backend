@@ -125,3 +125,19 @@ class Body:
         if self.piles[pile] is None:
             self.piles[pile] = OrganPile()
         return self.piles[pile]
+
+    def organ_unique(self, organ: Organ) -> bool:
+        """
+        Devuelve True si el órgano no está repetido en el cuerpo.
+        """
+        if organ.color == Color.All:
+            return True
+
+        for pile in self.piles:
+            if pile.organ is None:
+                continue
+
+            if pile.organ.color == organ.color:
+                return False
+
+        return True

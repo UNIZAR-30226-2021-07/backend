@@ -197,7 +197,7 @@ class LatexGlove(Treatment):
     treatment_type: str = "latex_glove"
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
-        logger.info(f"latex-glove played")
+        logger.info("latex-glove played")
 
         update = GameUpdate(game)
 
@@ -212,11 +212,13 @@ class LatexGlove(Treatment):
 
         return update
 
+
 @dataclass
 class MedicalError(Treatment):
     """ """
 
     treatment_type: str = "medical_error"
+
 
 def parse_card(data: Dict) -> (object, Dict):
     """

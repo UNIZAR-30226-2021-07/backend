@@ -3,13 +3,12 @@ Tests para la lógica del juego
 """
 
 import random
-
 from dataclasses import asdict
 
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
 from gatovid.game.body import Body
-from gatovid.game.cards import Color, Medicine, Organ, Virus, LatexGlove
+from gatovid.game.cards import Color, LatexGlove, Medicine, Organ, Virus
 
 from .base import WsTestClient
 
@@ -397,4 +396,4 @@ class CardsTest(WsTestClient):
         print(last_hand)
         print(args["hand"])
         self.assertEqual(args["hand"][0], last_hand[1])
-        self.assertEqual(args["hand"][1], last_hand[2]) 
+        self.assertEqual(args["hand"][1], last_hand[2])

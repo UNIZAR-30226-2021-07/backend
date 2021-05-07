@@ -336,7 +336,8 @@ def shop_buy(data):
     :param type: Tipo del objeto ("board" | "profile_pic")
     :type type: ``str``
 
-    :return:
+    :return: Un mensaje descriptivo de la operación realizada correctamente, o
+        un mensaje de error interno en caso contrario.
     """
 
     email = get_jwt_identity()

@@ -215,9 +215,35 @@ class LatexGlove(Treatment):
 
 @dataclass
 class MedicalError(Treatment):
-    """ """
+    """
+    Intercambia todo tu cuerpo por el de otro jugador, incluyendo órganos, virus
+    y vacunas. No importa el número de cartas que cada uno tenga en la mesa.
+    Cuando usas esta carta, los órganos inmunizados también son intercambiados.
+    """
 
     treatment_type: str = "medical_error"
+
+    def get_action_data(self, action: "PlayCard", game: "Game") -> None:
+        # Jugador con el que queremos intercambiar el cuerpo
+        self.target_name = action.data.get("target")
+
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        logger.info("medical-error played")
+
+        update = GameUpdate(game)
+
+        target = game.get_player(self.target_name)
+        # Intercambiamos los cuerpos de ambos jugadores
+        action.caller.body, target.body = target.body, action.caller.body
+        # Añadimos los dos cuerpos al GameUpdate
+        update.repeat({
+            "bodies": {
+                self.target.name: self.target.body.piles,
+                action.caller.name: action.caller.body.piles,
+            },
+        })
+
+        return update
 
 
 def parse_card(data: Dict) -> (object, Dict):

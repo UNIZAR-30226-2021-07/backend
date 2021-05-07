@@ -368,24 +368,50 @@ class WsTestClient(GatovidTestClient):
         self.assertIn("error", callback_args)
         return callback_args
 
-    def get_current_turn(self, client) -> str:
-        received = client.get_received()
-        _, args = self.get_msg_in_received(
-            received, "game_update", json=True, last=True
-        )
-        return args["current_turn"]
-
-    def get_client_from_name(self, clients, name: str):
+    def get_client_from_name(self, clients, name: str) -> object:
         for user, client in zip(self.users_data, clients):
             if user["name"] == name:
                 return client
 
         raise Exception("Couldn't find client with current turn")
 
+    def get_data_from_client(self, clients, client) -> Dict:
+        for user, iter_client in zip(self.users_data, clients):
+            if iter_client == client:
+                return user
+
+        raise Exception("Couldn't find client data")
+
+    def client_reconnect(self, clients, client) -> object:
+        # Desconecta
+        client.disconnect()
+        # Reconecta
+        data = self.get_data_from_client(clients, client)
+        return self.create_client(data)
+
+    def get_current_turn(self, client) -> str:
+        """
+        Devuelve el *nombre* del usuario con el turno actual.
+        """
+
+        received = client.get_received()
+        _, args = self.get_msg_in_received(
+            received, "game_update", json=True, last=True
+        )
+        return args["current_turn"]
+
     def get_current_turn_client(self, clients):
+        """
+        Devuelve el *cliente* con el turno actual.
+        """
+
         current_turn = self.get_current_turn(clients[0])
         return self.get_client_from_name(clients, current_turn)
 
     def clean_messages(self, clients):
+        """
+        Limpia los mensajes en el buzón de todos los clientes.
+        """
+
         for client in clients:
             client.get_received()

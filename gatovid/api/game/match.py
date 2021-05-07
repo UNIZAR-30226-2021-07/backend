@@ -114,7 +114,7 @@ class Match:
             update.merge_with(match_update)
 
         self.send_update(update)
-        print("im done")
+        print("-----")
 
     def start(self) -> None:
         """
@@ -190,9 +190,6 @@ class Match:
             status = update.get(user.name)
             if status == {}:
                 continue
-
-            if user.name == 'genuser0':
-                logger.info(f"Sending {update.get('genuser0')}")
 
             socket.emit("game_update", status, room=user.sid)
 

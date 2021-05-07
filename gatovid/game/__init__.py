@@ -359,16 +359,16 @@ class Game:
             if self._turn_number != initial_turn:
                 return
 
+            update = GameUpdate(self)
+
+            self.turn_player().afk_turns += 1
             logger.info(
                 f"Turn timeout for {self.turn_player().name}"
                 f" ({self.turn_player().afk_turns} in a row)"
             )
 
-            update = GameUpdate(self)
-
             # Expulsión de jugadores AFK en caso de que esté activada la IA.
             kicked = None
-            self.turn_player().afk_turns += 1
             is_afk = self._enabled_ai and self.turn_player().afk_turns == MAX_AFK_TURNS
             if is_afk:
                 kicked = self.turn_player().name

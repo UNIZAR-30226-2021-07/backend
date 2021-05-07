@@ -65,7 +65,11 @@ class ConnTest(WsTestClient):
         self.clean_messages(clients)
         for i in range(2):  # Itera 2 veces
             for i in range(len(clients)):  # Por cada cliente
-                active_turn_wait(clients[0])
+                self.wait_turn_timeout()
+                print("repeated", clients[0].get_received())
+                # active_turn_wait(clients[0])
+
+            print("iter",clients[1].get_received())
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")

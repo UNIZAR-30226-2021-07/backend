@@ -156,7 +156,7 @@ class Treatment(Card):
 
     # Usado para la codificación JSON
     card_type: str = "treatment"
-    treatment_type: str
+    treatment_type: str = ""
 
 
 @dataclass
@@ -197,7 +197,7 @@ class LatexGlove(Treatment):
     treatment_type: str = "latex_glove"
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
-        logger.info(f"latex-glove played over {self.target.name}")
+        logger.info(f"latex-glove played")
 
         update = GameUpdate(game)
 

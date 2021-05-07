@@ -2,10 +2,14 @@
 Tests para la lógica del juego
 """
 
+import random
+
+from dataclasses import asdict
+
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
 from gatovid.game.body import Body
-from gatovid.game.cards import Color, Medicine, Organ, Virus
+from gatovid.game.cards import Color, Medicine, Organ, Virus, LatexGlove
 
 from .base import WsTestClient
 
@@ -336,3 +340,61 @@ class CardsTest(WsTestClient):
             card=Virus(color=Color.Red),
             place_in_self=True,
         )
+
+    def test_treatment_latex_glove(self):
+        # HACK: Establecemos siempre la misma semilla para evitar el caso en el
+        # que el random genere una mano igual a la que se tenia anteriormente.
+        random.seed(10)
+        clients, code = self.create_game()
+
+        # Primero se tendrá el game_update inicial
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
+
+        game = MM.get_match(code)._game
+        # Forzamos el turno al client 0
+        game._turn = 0
+
+        turn_player = game.players[game._turn]
+        turn_player.hand[0] = LatexGlove()
+        last_hand = list(map(asdict, turn_player.hand.copy()))
+
+        # Ignoramos los eventos anteriores en el resto de jugadores y guardamos
+        # la mano anterior de estos.
+        for client in clients[1:]:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            # Guardamos en el cliente la mano anterior (para iterar facilmente)
+            client.last_hand = args["hand"].copy()
+
+        # Usamos la carta desde el cliente 0
+        callback_args = clients[0].emit(
+            "play_card",
+            {
+                "slot": 0,
+            },
+            callback=True,
+        )
+        self.assertNotIn("error", callback_args)
+
+        for client in clients[1:]:
+            # Comprobamos que al resto de jugadores les ha borrado la mano (se
+            # habrán robado nuevas cartas al saltarles el turno).
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertNotIn("error", args)
+
+            self.assertIn("hand", args)
+            self.assertNotEqual(args["hand"], client.last_hand)
+
+        # Comprobamos que el cliente que la lanza conserva su mano
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        self.assertNotIn("error", args)
+
+        self.assertIn("hand", args)
+        print(last_hand)
+        print(args["hand"])
+        self.assertEqual(args["hand"][0], last_hand[1])
+        self.assertEqual(args["hand"][1], last_hand[2]) 

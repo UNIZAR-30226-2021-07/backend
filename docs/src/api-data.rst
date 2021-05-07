@@ -127,3 +127,4 @@ Referencia
         test,
         user_data,
         user_stats,
+        shop_buy,

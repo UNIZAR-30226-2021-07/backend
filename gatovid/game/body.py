@@ -31,7 +31,7 @@ class OrganPile:
         self.modifiers: List[SimpleCard] = []
 
     @classmethod
-    def _from_data(
+    def from_data(
         cls, organ: Organ = None, modifiers: List[SimpleCard] = []
     ) -> "OrganPile":
         """
@@ -147,7 +147,7 @@ class Body:
             self.piles.append(OrganPile())
 
     @classmethod
-    def _from_data(cls, piles: List[OrganPile]) -> "Body":
+    def from_data(cls, piles: List[OrganPile]) -> "Body":
         """
         Devuelve un cuerpo a partir de los datos introducidos. Usado para
         pruebas.

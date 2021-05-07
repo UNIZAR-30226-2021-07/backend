@@ -9,7 +9,7 @@ install_requires = [
     "flask-jwt-extended==4.1.0",
     "flask-testing==0.8.0",
     "flask-socketio==5.0.1",
-    "eventlet==0.30.2",
+    "eventlet==0.31.0",
     "flask-session==0.3.2",
     "flask-cors==3.0.10",
 ]

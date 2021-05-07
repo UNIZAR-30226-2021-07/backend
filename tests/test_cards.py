@@ -315,10 +315,10 @@ class CardsTest(WsTestClient):
         test_cases = [
             {
                 "organ": Organ(color=Color.Red),
-                "body": Body._from_data(
+                "body": Body.from_data(
                     piles=[
                         OrganPile(),
-                        OrganPile._from_data(organ=Organ(color=Color.Red)),
+                        OrganPile.from_data(organ=Organ(color=Color.Red)),
                         OrganPile(),
                         OrganPile(),
                     ]
@@ -327,11 +327,11 @@ class CardsTest(WsTestClient):
             },
             {
                 "organ": Organ(color=Color.Green),
-                "body": Body._from_data(
+                "body": Body.from_data(
                     piles=[
                         OrganPile(),
-                        OrganPile._from_data(organ=Organ(color=Color.Red)),
-                        OrganPile._from_data(organ=Organ(color=Color.Blue)),
+                        OrganPile.from_data(organ=Organ(color=Color.Red)),
+                        OrganPile.from_data(organ=Organ(color=Color.Blue)),
                         OrganPile(),
                     ]
                 ),
@@ -339,11 +339,11 @@ class CardsTest(WsTestClient):
             },
             {
                 "organ": Organ(color=Color.All),
-                "body": Body._from_data(
+                "body": Body.from_data(
                     piles=[
                         OrganPile(),
-                        OrganPile._from_data(organ=Organ(color=Color.Red)),
-                        OrganPile._from_data(organ=Organ(color=Color.Blue)),
+                        OrganPile.from_data(organ=Organ(color=Color.Red)),
+                        OrganPile.from_data(organ=Organ(color=Color.Blue)),
                         OrganPile(),
                     ]
                 ),

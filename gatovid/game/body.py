@@ -30,6 +30,23 @@ class OrganPile:
         # órgano.
         self.modifiers: List[SimpleCard] = []
 
+    @classmethod
+    def _from_data(
+        cls, organ: Organ = None, modifiers: List[SimpleCard] = []
+    ) -> "OrganPile":
+        """
+        Devuelve una pila a partir de los datos introducidos. Usado para
+        pruebas.
+        """
+        out = OrganPile()
+
+        if organ is not None:
+            out.set_organ(organ)
+            for mod in modifiers:
+                out.add_modifier(mod)
+
+        return out
+
     def set_organ(self, organ: Organ):
         """
         Establece el órgano como base de la pila.
@@ -117,6 +134,16 @@ class Body:
         self.piles = []
         for i in range(4):
             self.piles.append(OrganPile())
+
+    @classmethod
+    def _from_data(cls, piles: List[OrganPile]) -> "Body":
+        """
+        Devuelve un cuerpo a partir de los datos introducidos. Usado para
+        pruebas.
+        """
+        out = Body()
+        out.piles = piles
+        return out
 
     def get_pile(self, pile: int) -> OrganPile:
         if pile < 0 or pile > 3:

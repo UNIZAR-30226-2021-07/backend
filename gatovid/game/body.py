@@ -74,7 +74,7 @@ class OrganPile:
         return self.organ is not None and not self.is_infected()
 
     def is_free(self) -> bool:
-        return not is_empty() and len(self.modifiers) == 0
+        return not self.is_empty() and len(self.modifiers) == 0
 
     def is_infected(self) -> bool:
         return len(self.modifiers) > 0 and isinstance(self.modifiers[0], Virus)
@@ -96,11 +96,11 @@ class OrganPile:
         if len(self.modifiers) == 0:
             # Si no hay modificadores, comprobamos si el color del modificador es
             # compatible con el del órgano.
-            last_color = self.organ.color
+            return self.organ.color
         else:
             # Si hay modificadores, comprobamos si el color es compatible con el
             # anterior modificador.
-            last_color = self.modifiers[-1].color
+            return self.modifiers[-1].color
 
     def has_possible_color(self, card: SimpleCard) -> bool:
         """

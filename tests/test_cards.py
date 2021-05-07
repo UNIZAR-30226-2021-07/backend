@@ -7,7 +7,7 @@ from dataclasses import asdict
 
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
-from gatovid.game.body import Body
+from gatovid.game.body import Body, OrganPile
 from gatovid.game.cards import Color, LatexGlove, MedicalError, Medicine, Organ, Virus
 
 from .base import WsTestClient
@@ -75,7 +75,7 @@ class CardsTest(WsTestClient):
                 expected_pile_states[i],
             )
 
-    def check_cant_place(self, target_body, card, place_in_self=False):
+    def check_can_place(self, target_body, card, place_in_self=False, can_place=True):
         """
         Se prueba a colocar la carta `card` en el cuerpo de otro jugador
         distinto (si `place_in_self` es True, el otro jugador es el mismo que
@@ -115,11 +115,17 @@ class CardsTest(WsTestClient):
             },
             callback=True,
         )
-        self.assertIn("error", callback_args)
+        if can_place:
+            self.assertNotIn("error", callback_args)
+        else:
+            self.assertIn("error", callback_args)
 
-        # No recibimos el game_update
         received = turn_client.get_received()
-        self.assertEqual(received, [])
+        if can_place:
+            self.assertNotEqual(received, [])
+        else:
+            # No recibimos el game_update
+            self.assertEqual(received, [])
 
     def test_interactions_cure(self):
         """
@@ -295,21 +301,77 @@ class CardsTest(WsTestClient):
         Se prueba que no se pueda colocar un órgano en el cuerpo de otro
         jugador.
         """
-        self.check_cant_place(
+        self.check_can_place(
             target_body=Body(),
             card=Organ(color=Color.Red),
             place_in_self=False,
+            can_place=False,
         )
+
+    def test_organ_repeated(self):
+        """
+        Se prueba que no se pueda colocar un órgano repetido en el cuerpo.
+        """
+        b = Body()
+        b.piles[1].set_organ(Organ(color=Color.Red))
+
+        test_cases = [
+            {
+                "organ": Organ(color=Color.Red),
+                "body": Body._from_data(
+                    piles=[
+                        OrganPile(),
+                        OrganPile._from_data(organ=Organ(color=Color.Red)),
+                        OrganPile(),
+                        OrganPile(),
+                    ]
+                ),
+                "can_place": False,
+            },
+            {
+                "organ": Organ(color=Color.Green),
+                "body": Body._from_data(
+                    piles=[
+                        OrganPile(),
+                        OrganPile._from_data(organ=Organ(color=Color.Red)),
+                        OrganPile._from_data(organ=Organ(color=Color.Blue)),
+                        OrganPile(),
+                    ]
+                ),
+                "can_place": True,
+            },
+            {
+                "organ": Organ(color=Color.All),
+                "body": Body._from_data(
+                    piles=[
+                        OrganPile(),
+                        OrganPile._from_data(organ=Organ(color=Color.Red)),
+                        OrganPile._from_data(organ=Organ(color=Color.Blue)),
+                        OrganPile(),
+                    ]
+                ),
+                "can_place": True,
+            },
+        ]
+
+        for test in test_cases:
+            self.check_can_place(
+                target_body=test["body"],
+                card=test["organ"],
+                place_in_self=True,
+                can_place=test["can_place"],
+            )
 
     def test_modifier_on_empty_pile(self):
         """
         Se prueba que no se pueda colocar un modificador sin un órgano en la
         base de la pila.
         """
-        self.check_cant_place(
+        self.check_can_place(
             target_body=Body(),
             card=Medicine(color=Color.Red),
             place_in_self=True,
+            can_place=False,
         )
 
     def test_medicine_on_others(self):
@@ -320,10 +382,11 @@ class CardsTest(WsTestClient):
         b = Body()
         b.piles[0].set_organ(Organ(color=Color.Red))
 
-        self.check_cant_place(
+        self.check_can_place(
             target_body=b,
             card=Medicine(color=Color.Red),
             place_in_self=False,
+            can_place=False,
         )
 
     def test_virus_on_self(self):
@@ -334,10 +397,11 @@ class CardsTest(WsTestClient):
         b = Body()
         b.piles[0].set_organ(Organ(color=Color.Red))
 
-        self.check_cant_place(
+        self.check_can_place(
             target_body=b,
             card=Virus(color=Color.Red),
             place_in_self=True,
+            can_place=False,
         )
 
     def test_treatment_latex_glove(self):

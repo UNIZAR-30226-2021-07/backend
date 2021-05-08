@@ -8,7 +8,15 @@ from dataclasses import asdict
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
 from gatovid.game.body import Body, OrganPile
-from gatovid.game.cards import Color, LatexGlove, MedicalError, Infection, Medicine, Organ, Virus
+from gatovid.game.cards import (
+    Color,
+    Infection,
+    LatexGlove,
+    MedicalError,
+    Medicine,
+    Organ,
+    Virus,
+)
 
 from .base import WsTestClient
 
@@ -540,8 +548,6 @@ class CardsTest(WsTestClient):
         """
         clients, code = self.create_game(players=3)
 
-        caller_name = GENERIC_USERS_NAME.format(0)
-
         # Primero se tendrá el game_update inicial
         received = clients[0].get_received()
         _, args = self.get_msg_in_received(received, "game_update", json=True)
@@ -584,9 +590,9 @@ class CardsTest(WsTestClient):
             {
                 "have": [
                     # Se debería colocar el multicolor
-                    organ(Color.Red), 
+                    organ(Color.Red),
                     # No se debería colocar en esta
-                    infected_organ(Color.Green, virus_color=Color.All), 
+                    infected_organ(Color.Green, virus_color=Color.All),
                     OrganPile(),
                     organ(Color.Blue),
                 ],

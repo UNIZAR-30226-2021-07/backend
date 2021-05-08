@@ -255,8 +255,19 @@ class Match:
         Para comprobar si un usuario se puede volver a unir a la partida.
         """
 
-        # De normal no se puede
-        return False, None
+        if isinstance(self, PublicMatch):
+            return False, None
+
+        if not self.is_started():
+            return False, None
+
+        if user not in self.users:
+            return False, None
+
+        update = GameUpdate(self._game)
+        update.merge_with(self._game.full_update())
+        update.merge_with(self._match_update())
+        return True, update.get(user.name)
 
     def add_user(self, user: User) -> None:
         """
@@ -292,22 +303,6 @@ class PrivateMatch(Match):
         super().__init__()
 
         self.owner = owner
-
-    def check_rejoin(self, user: User) -> (bool, Optional[GameUpdate]):
-        """
-        Para comprobar si un usuario se puede volver a unir a la partida.
-        """
-
-        if not self.is_started():
-            return False, None
-
-        update = GameUpdate(self._game)
-        update.merge_with(self._game.full_update())
-        update.merge_with(self._match_update())
-        if user in self.users:
-            return True, update.get(user.name)
-        else:
-            return False, None
 
 
 class PublicMatch(Match):

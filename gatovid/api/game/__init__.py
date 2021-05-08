@@ -227,7 +227,7 @@ def join(game_code):
     if can_rejoin:
         logger.info(f"User {session['user']} reconnecting to game")
         emit("start_game", room=session["user"].sid)
-        match.send_update(initial_update)
+        emit("game_update", initial_update, room=session["user"].sid)
         return
 
     # Guardamos al jugador en la partida

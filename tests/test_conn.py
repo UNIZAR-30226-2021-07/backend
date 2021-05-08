@@ -49,18 +49,24 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("join", code, callback=True)
             self.assertIn("error", callback_args)
 
-    def check_connection_works(self, client, start: bool, can_pause: bool = True):
+    def check_connection_works(self, client, start: bool, public: bool = False):
+        """
+        Test básico de funcionamiento. Se puede dividir en dos pasos con `start`
+        y si se indica `public` se hará todo a la vez y sin pausar.
+        """
+
         # Se pueden descartar cartas sin problemas
-        if start:
+        if public or start:
             # En la primera iteración descarta
             callback_args = client.emit("play_discard", True, callback=True)
             self.assertNotIn("error", callback_args)
-        else:
+
+        if public or not start:
             # Y en la segunda iteración pasa el turno
             callback_args = client.emit("play_pass", callback=True)
             self.assertNotIn("error", callback_args)
 
-        if can_pause:
+        if not public:
             # Se puede pausar y reanudar sin problemas
             callback_args = client.emit("pause_game", True, callback=True)
             self.assertNotIn("error", callback_args)
@@ -184,10 +190,10 @@ class ConnTest(WsTestClient):
         turn = clients.index(starting_turn)
 
         for i in range(len(clients)):
-            logger.info(">> Trying as usual")
+            logger.info(f">> Trying as usual for turn {turn}")
             # Antes de la desconexión funciona correctamente
             client = clients[turn]
-            self.check_connection_works(client, start=True, can_pause=False)
+            self.check_connection_works(client, start=True, public=True)
 
             logger.info(">> Trying after reconnect")
             # Reconexión, no debería funcionar

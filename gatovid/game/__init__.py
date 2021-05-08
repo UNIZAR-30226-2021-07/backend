@@ -478,8 +478,9 @@ class Game:
             self.players.remove(player)
 
             # Si es su turno se pasa al siguiente
-            self._advance_turn()
-            update.merge_with(self.current_turn_update())
+            if self.turn_player() == player:
+                self._advance_turn()
+                update.merge_with(self.current_turn_update())
 
         # Comprobando si quedan suficientes usuarios
         remaining = len(self.players)

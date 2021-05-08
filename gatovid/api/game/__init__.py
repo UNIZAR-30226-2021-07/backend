@@ -294,6 +294,10 @@ def leave():
         :ref:`error <errores>`.
     """
 
+    # No hay partida de la que salir ni limpieza que hacer
+    if session.get("game") is None:
+        return {"error": "No hay ninguna partida de la que salir"}
+
     game_code = session["game"]
     leave_room(game_code)
     emit(

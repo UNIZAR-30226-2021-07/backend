@@ -71,16 +71,16 @@ class OrganPile:
     def add_modifier(self, modifier: SimpleCard):
         self.modifiers.append(modifier)
 
-    def pop_modifiers(self, deck: Optional[List[Card]] = None):
+    def pop_modifiers(self, return_to: Optional[List[Card]] = None):
         """
         Se eliminan los modificadores de la pila. Se devuelven las cartas de la
         pila a la baraja `return_to` si no es `None`.
         """
 
-        if deck is not None:
+        if return_to is not None:
             # Devolvemos los modificadores a la baraja
             for mod in self.modifiers:
-                deck.insert(0, mod)
+                return_to.insert(0, mod)
 
         self.modifiers.clear()
 

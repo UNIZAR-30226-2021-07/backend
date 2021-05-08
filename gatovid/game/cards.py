@@ -266,7 +266,7 @@ class LatexGlove(Treatment):
                 continue
 
             # Vaciamos la mano del oponente
-            player.hand = []
+            player.empty_hand()
             # Añadimos la mano vacía al GameUpdate
             update.add(player.name, {"hand": []})
 

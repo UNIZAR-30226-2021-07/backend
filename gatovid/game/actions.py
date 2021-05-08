@@ -69,9 +69,7 @@ class Discard(Action):
 
         # Elimina la carta de la mano del jugador y la añade al principio del
         # mazo, como indican las reglas del juego.
-        card = caller.get_card(self.position)
-        caller.remove_card(self.position)
-        game.deck.insert(0, card)
+        caller.remove_card(self.position, return_to=game.deck)
 
         update = GameUpdate(game)
         update.add(caller.name, {"hand": caller.hand})
@@ -120,5 +118,5 @@ class PlayCard(Action):
         update = card.apply(self, game)
         # Solo si hemos podido "aplicar" el comportamiento de la carta, la
         # quitaremos de la mano.
-        caller.remove_card(self.slot)
+        caller.remove_card(self.slot, return_to=game.deck)
         return update

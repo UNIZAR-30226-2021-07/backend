@@ -115,13 +115,8 @@ class Game:
         Destructor que termina la partida si no se ha hecho ya anteriormente.
         """
 
-        try:
-            if not self._finished:
-                self.finish()
-        except AttributeError:
-            # Evita errores extremos en los que el constructor se llama antes
-            # que la terminación del constructor.
-            pass
+        if not self._finished:
+            self.finish()
 
     def start(self) -> GameUpdate:
         """

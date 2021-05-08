@@ -246,30 +246,26 @@ class ConnTest(WsTestClient):
 
     def test_reconnect_when_joining(self):
         """
-        Comprueba un caso extremo de desconexión antes de que la partida sea
+        Comprueba un caso especial de desconexión antes de que la partida sea
         comenzada.
         """
 
-        # TODO
-
-        clients = []
-        for i in range(2):
-            clients.append(self.create_client(self.users_data[i]))
+        client_leader = self.create_client(self.users_data[0])
+        client = self.create_client(self.users_data[1])
 
         # Creamos la partida
-        callback_args = clients[0].emit("create_game", callback=True)
-
-        received = clients[0].get_received()
+        callback_args = client_leader.emit("create_game", callback=True)
+        received = client_leader.get_received()
         _, args = self.get_msg_in_received(received, "create_game", json=True)
         code = args["code"]
 
-        # Unimos a los clientes a la partida
-        for client in clients[1:]:
-            callback_args = client.emit("join", code, callback=True)
-            self.assertNotIn("error", callback_args)
+        # Antes de unirse se reconecta
+        client = self.client_reconnect([client_leader, client], client)
 
-        # Empezamos la partida
-        callback_args = clients[0].emit("start_game", callback=True)
+        # Unión a la partida
+        callback_args = client.emit("join", code, callback=True)
         self.assertNotIn("error", callback_args)
 
-        return clients, code
+        # Empezamos la partida sin problemas
+        callback_args = client_leader.emit("start_game", callback=True)
+        self.assertNotIn("error", callback_args)

@@ -452,6 +452,9 @@ class Game:
     def _remove_player(self, player: Player) -> GameUpdate:
         """
         Elimina un jugador de la partida.
+
+        Si está activada la IA el jugador es reemplazado por un bot, y en caso
+        contrario se mueven sus cartas al inicio de la baraja y se elimina.
         """
 
         logger.info(f"Player {player.name} is being removed")
@@ -460,6 +463,8 @@ class Game:
             player.is_ai = True
             self._bots_num += 1
         else:
+            for card in player.hand:
+                self.deck.insert(0, card)
             self.players.remove(player)
 
         return self.players_update()

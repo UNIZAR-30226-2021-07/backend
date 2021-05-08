@@ -209,6 +209,7 @@ class ConnTest(WsTestClient):
         acabe.
         """
 
+        self.set_turn_timeout(0.5)
         clients, code = self.create_game()
 
         # Para saber el orden de los turnos

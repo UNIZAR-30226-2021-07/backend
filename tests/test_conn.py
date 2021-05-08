@@ -80,7 +80,7 @@ class ConnTest(WsTestClient):
         usuarios.
         """
 
-        self.set_matchmaking_time(0.2)
+        self.set_matchmaking_time(0.5)
         self.set_turn_timeout(0.1)
         clients, code = self.create_public_game()
 
@@ -172,7 +172,7 @@ class ConnTest(WsTestClient):
         Comprueba el abandono manual de una partida pública.
         """
 
-        self.set_matchmaking_time(0.2)
+        self.set_matchmaking_time(0.5)
         self.set_turn_timeout(0.1)
         clients, code = self.create_public_game()
         self.abandon_and_check(clients, code, can_pause=False)
@@ -182,7 +182,7 @@ class ConnTest(WsTestClient):
         Abandonar una partida pública supone que no se puede volver.
         """
 
-        self.set_matchmaking_time(0.2)
+        self.set_matchmaking_time(0.5)
         clients, code = self.create_public_game()
 
         # Para saber el orden de los turnos
@@ -284,7 +284,7 @@ class ConnTest(WsTestClient):
         pública sea comenzada.
         """
 
-        self.set_matchmaking_time(0.2)
+        self.set_matchmaking_time(0.5)
 
         client_leader = self.create_client(self.users_data[0])
         client = self.create_client(self.users_data[1])

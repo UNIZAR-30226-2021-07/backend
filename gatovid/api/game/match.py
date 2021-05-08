@@ -286,11 +286,17 @@ class Match:
         self.users.append(user)
 
     def remove_user(self, user: User) -> None:
-        self.users.remove(user)
+        try:
+            self.users.remove(user)
+        except ValueError:
+            return
 
         if self.is_started():
             update = self._game.remove_player(user.name)
-            self.send_update(update)
+            if self._game.is_finished():
+                socket.emit("game_cancelled", room=self.code)
+            else:
+                self.send_update(update)
 
 
 class PrivateMatch(Match):
@@ -343,12 +349,14 @@ class PublicMatch(Match):
         y sino se cancela la partida por esperar demasiado.
         """
 
-        if len(self.users) >= MIN_MATCH_USERS:
+        num = len(self.users)
+
+        if num >= MIN_MATCH_USERS:
             # Empezamos la partida
             self.start()
         else:
             # La cancelamos
-            logger.info(f"Public match {self.code} has been cancelled")
+            logger.info(f"Public match {self.code} with {num} users has been cancelled")
             self.end()
 
 

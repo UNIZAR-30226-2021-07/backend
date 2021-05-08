@@ -9,13 +9,11 @@ from typing import Dict, List, Optional
 
 from gatovid.exts import db, socket
 from gatovid.game import Action, Game, GameLogicException, GameUpdate
-from gatovid.models import User
+from gatovid.models import MAX_MATCH_USERS, MIN_MATCH_USERS, User
 from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
 matches = dict()
-MIN_MATCH_USERS = 2
-MAX_MATCH_USERS = 6
 # Tiempo de espera hasta que se intenta empezar la partida
 TIME_UNTIL_START = 5
 # Caracteres permitidos para los códigos de las partidas.
@@ -51,7 +49,6 @@ class Match:
     def __init__(self) -> None:
         self.users: List[User] = []
         self._game: Optional[Game] = None
-        self._started_lock = threading.Lock()
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -81,23 +78,37 @@ class Match:
     def is_paused(self) -> bool:
         self._game.is_paused()
 
-    def _turn_passed_auto(self, update: GameUpdate, kicked: Optional[str]) -> None:
+    def get_user(self, name: str) -> Optional[User]:
+        try:
+            return next(filter(lambda u: u.name == name, self.users))
+        except StopIteration:
+            return None
+
+    def _turn_passed_auto(
+        self, update: Optional[GameUpdate], kicked: Optional[str], finished: bool
+    ) -> None:
         """
         Callback invocado cuando la partida pasa de turno automáticamente por el
         timer. Esta acción posiblemente expulse a un usuario de la partida, en
-        cuyo caso `kicked` no será `None`
+        cuyo caso `kicked` no será `None`.
+
+        Cuando se hayan expulsado suficientes jugadores hasta no poderse seguir
+        jugando, `finished` será `True` (los demás parámetros `None`) y se
+        cancelará la partida.
         """
 
-        # TODO: esto también tendría que pasar un parámetro "finished", porque
-        # en caso de que se fueran todos los usuarios de la partida tendría que
-        # cancelarse.
+        if finished:
+            logger.info(f"Not enough players to continue in {self.code}")
+            self.end(cancel=True)
+            return
+
         if kicked is not None:
             # Se elimina al usuario de la partida
-            kicked_user = next(filter(lambda u: u.name == kicked, self.users))
+            kicked_user = self.get_user(kicked)
             self.users.remove(kicked_user)
 
-            # Se notifica el abandono del usuario
-            match_update = self._match_info()
+            # Se notifica el abandono del usuario a todos los jugadores
+            match_update = self._match_update()
             update.merge_with(match_update)
 
         self.send_update(update)
@@ -120,12 +131,11 @@ class Match:
         sobre los jugadores como sus fotos debería haber ido en start_game.
         """
 
-        with self._started_lock:
-            if self.is_started():
-                return
+        if self.is_started():
+            return
 
-            enable_ai = isinstance(self, PublicMatch)
-            self._game = Game(self.users, self._turn_passed_auto, enable_ai)
+        enable_ai = isinstance(self, PublicMatch)
+        self._game = Game(self.users, self._turn_passed_auto, enable_ai)
 
         # Mensaje especial de inicio de la partida
         logger.info(f"Match {self.code} has started")
@@ -134,13 +144,13 @@ class Match:
         # game_update con el inicio del juego
         update = self._game.start()
         # game_update con el inicio de la partida
-        match_update = self._match_info()
+        match_update = self._match_update()
 
         # Unión de ambos game_update
         update.merge_with(match_update)
         self.send_update(update)
 
-    def _match_info(self) -> GameUpdate:
+    def _match_update(self) -> GameUpdate:
         """
         Genera un game_update con información sobre la partida para cada
         jugador.
@@ -201,19 +211,26 @@ class Match:
             for user, status in zip(self._users, update):
                 self.update_stats(user, status)
 
-    def end(self) -> None:
+    def end(self, cancel: bool = False) -> None:
         """
         Finaliza la partida en caso de que no haya terminado ya.
+
+        Si `cancel` es verdadero, se interpreta como que la partida ha sido
+        cancelada forzosamente y por tanto se enviará un mensaje de terminación
+        temprana a los usuarios de la partida.
         """
 
-        if not self.is_started() or not self._game.is_finished():
-            socket.emit("game_cancelled", room=self.code)
+        if cancel:
+            self.cancel()
 
         # Se termina manualmente el juego interno, pero al ser cancelado no
         # se actualizarán los datos de los jugadores ni se enviará el
         # game_update.
-        if self.is_started():
+        if self.is_started() and not self._game.is_finished():
             _ = self._game.finish()
+
+        # Se elimina a sí misma del gestor de partidas
+        MM.remove_match(self.code)
 
         logger.info(f"Match {self.code} has ended")
 
@@ -237,6 +254,25 @@ class Match:
 
         db.session.commit()
 
+    def check_rejoin(self, user: User) -> (bool, Optional[GameUpdate]):
+        """
+        Para comprobar si un usuario se puede volver a unir a la partida.
+        """
+
+        if isinstance(self, PublicMatch):
+            return False, None
+
+        if not self.is_started():
+            return False, None
+
+        if user not in self.users:
+            return False, None
+
+        update = GameUpdate(self._game)
+        update.merge_with(self._game.full_update())
+        update.merge_with(self._match_update())
+        return True, update.get(user.name)
+
     def add_user(self, user: User) -> None:
         """
         Añade un usuario a la partida.
@@ -252,6 +288,22 @@ class Match:
             raise GameLogicException("El usuario ya está en la partida")
 
         self.users.append(user)
+
+    def remove_user(self, user: User) -> None:
+        try:
+            self.users.remove(user)
+        except ValueError:
+            return
+
+        if self.is_started():
+            update = self._game.remove_player(user.name)
+            if self._game.is_finished():
+                self.end(cancel=True)
+            else:
+                self.send_update(update)
+
+    def cancel(self) -> None:
+        socket.emit("game_cancelled", room=self.code)
 
 
 class PrivateMatch(Match):
@@ -282,33 +334,62 @@ class PublicMatch(Match):
         # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
         # han conectado todos los jugadores.
         self.start_timer = Timer(TIME_UNTIL_START, self.start_check)
+        self.start_lock = threading.Lock()
 
-    def start(self):
+    # NOTE: se declaran de forma separada y privada los métodos `_start` y
+    # `_end`. Esto es porque para los métodos públicos `start` y `end` es
+    # necesario hacer lock para evitar problemas de concurrencia con el timer,
+    # pero el mismo timer también necesita acceso a esas funciones. Por tanto,
+    # para evitar un deadlock el timer accederá a las versiones sin lock, y las
+    # interfaces públicas sí que usarán el lock.
+
+    def _start(self):
+        logger.info(
+            f"Starting public game {self.code}" f" with {len(self.users)} users"
+        )
+
         # Cancelamos el timer si sigue
         self.start_timer.cancel()
 
         super().start()
 
-    def end(self):
+    def _end(self, cancel: bool = False):
         # Cancelamos el timer si sigue
         self.start_timer.cancel()
 
-        super().end()
+        super().end(cancel)
+
+    def start(self):
+        with self.start_lock:
+            self._start()
+
+    def end(self, cancel: bool = False):
+        with self.start_lock:
+            self._end(cancel)
 
     def start_check(self):
         """
         Comprobación de si la partida puede comenzar tras haber dado un tiempo a
         los jugadores para que se conecten. Si es posible, la partida empezará,
         y sino se cancela la partida por esperar demasiado.
+
+        Como esta parte se realiza de forma concurrente, es necesario usar el
+        lock de inicio de turno y asegurarse que después de obtenerlo no se ha
+        iniciado la partida ya.
         """
 
-        if len(self.users) >= MIN_MATCH_USERS:
-            # Empezamos la partida
-            self.start()
-        else:
-            # La cancelamos
-            logger.info(f"Public match {self.code} has been cancelled")
-            self.end()
+        logger.info("Public match timer triggered")
+
+        with self.start_lock:
+            if self.is_started():
+                logger.info("Timer skipping check; game already started")
+                return
+
+            # Empezamos la partida únicamente si hay suficientes usuarios
+            if len(self.users) >= MIN_MATCH_USERS:
+                self._start()
+            else:
+                self._end(cancel=True)
 
 
 class MatchManager:
@@ -332,8 +413,6 @@ class MatchManager:
 
         with self._public_lock:
             # No añadimos al usuario si ya está esperando.
-            # FIXME: podría dar error si no cambia el sid del usuario, habría
-            # que actualizar el objeto usuario en tal caso.
             if user in self.users_waiting:
                 raise GameLogicException(
                     "El usuario ya está esperando a una partida pública"
@@ -420,6 +499,7 @@ class MatchManager:
         return matches.get(code)
 
     def remove_match(self, code: str) -> None:
+        logger.info(f"Removing {code} from matches")
         # Eliminar con seguridad (para evitar crashes)
         matches.pop(code, None)
 

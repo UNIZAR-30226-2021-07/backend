@@ -80,9 +80,9 @@ def disconnect():
     if session["user"] in MM.users_waiting:
         MM.stop_waiting(session["user"])
 
-    # Puede estar metido en una partida, tenemos que hacer que salga.
-    if session.get("game"):
-        leave()
+    # NOTE: si el usuario está metido en una partida no se hará nada, y se
+    # cuenta como una desconexión temporal. Si es una pública ya se le eliminará
+    # automáticamente.
 
 
 @socket.on("search_game")
@@ -221,6 +221,15 @@ def join(game_code):
     session["user"] = User.query.get(session["user"].email)
     session["user"].sid = request.sid
 
+    # Comprobar si es una reconexión y en ese caso indicarle que empiece
+    # directamente.
+    can_rejoin, initial_update = match.check_rejoin(session["user"])
+    if can_rejoin:
+        logger.info(f"User {session['user']} reconnecting to game")
+        emit("start_game", room=session["user"].sid)
+        emit("game_update", initial_update, room=session["user"].sid)
+        return
+
     # Guardamos al jugador en la partida
     try:
         match.add_user(session["user"])
@@ -254,8 +263,15 @@ def join(game_code):
     logger.info(f"User {session['user'].name} has joined the game {game_code}")
 
 
+# NOTE: aunque parezca contra-intuitivo, salir de una partida no hace falta
+# estar dentro de una.
+#
+# Esto es porque también se puede usar este endpoint de forma de limpieza. Por
+# ejemplo cuando una partida se cancela a sí misma porque se queda sin
+# jugadores, se habrán eliminado a los usuarios de esa partida pero igualmente
+# el cliente tendrá que llamar para limpiar la sesión y hacer `leave_room` para
+# poderse unir a otra partida.
 @socket.on("leave")
-@_requires_game()
 def leave():
     """
     Salir de la partida actual.
@@ -278,6 +294,10 @@ def leave():
         :ref:`error <errores>`.
     """
 
+    # No hay partida de la que salir ni limpieza que hacer
+    if session.get("game") is None:
+        return {"error": "No hay ninguna partida de la que salir"}
+
     game_code = session["game"]
     leave_room(game_code)
     emit(
@@ -291,11 +311,12 @@ def leave():
     del session["game"]
 
     match = MM.get_match(game_code)
-    match.users.remove(session["user"])
+    if match is None:
+        return  # Limpieza de partidas ya canceladas, no hace falta seguir
+    match.remove_user(session["user"])
     logger.info(f"User {session['user'].name} has left the game {game_code}")
     if len(match.users) == 0:
         match.end()
-        # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
 

@@ -70,7 +70,10 @@ class GameUpdate:
 
     def add(self, player_name: str, value: Dict) -> None:
         self.is_repeated = False
-        merge_dict(self._data[player_name], value)
+        if player_name in self._data:
+            merge_dict(self._data[player_name], value)
+        else:
+            self._data[player_name] = value
 
     def add_for_each(self, mapping) -> None:
         self.is_repeated = False
@@ -84,9 +87,6 @@ class GameUpdate:
     def merge_with(self, other: "GameUpdate") -> None:
         if self.game != other.game:
             raise ValueError("Juegos incompatibles")
-
-        if len(self._data) != len(other._data):
-            raise ValueError("Tamaños incompatibles mezclando game_updates")
 
         if not other.is_repeated:
             self.is_repeated = False

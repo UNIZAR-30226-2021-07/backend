@@ -267,6 +267,43 @@ class WsTest(WsTestClient):
         received = clients[-1].get_received()
         self.assertEqual(len(received), 0)
 
+    def test_public_no_join(self):
+        """
+        Asegura que el timer de join en partidas públicas funciona
+        correctamente.
+        """
+
+        self.set_matchmaking_time(0.5)
+
+        # Se crean los clientes y buscan todos partida. Como son 6 la
+        # encontrarán directamente.
+        clients = []
+        for i in range(6):
+            clients.append(self.create_client(users_data[i]))
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+
+        # Se une únicamente uno de ellos, por lo que habrá un timeout y no
+        # comenzará la partida.
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "found_game", json=True)
+        self.assertIn("code", args)
+        callback_args = clients[0].emit("join", args["code"], callback=True)
+        self.assertNotIn("error", callback_args)
+
+        self.wait_matchmaking_time()
+
+        for client in clients[1:]:
+            # Los demás también tendrán el mensaje
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+
+            # Ahora ya no les dejará unirse
+            callback_args = clients[0].emit("join", args["code"], callback=True)
+            self.assertIn("error", callback_args)
+
     def test_troll_user(self):
         """
         Comprueba que 2 usuarios encontrarán partida aunque haya un "troll"

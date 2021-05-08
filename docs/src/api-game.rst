@@ -176,6 +176,25 @@ siguiente:
 
     @enduml
 
+Abandono de la Partida
+######################
+
+Se describe a continuación la funcionalidad de abandono y reconexión a las
+partidas:
+
+El botón de abandonar es pulsado:
+
+- **Pública**: el jugador es eliminado y no se puede volver; el jugador es
+  reemplazado por la IA.
+- **Privada**: el jugador es eliminado y no se puede volver; las cartas del
+  jugador van a la baraja.
+
+Desconexión por error o botón de reanudar más tarde pulsado:
+
+- **Pública**: no se puede volver a jugar.
+- **Privada**: se puede volver a la partida y no habrá pasado nada porque en
+  partidas privadas no se eliminan jugadores AFK.
+
 Mensajes Websockets
 ###################
 
@@ -327,13 +346,25 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         "playtime_mins": 4,
         // Nombre del usuario con el turno actual.
         "current_turn": "manolo22",
-        // Información de los jugadores, enviada únicamente al inicio de la
-        // partida.
+        // Información de los jugadores, enviada al inicio de la partida o
+        // cuando alguien abandone (y posiblemente sea reemplazado por la IA).
+        //
+        // IMPORTANTE: es posible que el mismo usuario que recibe el mensaje no
+        // aparezca en esta lista, lo que significa que ha sido eliminado de la
+        // partida por estar AFK o porque ha pulsado el botón de abandono. En
+        // caso de no encontrarse a sí mismo en este campo, el usuario tendrá
+        // que llamar al endpoint "leave" para abandonar la partida manualmente.
         "players": [
             {
                 "name": "marcuspkz",
+                // Verdadero si el usuario ha sido reemplazado por la IA.
+                // Opcional.
+                "is_ai": false,
+                // La foto puede cambiar si ha sido reemplazado por la IA.
+                // Opcional.
                 "picture": 4,
-                // El propio jugador también tendrá el tablero.
+                // El jugador que reciba el mensaje tendrá su tablero.
+                // Opcional.
                 "board": 2,
             },
             // ...

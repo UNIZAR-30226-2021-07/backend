@@ -205,13 +205,25 @@ class WsTestClient(GatovidTestClient):
         return dict((key, arg[key]) for arg in args for key in arg)
 
     def get_msg_in_received(
-        self, received: List, msg_type: str, json: bool = False
+        self, received: List, msg_type: str, json: bool = False, last: bool = False
     ) -> (Optional[Dict], Optional[List[Dict]]):
         """
         Devuelve la primera aparición de un mensaje de tipo `msg_type` en
         `received`.
+
+        Si `last` es verdadero, devolverá el último encontrado.
         """
-        raw = next(iter(filter(lambda msg: msg["name"] == msg_type, received)), None)
+
+        def query(msg):
+            return msg["name"] == msg_type
+
+        if last:
+            raw = None
+            for raw in filter(query, received):
+                pass
+        else:
+            raw = next(iter(filter(query, received)), None)
+
         if raw is None:
             return None, None
 
@@ -302,6 +314,28 @@ class WsTestClient(GatovidTestClient):
 
         return clients, code
 
+    def create_public_game(self):
+        clients = []
+        # Buscan una partida a la vez
+        for i in range(6):
+            clients.append(self.create_client(self.users_data[i]))
+
+        for client in clients:
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+
+        # Se unen a la partida
+        code = None
+        for client in clients:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+            code = args["code"]
+            callback_args = client.emit("join", code, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        return clients, code
+
     def get_game_update(self, client) -> Dict:
         received = client.get_received()
         _, args = self.get_msg_in_received(received, "game_update", json=True)
@@ -332,22 +366,50 @@ class WsTestClient(GatovidTestClient):
         self.assertIn("error", callback_args)
         return callback_args
 
-    def get_current_turn(self, client) -> str:
-        received = client.get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
-        return args["current_turn"]
-
-    def get_client_from_name(self, clients, name: str):
+    def get_client_from_name(self, clients, name: str) -> object:
         for user, client in zip(self.users_data, clients):
             if user["name"] == name:
                 return client
 
         raise Exception("Couldn't find client with current turn")
 
+    def get_data_from_client(self, clients, client) -> Dict:
+        for user, iter_client in zip(self.users_data, clients):
+            if iter_client == client:
+                return user
+
+        raise Exception("Couldn't find client data")
+
+    def client_reconnect(self, clients, client) -> object:
+        # Desconecta
+        client.disconnect()
+        # Reconecta
+        data = self.get_data_from_client(clients, client)
+        return self.create_client(data)
+
+    def get_current_turn(self, client) -> str:
+        """
+        Devuelve el *nombre* del usuario con el turno actual.
+        """
+
+        received = client.get_received()
+        _, args = self.get_msg_in_received(
+            received, "game_update", json=True, last=True
+        )
+        return args["current_turn"]
+
     def get_current_turn_client(self, clients):
+        """
+        Devuelve el *cliente* con el turno actual.
+        """
+
         current_turn = self.get_current_turn(clients[0])
         return self.get_client_from_name(clients, current_turn)
 
     def clean_messages(self, clients):
+        """
+        Limpia los mensajes en el buzón de todos los clientes.
+        """
+
         for client in clients:
             client.get_received()

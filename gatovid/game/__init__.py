@@ -14,7 +14,13 @@ from gatovid.game.cards import DECK, Card
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
-from gatovid.models import User
+from gatovid.models import (
+    BOT_PICTURE_ID,
+    MAX_AFK_TURNS,
+    MIN_HAND_CARDS,
+    MIN_MATCH_USERS,
+    User,
+)
 from gatovid.util import Timer, get_logger
 
 logger = get_logger(__name__)
@@ -23,8 +29,6 @@ logger = get_logger(__name__)
 TIME_UNTIL_RESUME = 15
 # Tiempo máximo del turno
 TIME_TURN_END = 30
-# Máximo de turnos antes de expulsar a un usuario por estar AFK
-MAX_AFK_TURNS = 3
 
 
 @dataclass(init=False)
@@ -39,7 +43,7 @@ class Player:
     hand: List[Card]
     body: Body
     afk_turns: int
-    kicked: bool
+    is_ai: bool
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -48,8 +52,8 @@ class Player:
         self.body = Body()
         # Turnos consecutivos que el usuario ha estado AFK
         self.afk_turns = 0
-        # Una vez se expulse al jugador
-        self.kicked = False
+        # Un jugador podrá ser reemplazado por la IA
+        self.is_ai = False
 
     def has_finished(self) -> bool:
         return self.position is not None
@@ -84,6 +88,7 @@ class Game:
         self.deck: List[Card] = []
         self._start_time = datetime.now()
         self._enabled_ai = enable_ai
+        self._bots_num = 0
 
         self._turn = 0
         self._turn_timer = None
@@ -137,8 +142,8 @@ class Game:
 
         # Genera el estado inicial con las manos y turno
         update = GameUpdate(self)
-        update.repeat({"current_turn": self.turn_player().name})
-        update.add_for_each(lambda player: {"hand": player.hand})
+        update.merge_with(self.current_turn_update())
+        update.merge_with(self.hands_update())
         return update
 
     def is_finished(self) -> bool:
@@ -184,15 +189,7 @@ class Game:
 
             self._paused = paused
             self._paused_by = paused_by
-
-            update = GameUpdate(self)
-            update.repeat(
-                {
-                    "paused": paused,
-                    "paused_by": paused_by,
-                }
-            )
-            return update
+            return self.pause_update()
 
     def is_paused(self) -> bool:
         self._paused
@@ -233,6 +230,10 @@ class Game:
                 end_update = self._end_turn()
                 update.merge_with(end_update)
 
+            # Se reestablecen los turnos AFK del usuario que ha terminado
+            # correctamente la partida.
+            player.afk_turns = 0
+
             return update
 
     def draw_card(self, player: Player) -> None:
@@ -244,6 +245,23 @@ class Game:
 
         drawn = self.deck.pop()
         player.hand.append(drawn)
+
+    def draw_hand(self, player) -> None:
+        """
+        Roba cartas para un jugador hasta que tiene el mínimo de ellas.
+        """
+
+        update = GameUpdate(self)
+
+        while len(self.turn_player().hand) < MIN_HAND_CARDS:
+            self.draw_card(self.turn_player())
+
+        update.add(
+            player_name=self.turn_player().name,
+            value={"hand": self.turn_player().hand},
+        )
+
+        return update
 
     def _end_turn(self) -> GameUpdate:
         """
@@ -258,11 +276,6 @@ class Game:
 
         update = GameUpdate(self)
 
-        # Se reestablecen los turnos AFK del usuario que ha terminado
-        # correctamente la partida. No se hará para los posibles jugadores sean
-        # skipeados.
-        self.turn_player().afk_turns = 0
-
         # Termina la fase de descarte si estaba activada
         self.discarding = False
 
@@ -273,36 +286,47 @@ class Game:
             logger.info(f"{self.turn_player().name}'s turn has ended")
             self._turn_number += 1
 
-            # Roba cartas hasta tener 3, se actualiza el estado de ese jugador
-            # en concreto.
-            while len(self.turn_player().hand) < 3:
-                self.draw_card(self.turn_player())
-            update.add(
-                player_name=self.turn_player().name,
-                value={"hand": self.turn_player().hand},
-            )
+            # Roba cartas hasta tener las necesarias, se actualiza el estado de
+            # ese jugador en concreto.
+            draw_update = self.draw_hand(self.turn_player())
+            update.merge_with(draw_update)
 
-            # Siguiente turno, y actualización del estado a todos los jugadores
-            #
-            # No se le pasará el turno a un jugador que ya ha terminado la
-            # partida.
-            while True:
-                self._turn = (self._turn + 1) % len(self.players)
-                if not self.turn_player().has_finished():
-                    break
-
-            update.repeat({"current_turn": self.turn_player().name})
-            logger.info(f"{self.turn_player().name}'s turn has started")
+            turn_update = self._advance_turn()
+            update.merge_with(turn_update)
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
             # disponibles.
-            if len(self.turn_player().hand) != 0:
-                break
-            logger.info(f"{self.turn_player().name} skipped (no cards)")
+            if len(self.turn_player().hand) == 0:
+                logger.info(f"{self.turn_player().name} skipped (no cards)")
+                continue
 
+            if self.turn_player().is_ai:
+                # TODO: la IA debería jugar aquí, ya que se puede pasar su turno
+                # automáticamente.
+                continue
+
+            break
+
+        update.merge_with(self.current_turn_update())
         self._start_turn_timer()
 
         return update
+
+    def _advance_turn(self) -> GameUpdate:
+        """
+        Siguiente turno, y actualización del estado a todos los jugadores
+
+        No se le pasará el turno a un jugador que ya ha terminado la partida.
+        """
+
+        while True:
+            self._turn = (self._turn + 1) % len(self.players)
+            if not self.turn_player().has_finished():
+                break
+
+        logger.info(f"{self.turn_player().name}'s turn has started")
+
+        return self.current_turn_update()
 
     def _timer_end_turn(self):
         """
@@ -350,26 +374,37 @@ class Game:
 
             update = GameUpdate(self)
 
-            # Expulsión de jugadores AFK.
-            # TODO: mover a método y devolver GameUpdate sin ese jugador.
-            kicked = None
             self.turn_player().afk_turns += 1
-            if self.turn_player().afk_turns == MAX_AFK_TURNS:
-                logger.info(f"Expulsión del jugador {self.turn_player().name}")
-                kicked = self.turn_player().name
-                self.turn_player().kicked = True
+            logger.info(
+                f"Turn timeout for {self.turn_player().name}"
+                f" ({self.turn_player().afk_turns} in a row)"
+            )
 
-            # Al terminar un turno de forma automática se le tendrá que
-            # descartar al jugador una carta de forma aleatoria, excepto cuando
-            # esté en la fase de descarte.
-            #
-            # La carta ya se le robará de forma automática al terminar el turno.
-            if not self.discarding and len(self.turn_player().hand) > 0:
-                logger.info(f"{self.turn_player().name} discards due to turn timeout")
-                discarded = random.randint(0, len(self.turn_player().hand) - 1)
-                action = Discard(discarded)
-                discard_update = action.apply(self.turn_player(), game=self)
-                update.merge_with(discard_update)
+            # Expulsión de jugadores AFK en caso de que esté activada la IA.
+            kicked = None
+            is_afk = self._enabled_ai and self.turn_player().afk_turns == MAX_AFK_TURNS
+            if is_afk:
+                kicked = self.turn_player().name
+                logger.info(f"Player {kicked} is AFK")
+                kick_update = self.remove_player(self.turn_player().name)
+                update.merge_with(kick_update)
+
+                # Si no quedan suficientes jugadores se acaba la partida.
+                if self._finished:
+                    self._turn_callback(None, None, True)
+                    return
+            else:
+                # Al terminar un turno de forma automática se le tendrá que
+                # descartar al jugador una carta de forma aleatoria, excepto
+                # cuando esté en la fase de descarte.
+                #
+                # La carta ya se le robará de forma automática al terminar el
+                # turno.
+                if not self.discarding and len(self.turn_player().hand) > 0:
+                    discarded = random.randint(0, len(self.turn_player().hand) - 1)
+                    action = Discard(discarded)
+                    discard_update = action.apply(self.turn_player(), game=self)
+                    update.merge_with(discard_update)
 
             # Terminación automática del turno
             end_update = self._end_turn()
@@ -377,7 +412,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked)
+            self._turn_callback(update, kicked, False)
 
     def _start_turn_timer(self):
         """
@@ -432,6 +467,64 @@ class Game:
 
         return leaderboard
 
+    def remove_player(self, player_name: str) -> GameUpdate:
+        """
+        Elimina un jugador de la partida.
+
+        Si está activada la IA el jugador es reemplazado por un bot, y en caso
+        contrario se mueven sus cartas al inicio de la baraja y se elimina.
+
+        El GameUpdate devuelto tendrá datos vacíos para el usuario que se ha
+        eliminado para simplificar el problema.
+        """
+
+        update = GameUpdate(self)
+
+        if self.is_finished():
+            return update
+
+        try:
+            player = self.get_player(player_name)
+        except GameLogicException:
+            return update
+
+        logger.info(f"Player {player_name} is being removed")
+
+        if self._enabled_ai:
+            player.is_ai = True
+            self._bots_num += 1
+        else:
+            # Si es su turno se pasa al siguiente
+            if self.turn_player() == player:
+                self._advance_turn()
+
+            # Índices antes de eliminar jugadores
+            turn_index = self._turn
+            removed_index = self.players.index(player)
+
+            # Se añaden sus cartas al mazo y se elimina de la partida
+            for card in player.hand:
+                self.deck.insert(0, card)
+            self.players.remove(player)
+
+            # Si por ejemplo se elimina el primer usuario y tiene el turno el
+            # cuarto, el índice apuntará ahora al quinto en la partida.
+            if removed_index < turn_index:
+                self._turn -= 1
+
+            update.merge_with(self.current_turn_update())
+
+        # Comprobando si quedan suficientes usuarios
+        remaining = len(self.players)
+        if self._enabled_ai:
+            remaining -= self._bots_num
+        if remaining < MIN_MATCH_USERS:
+            finish_update = self.finish()
+            update.merge_with(finish_update)
+
+        update.merge_with(self.players_update())
+        return update
+
     def player_finished(self, player: Player) -> None:
         """
         Finaliza la partida para un jugador en concreto.
@@ -444,6 +537,75 @@ class Game:
         player.position = self._players_finished
 
         logger.info(f"{player.name} has finished at position {player.position}")
+
+    def players_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+
+        players = []
+        for player in self.players:
+            data = {}
+
+            if player.is_ai:
+                data = {
+                    "name": f"[BOT-{self._bots_num:02}]",
+                    "picture": BOT_PICTURE_ID,
+                    "is_ai": True,
+                }
+            else:
+                data = {"name": player.name}
+
+            players.append(data)
+
+        update.repeat({"players": players})
+        return update
+
+    def hands_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.add_for_each(lambda player: {"hand": player.hand})
+        return update
+
+    def current_turn_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.repeat({"current_turn": self.turn_player().name})
+        return update
+
+    def finish_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.repeat(
+            {
+                "finished": True,
+                "leaderboard": self._leaderboard(),
+                "playtime_mins": self._playtime_mins(),
+            }
+        )
+        return update
+
+    def pause_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.repeat(
+            {
+                "paused": self._paused,
+                "paused_by": self._paused_by,
+            }
+        )
+        return update
+
+    def bodies_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.add_for_each(lambda p: {"bodies": {p.name: p.body.piles}})
+        return update
+
+    def full_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+
+        update.merge_with(self.bodies_update())
+        update.merge_with(self.current_turn_update())
+        update.merge_with(self.finish_update())
+        update.merge_with(self.hands_update())
+        update.merge_with(self.pause_update())
+        update.merge_with(self.players_update())
+
+        return update
 
     def finish(self) -> GameUpdate:
         """
@@ -458,12 +620,4 @@ class Game:
         if self._paused_timer is not None:
             self._paused_timer.cancel()
 
-        update = GameUpdate(self)
-        update.repeat(
-            {
-                "finished": True,
-                "leaderboard": self._leaderboard(),
-                "playtime_mins": self._playtime_mins(),
-            }
-        )
-        return update
+        return self.finish_update()

@@ -30,6 +30,15 @@ BOARDS_PATH = os.path.join(CUR_DIR, "assets", "boards.json")
 PROFILE_PICS = json.loads(open(PROFILE_PICS_PATH, "r").read())
 BOARDS = json.loads(open(BOARDS_PATH, "r").read())
 CARDS = json.loads(open(CARDS_PATH, "r").read())
+BOT_PICTURE_ID = 7
+
+# Rango de usuarios permitido en las partidas
+MIN_MATCH_USERS = 2
+MAX_MATCH_USERS = 6
+# Máximo de turnos antes de expulsar a un usuario por estar AFK
+MAX_AFK_TURNS = 3
+# Máximo turno de cartas en la mano
+MIN_HAND_CARDS = 3
 
 
 class InvalidModelException(Exception):
@@ -316,6 +325,10 @@ class Purchase(db.Model):
         item_type = val if key == "type" else self.type
         if None in (item_id, item_type):
             return val  # No validamos hasta la siguiente iteración
+
+        # Imágenes reservadas
+        if item_id == BOT_PICTURE_ID and item_type == PurchasableType.PROFILE_PIC:
+            raise InvalidModelException("Imagen reservada")
 
         item_list = self.get_item_list(item_type)
 

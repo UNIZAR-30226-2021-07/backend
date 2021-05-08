@@ -368,8 +368,6 @@ class MatchManager:
 
         with self._public_lock:
             # No añadimos al usuario si ya está esperando.
-            # FIXME: podría dar error si no cambia el sid del usuario, habría
-            # que actualizar el objeto usuario en tal caso.
             if user in self.users_waiting:
                 raise GameLogicException(
                     "El usuario ya está esperando a una partida pública"

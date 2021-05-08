@@ -253,8 +253,8 @@ class ConnTest(WsTestClient):
 
     def test_reconnect_when_joining(self):
         """
-        Comprueba un caso especial de desconexión antes de que la partida sea
-        comenzada.
+        Comprueba un caso especial de desconexión antes de que la partida
+        privada sea comenzada.
         """
 
         client_leader = self.create_client(self.users_data[0])
@@ -276,3 +276,43 @@ class ConnTest(WsTestClient):
         # Empezamos la partida sin problemas
         callback_args = client_leader.emit("start_game", callback=True)
         self.assertNotIn("error", callback_args)
+
+    def test_reconnect_when_searching(self):
+        """
+        Comprueba un caso especial de desconexión antes de que la partida
+        pública sea comenzada.
+        """
+
+        self.set_matchmaking_time(0.2)
+
+        client_leader = self.create_client(self.users_data[0])
+        client = self.create_client(self.users_data[1])
+
+        # Ambos buscan partida y entran juntos a la misma.
+        for client in (client_leader, client):
+            callback_args = client.emit("search_game", callback=True)
+            self.assertNotIn("error", callback_args)
+
+        # Antes de unirse se reconecta
+        client = self.client_reconnect([client_leader, client], client)
+
+        # Ahora no debería encontrarse partida porque se ha perdido un usuario
+        self.wait_matchmaking_time()
+        received = client_leader.get_received()
+        _, args = self.get_msg_in_received(received, "found_game", json=True)
+        self.assertIsNone(args)
+
+        # Vuelve a buscar partida
+        callback_args = client.emit("search_game", callback=True)
+        self.assertNotIn("error", callback_args)
+        self.wait_matchmaking_time()
+
+        # Ahora sí que comienza la partida
+        code = None
+        for client in (client_leader, client):
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "found_game", json=True)
+            self.assertIn("code", args)
+            code = args["code"]
+            callback_args = client.emit("join", code, callback=True)
+            self.assertNotIn("error", callback_args)

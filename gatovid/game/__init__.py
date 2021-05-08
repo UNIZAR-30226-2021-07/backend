@@ -467,6 +467,8 @@ class Game:
         if self._enabled_ai:
             player.is_ai = True
             self._bots_num += 1
+        else:
+            self.players.remove(player)
 
         return self.players_update()
 

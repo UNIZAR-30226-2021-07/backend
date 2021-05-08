@@ -100,7 +100,7 @@ class Match:
 
         if finished:
             logger.info(f"Not enough players to continue in {self.code}")
-            self.end()
+            self.end(cancel=True)
             MM.remove_game(self.code)
             return
 
@@ -214,13 +214,17 @@ class Match:
             for user, status in zip(self._users, update):
                 self.update_stats(user, status)
 
-    def end(self) -> None:
+    def end(self, cancel: bool = False) -> None:
         """
         Finaliza la partida en caso de que no haya terminado ya.
+
+        Si `cancel` es verdadero, se interpreta como que la partida ha sido
+        cancelada forzosamente y por tanto se enviará un mensaje de terminación
+        temprana a los usuarios de la partida.
         """
 
-        if not self.is_started() or not self._game.is_finished():
-            socket.emit("game_cancelled", room=self.code)
+        if cancel:
+            self.cancel()
 
         # Se termina manualmente el juego interno, pero al ser cancelado no
         # se actualizarán los datos de los jugadores ni se enviará el
@@ -294,9 +298,12 @@ class Match:
         if self.is_started():
             update = self._game.remove_player(user.name)
             if self._game.is_finished():
-                socket.emit("game_cancelled", room=self.code)
+                self.end(cancel=True)
             else:
                 self.send_update(update)
+
+    def cancel(self) -> None:
+        socket.emit("game_cancelled", room=self.code)
 
 
 class PrivateMatch(Match):
@@ -340,12 +347,12 @@ class PublicMatch(Match):
 
             super().start()
 
-    def end(self):
+    def end(self, cancel: bool = False):
         with self.start_lock:
             # Cancelamos el timer si sigue
             self.start_timer.cancel()
 
-            super().end()
+            super().end(cancel)
 
     def start_check(self):
         """

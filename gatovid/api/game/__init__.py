@@ -304,6 +304,7 @@ def leave():
     logger.info(f"User {session['user'].name} has left the game {game_code}")
     if len(match.users) == 0:
         match.end()
+        MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
 
     emit("users_waiting", len(match.users), room=game_code)

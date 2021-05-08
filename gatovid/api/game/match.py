@@ -100,7 +100,6 @@ class Match:
         if finished:
             logger.info(f"Not enough players to continue in {self.code}")
             self.end(cancel=True)
-            MM.remove_game(self.code)
             return
 
         if kicked is not None:
@@ -227,7 +226,7 @@ class Match:
         # Se termina manualmente el juego interno, pero al ser cancelado no
         # se actualizarán los datos de los jugadores ni se enviará el
         # game_update.
-        if self.is_started():
+        if self.is_started() and not self._game.is_finished():
             _ = self._game.finish()
 
         # Se elimina a sí misma del gestor de partidas

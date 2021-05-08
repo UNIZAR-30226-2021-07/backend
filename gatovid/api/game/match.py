@@ -49,7 +49,6 @@ class Match:
     def __init__(self) -> None:
         self.users: List[User] = []
         self._game: Optional[Game] = None
-        self._started_lock = threading.Lock()
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -133,25 +132,24 @@ class Match:
         sobre los jugadores como sus fotos debería haber ido en start_game.
         """
 
-        with self._started_lock:
-            if self.is_started():
-                return
+        if self.is_started():
+            return
 
-            enable_ai = isinstance(self, PublicMatch)
-            self._game = Game(self.users, self._turn_passed_auto, enable_ai)
+        enable_ai = isinstance(self, PublicMatch)
+        self._game = Game(self.users, self._turn_passed_auto, enable_ai)
 
-            # Mensaje especial de inicio de la partida
-            logger.info(f"Match {self.code} has started")
-            socket.emit("start_game", room=self.code)
+        # Mensaje especial de inicio de la partida
+        logger.info(f"Match {self.code} has started")
+        socket.emit("start_game", room=self.code)
 
-            # game_update con el inicio del juego
-            update = self._game.start()
-            # game_update con el inicio de la partida
-            match_update = self._match_update()
+        # game_update con el inicio del juego
+        update = self._game.start()
+        # game_update con el inicio de la partida
+        match_update = self._match_update()
 
-            # Unión de ambos game_update
-            update.merge_with(match_update)
-            self.send_update(update)
+        # Unión de ambos game_update
+        update.merge_with(match_update)
+        self.send_update(update)
 
     def _match_update(self) -> GameUpdate:
         """

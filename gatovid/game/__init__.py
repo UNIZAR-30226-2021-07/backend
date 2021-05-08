@@ -483,21 +483,36 @@ class Game:
         if self.is_finished():
             return update
 
+        try:
+            player = self.get_player(player_name)
+        except GameLogicException:
+            return update
+
         logger.info(f"Player {player_name} is being removed")
-        player = self.get_player(player_name)
 
         if self._enabled_ai:
             player.is_ai = True
             self._bots_num += 1
         else:
+            # Si es su turno se pasa al siguiente
+            if self.turn_player() == player:
+                self._advance_turn()
+
+            # Índices antes de eliminar jugadores
+            turn_index = self._turn
+            removed_index = self.players.index(player)
+
+            # Se añaden sus cartas al mazo y se elimina de la partida
             for card in player.hand:
                 self.deck.insert(0, card)
             self.players.remove(player)
 
-            # Si es su turno se pasa al siguiente
-            if self.turn_player() == player:
-                turn_update = self._advance_turn()
-                update.merge_with(turn_update)
+            # Si por ejemplo se elimina el primer usuario y tiene el turno el
+            # cuarto, el índice apuntará ahora al quinto en la partida.
+            if removed_index < turn_index:
+                self._turn -= 1
+
+            update.merge_with(self.current_turn_update())
 
         # Comprobando si quedan suficientes usuarios
         remaining = len(self.players)

@@ -302,7 +302,7 @@ class Game:
 
             break
 
-        update.repeat({"current_turn": self.turn_player().name})
+        update.merge_with(self.current_turn_update())
         self._start_turn_timer()
 
         return update

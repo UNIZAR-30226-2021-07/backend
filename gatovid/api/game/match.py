@@ -370,10 +370,6 @@ class PublicMatch(Match):
                 logger.info("Timer skipping check; game already started")
                 return
 
-            if self._game.is_finished():
-                logger.info("Timer skipping check; game already finished")
-                return
-
             if len(self.users) >= MIN_MATCH_USERS:
                 # Empezamos la partida
                 self.start()

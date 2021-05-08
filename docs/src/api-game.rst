@@ -176,6 +176,25 @@ siguiente:
 
     @enduml
 
+Abandono de la Partida
+######################
+
+Se describe a continuación la funcionalidad de abandono y reconexión a las
+partidas:
+
+El botón de abandonar es pulsado:
+
+- **Pública**: el jugador es eliminado y no se puede volver; el jugador es
+  reemplazado por la IA.
+- **Privada**: el jugador es eliminado y no se puede volver; las cartas del
+  jugador van a la baraja.
+
+Desconexión por error o botón de reanudar más tarde pulsado:
+
+- **Pública**: no se puede volver a jugar.
+- **Privada**: se puede volver a la partida y no habrá pasado nada porque en
+  partidas privadas no se eliminan jugadores AFK.
+
 Mensajes Websockets
 ###################
 

@@ -65,6 +65,7 @@ class Player:
             card = self.hand[slot]
             if return_to is not None:
                 return_to.insert(0, card)
+            del self.hand[slot]
         except IndexError:
             raise GameLogicException("Slot no existente en la mano del jugador")
 

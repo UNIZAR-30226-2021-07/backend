@@ -246,6 +246,23 @@ class Game:
         drawn = self.deck.pop()
         player.hand.append(drawn)
 
+    def draw_hand(self, player) -> None:
+        """
+        Roba cartas para un jugador hasta que tiene el mínimo de ellas.
+        """
+
+        update = GameUpdate(self)
+
+        while len(self.turn_player().hand) < MIN_HAND_CARDS:
+            self.draw_card(self.turn_player())
+
+        update.add(
+            player_name=self.turn_player().name,
+            value={"hand": self.turn_player().hand},
+        )
+
+        return update
+
     def _end_turn(self) -> GameUpdate:
         """
         Tiene en cuenta que si el jugador al que le toca el turno no tiene
@@ -271,15 +288,11 @@ class Game:
 
             # Roba cartas hasta tener las necesarias, se actualiza el estado de
             # ese jugador en concreto.
-            while len(self.turn_player().hand) < MIN_HAND_CARDS:
-                self.draw_card(self.turn_player())
-            update.add(
-                player_name=self.turn_player().name,
-                value={"hand": self.turn_player().hand},
-            )
+            draw_update = self.draw_hand(self.turn_player())
+            update.merge_with(draw_update)
 
-            self._advance_turn()
-            logger.info(f"{self.turn_player().name}'s turn has started")
+            turn_update = self._advance_turn()
+            update.merge_with(turn_update)
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
             # disponibles.
@@ -299,7 +312,7 @@ class Game:
 
         return update
 
-    def _advance_turn(self):
+    def _advance_turn(self) -> GameUpdate:
         """
         Siguiente turno, y actualización del estado a todos los jugadores
 
@@ -310,6 +323,10 @@ class Game:
             self._turn = (self._turn + 1) % len(self.players)
             if not self.turn_player().has_finished():
                 break
+
+        logger.info(f"{self.turn_player().name}'s turn has started")
+
+        return self.current_turn_update()
 
     def _timer_end_turn(self):
         """
@@ -479,8 +496,8 @@ class Game:
 
             # Si es su turno se pasa al siguiente
             if self.turn_player() == player:
-                self._advance_turn()
-                update.merge_with(self.current_turn_update())
+                turn_update = self._advance_turn()
+                update.merge_with(turn_update)
 
         # Comprobando si quedan suficientes usuarios
         remaining = len(self.players)

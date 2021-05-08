@@ -327,37 +327,56 @@ class PublicMatch(Match):
         # Timer para empezar la partida si en TIME_UNTIL_START segundos no se
         # han conectado todos los jugadores.
         self.start_timer = Timer(TIME_UNTIL_START, self.start_check)
+        self.start_lock = threading.Lock()
 
     def start(self):
-        logger.info(f"Starting public game {self.code} with {len(self.users)} users")
+        with self.start_lock:
+            logger.info(
+                f"Starting public game {self.code}" f" with {len(self.users)} users"
+            )
 
-        # Cancelamos el timer si sigue
-        self.start_timer.cancel()
+            # Cancelamos el timer si sigue
+            self.start_timer.cancel()
 
-        super().start()
+            super().start()
 
     def end(self):
-        # Cancelamos el timer si sigue
-        self.start_timer.cancel()
+        with self.start_lock:
+            # Cancelamos el timer si sigue
+            self.start_timer.cancel()
 
-        super().end()
+            super().end()
 
     def start_check(self):
         """
         Comprobación de si la partida puede comenzar tras haber dado un tiempo a
         los jugadores para que se conecten. Si es posible, la partida empezará,
         y sino se cancela la partida por esperar demasiado.
+
+        Como esta parte se realiza de forma concurrente, es necesario usar el
+        lock de inicio de turno y asegurarse que después de obtenerlo no se ha
+        iniciado o terminado la partida ya.
         """
 
-        num = len(self.users)
+        with self.start_lock:
+            if self.is_started():
+                logger.info("Timer skipping check; game already started")
+                return
 
-        if num >= MIN_MATCH_USERS:
-            # Empezamos la partida
-            self.start()
-        else:
-            # La cancelamos
-            logger.info(f"Public match {self.code} with {num} users has been cancelled")
-            self.end()
+            if self._game.is_finished():
+                logger.info("Timer skipping check; game already finished")
+                return
+
+            if len(self.users) >= MIN_MATCH_USERS:
+                # Empezamos la partida
+                self.start()
+            else:
+                # La cancelamos
+                logger.info(
+                    f"Public match {self.code} with"
+                    f" {len(self.users)} users has been cancelled"
+                )
+                self.end()
 
 
 class MatchManager:

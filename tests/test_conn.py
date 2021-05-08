@@ -80,7 +80,7 @@ class ConnTest(WsTestClient):
         usuarios.
         """
 
-        self.set_matchmaking_time(0.5)
+        self.set_matchmaking_time(3)
         self.set_turn_timeout(0.1)
         clients, code = self.create_public_game()
 

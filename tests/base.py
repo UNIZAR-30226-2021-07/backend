@@ -314,17 +314,15 @@ class WsTestClient(GatovidTestClient):
 
         return clients, code
 
-    def create_public_game(self, players=6):
+    def create_public_game(self):
         clients = []
         # Buscan una partida a la vez
-        for i in range(players):
+        for i in range(6):
             clients.append(self.create_client(self.users_data[i]))
 
         for client in clients:
             callback_args = client.emit("search_game", callback=True)
             self.assertNotIn("error", callback_args)
-
-        self.wait_matchmaking_time()
 
         # Se unen a la partida
         code = None

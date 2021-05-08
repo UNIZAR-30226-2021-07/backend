@@ -227,7 +227,7 @@ def join(game_code):
     if can_rejoin:
         logger.info(f"User {session['user']} reconnecting to game")
         emit("start_game", room=session["user"].sid)
-        emit("game_update", initial_update, room=session["user"].sid)
+        match.send_update(initial_update)
         return
 
     # Guardamos al jugador en la partida
@@ -300,7 +300,7 @@ def leave():
     del session["game"]
 
     match = MM.get_match(game_code)
-    match.users.remove(session["user"])
+    match.remove_user(session["user"])
     logger.info(f"User {session['user'].name} has left the game {game_code}")
     if len(match.users) == 0:
         match.end()

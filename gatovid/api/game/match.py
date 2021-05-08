@@ -274,6 +274,13 @@ class Match:
 
         self.users.append(user)
 
+    def remove_user(self, user: User) -> None:
+        self.users.remove(user)
+
+        if self.is_started():
+            update = self._game.remove_player(user.name)
+            self.send_update(update)
+
 
 class PrivateMatch(Match):
     """

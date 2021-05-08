@@ -365,14 +365,11 @@ class Game:
             if is_afk:
                 kicked = self.turn_player().name
                 logger.info(f"Player {kicked} is AFK")
-                kick_update = self._remove_player(self.turn_player())
+                kick_update = self.remove_player(self.turn_player().name)
                 update.merge_with(kick_update)
 
                 # Si no quedan suficientes jugadores se acaba la partida.
-                remaining = len(self.players)
-                if self._enabled_ai:
-                    remaining -= self._bots_num
-                if remaining < MIN_MATCH_USERS:
+                if self._finished:
                     self._turn_callback(None, None, True)
                     return
             else:
@@ -449,7 +446,7 @@ class Game:
 
         return leaderboard
 
-    def _remove_player(self, player: Player) -> GameUpdate:
+    def remove_player(self, player_name: str) -> GameUpdate:
         """
         Elimina un jugador de la partida.
 
@@ -457,7 +454,10 @@ class Game:
         contrario se mueven sus cartas al inicio de la baraja y se elimina.
         """
 
-        logger.info(f"Player {player.name} is being removed")
+        logger.info(f"Player {player_name} is being removed")
+        player = self.get_player(player_name)
+
+        update = GameUpdate(self)
 
         if self._enabled_ai:
             player.is_ai = True
@@ -467,7 +467,16 @@ class Game:
                 self.deck.insert(0, card)
             self.players.remove(player)
 
-        return self.players_update()
+        # Comprobando si quedan suficientes usuarios
+        remaining = len(self.players)
+        if self._enabled_ai:
+            remaining -= self._bots_num
+        if remaining < MIN_MATCH_USERS:
+            finish_update = self.finish()
+            update.merge_with(finish_update)
+
+        update.merge_with(self.players_update())
+        return update
 
     def player_finished(self, player: Player) -> None:
         """

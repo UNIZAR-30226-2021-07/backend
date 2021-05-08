@@ -3,6 +3,8 @@ Tests para la lógica del juego
 """
 
 import random
+
+from enum import Enum
 from dataclasses import asdict
 
 from gatovid.api.game.match import MM
@@ -20,6 +22,17 @@ from gatovid.game.cards import (
 
 from .base import WsTestClient
 
+def asdict_factory_enums(data):
+    """
+    Factory para obtener el valor de los Enum en lugar de <Color.Yellow:
+    'yellow'> cuando se usa asdict.
+    """
+    def convert_value(obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return obj
+
+    return dict((k, convert_value(v)) for k, v in data)
 
 class CardsTest(WsTestClient):
     player_names = [GENERIC_USERS_NAME.format(i) for i in range(NUM_GENERIC_USERS)]
@@ -589,18 +602,18 @@ class CardsTest(WsTestClient):
             },
             {
                 "have": [
-                    # Se debería colocar el multicolor
-                    organ(Color.Red),
                     # No se debería colocar en esta
                     infected_organ(Color.Green, virus_color=Color.All),
                     OrganPile(),
                     organ(Color.Blue),
+                    # Se debería colocar el multicolor
+                    organ(Color.Red),
                 ],
                 "expected": [
-                    infected_organ(Color.Red, virus_color=Color.All),
                     infected_organ(Color.Green, virus_color=Color.All),
                     OrganPile(),
                     infected_organ(Color.Blue),
+                    infected_organ(Color.Red, virus_color=Color.All),
                 ],
             },
             {
@@ -626,7 +639,7 @@ class CardsTest(WsTestClient):
             },
         ]
 
-        clients_order = map(lambda p: self.player_names.index(p.name), game.players)
+        clients_order = list(map(lambda p: self.player_names.index(p.name), game.players))
 
         # Para todos los clientes, inicializamos su cuerpo al cuerpo de pruebas
         # y le damos la carta de contagio al cliente 0.
@@ -634,7 +647,6 @@ class CardsTest(WsTestClient):
             client = clients[which_client]
             player = game.players[i]
 
-            player = game.players[0]
             if which_client == 0:
                 player.hand[0] = Infection()
             player.body = Body.from_data(piles=bodies[i]["have"])
@@ -658,4 +670,9 @@ class CardsTest(WsTestClient):
 
             self.assertIn("bodies", args)
             self.assertIn(player.name, args["bodies"])
-            self.assertEqual(args["bodies"][player.name], bodies[i]["expected"])
+            expected = list(map(
+                lambda b: asdict(b, dict_factory=asdict_factory_enums),
+                bodies[i]["expected"],
+            ))
+            self.assertEqual(args["bodies"][player.name], expected)
+

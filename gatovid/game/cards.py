@@ -224,13 +224,16 @@ class Infection(Treatment):
 
             # Asignamos el primer virus de ese color y lo quitamos de los
             # posibles.
-            if len(virus[color]) > 0:
-                pile = virus[color].pop()
-            elif len(virus[Color.All]) > 0:
-                pile = virus[Color.All].pop()
-            else:
-                continue
 
+            if len(virus[color]) == 0:
+                # Si no hay virus de ese color -> comprobamos si hay virus
+                # multicolor
+                if len(virus[Color.All]) > 0:
+                    color = Color.All
+                else: # No tenemos opción
+                    continue
+
+            pile = virus[color].pop()
             # Eliminamos el virus del cuerpo del caller
             pile.pop_modifiers()
             # Lo colocamos en la pila candidata

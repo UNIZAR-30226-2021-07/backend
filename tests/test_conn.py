@@ -236,7 +236,6 @@ class ConnTest(WsTestClient):
             # Tendría que llegar directamente un start_game y después un
             # game_update con el estado completo del juego.
             received = client.get_received()
-            print(received)
             _, args = self.get_msg_in_received(received, "start_game", json=True)
             self.assertIsNotNone(args)
             _, args = self.get_msg_in_received(received, "game_update", json=True)

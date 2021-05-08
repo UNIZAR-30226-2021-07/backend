@@ -9,9 +9,7 @@ El botón de abandonar es pulsado:
   baraja.
 
 Desconexión por error o botón de reanudar más tarde pulsado:
-- Pública: se puede volver a la partida antes de que el jugador sea eliminado
-  por considerarse AFK al pasar 3 turnos sin jugar, en cuyo caso es reemplazado
-  por la IA.
+- Pública: no se puede volver a jugar.
 - Privada: se puede volver a la partida y no habrá pasado nada porque en
   partidas privadas no se eliminan jugadores AFK.
 """
@@ -51,7 +49,7 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("join", code, callback=True)
             self.assertIn("error", callback_args)
 
-    def check_connection_works(self, client, start: bool):
+    def check_connection_works(self, client, start: bool, can_pause: bool = True):
         # Se pueden descartar cartas sin problemas
         if start:
             # En la primera iteración descarta
@@ -62,11 +60,12 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("play_pass", callback=True)
             self.assertNotIn("error", callback_args)
 
-        # Se puede pausar y reanudar sin problemas
-        callback_args = client.emit("pause_game", True, callback=True)
-        self.assertNotIn("error", callback_args)
-        callback_args = client.emit("pause_game", False, callback=True)
-        self.assertNotIn("error", callback_args)
+        if can_pause:
+            # Se puede pausar y reanudar sin problemas
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+            callback_args = client.emit("pause_game", False, callback=True)
+            self.assertNotIn("error", callback_args)
 
     def test_kicked_public(self):
         """
@@ -174,9 +173,29 @@ class ConnTest(WsTestClient):
 
     def test_disconnect_public(self):
         """
-        Si el jugador que abandona temporalmente entra antes del tercer turno
-        puede continuar jugando.
+        Abandonar una partida pública supone que no se puede volver.
         """
+
+        self.set_matchmaking_time(0.2)
+        clients, code = self.create_public_game()
+
+        # Para saber el orden de los turnos
+        starting_turn = self.get_current_turn_client(clients)
+        turn = clients.index(starting_turn)
+
+        for i in range(len(clients)):
+            logger.info(">> Trying as usual")
+            # Antes de la desconexión funciona correctamente
+            client = clients[turn]
+            self.check_connection_works(client, start=True, can_pause=False)
+
+            logger.info(">> Trying after reconnect")
+            # Reconexión, no debería funcionar
+            client = self.client_reconnect(clients, client)
+            callback_args = client.emit("join", code, callback=True)
+            self.assertIn("error", callback_args)
+
+            turn = (turn + 1) % len(clients)
 
     def test_disconnect_private(self):
         """
@@ -184,9 +203,6 @@ class ConnTest(WsTestClient):
         acabe.
         """
 
-        # El tiempo de reconexión es bastante alto, así que el margen para este
-        # test es superior.
-        self.set_turn_timeout(5)
         clients, code = self.create_game()
 
         # Para saber el orden de los turnos
@@ -200,8 +216,60 @@ class ConnTest(WsTestClient):
             self.check_connection_works(client, start=True)
 
             logger.info(">> Trying after reconnect")
-            # Reconexión, debería poder volver a jugar en la partida
+
+            # Reconexión
             client = self.client_reconnect(clients, client)
+            clients[turn] = client
+
+            # Unión de nuevo a la partida
+            self.clean_messages(clients)
+            callback_args = client.emit("join", code, callback=True)
+            self.assertNotIn("error", callback_args)
+
+            # Tendría que llegar directamente un start_game y después un
+            # game_update con el estado completo del juego.
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "start_game", json=True)
+            self.assertIsNotNone(args)
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertIsNotNone(args)
+            self.assertIn("hand", args)
+            self.assertIn("players", args)
+            self.assertIn("bodies", args)
+            self.assertIn("current_turn", args)
+            self.assertIn("finished", args)
+
+            # Comprobaciones simples
             self.check_connection_works(client, start=False)
 
             turn = (turn + 1) % len(clients)
+
+    def test_reconnect_when_joining(self):
+        """
+        Comprueba un caso extremo de desconexión antes de que la partida sea
+        comenzada.
+        """
+
+        # TODO
+
+        clients = []
+        for i in range(2):
+            clients.append(self.create_client(self.users_data[i]))
+
+        # Creamos la partida
+        callback_args = clients[0].emit("create_game", callback=True)
+
+        received = clients[0].get_received()
+        _, args = self.get_msg_in_received(received, "create_game", json=True)
+        code = args["code"]
+
+        # Unimos a los clientes a la partida
+        for client in clients[1:]:
+            callback_args = client.emit("join", code, callback=True)
+            self.assertNotIn("error", callback_args)
+
+        # Empezamos la partida
+        callback_args = clients[0].emit("start_game", callback=True)
+        self.assertNotIn("error", callback_args)
+
+        return clients, code

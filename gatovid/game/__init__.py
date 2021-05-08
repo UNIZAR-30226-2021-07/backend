@@ -115,8 +115,13 @@ class Game:
         Destructor que termina la partida si no se ha hecho ya anteriormente.
         """
 
-        if not self._finished:
-            self.finish()
+        try:
+            if not self._finished:
+                self.finish()
+        except AttributeError:
+            # Evita errores extremos en los que el constructor se llama antes
+            # que la terminación del constructor.
+            pass
 
     def start(self) -> GameUpdate:
         """
@@ -142,8 +147,8 @@ class Game:
 
         # Genera el estado inicial con las manos y turno
         update = GameUpdate(self)
-        update.repeat({"current_turn": self.turn_player().name})
-        update.add_for_each(lambda player: {"hand": player.hand})
+        update.merge_with(self.current_turn_update())
+        update.merge_with(self.hands_update())
         return update
 
     def is_finished(self) -> bool:
@@ -468,6 +473,22 @@ class Game:
             player.is_ai = True
             self._bots_num += 1
 
+        return self.players_update()
+
+    def player_finished(self, player: Player) -> None:
+        """
+        Finaliza la partida para un jugador en concreto.
+        """
+
+        if player.has_finished():
+            raise GameLogicException("El jugador ya ha terminado")
+
+        self._players_finished + 1
+        player.position = self._players_finished
+
+        logger.info(f"{player.name} has finished at position {player.position}")
+
+    def players_update(self) -> GameUpdate:
         update = GameUpdate(self)
         players = []
         for player in self.players:
@@ -486,18 +507,42 @@ class Game:
         update.repeat({"players": players})
         return update
 
-    def player_finished(self, player: Player) -> None:
-        """
-        Finaliza la partida para un jugador en concreto.
-        """
+    def hands_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.add_for_each(lambda player: {"hand": player.hand})
+        return update
 
-        if player.has_finished():
-            raise GameLogicException("El jugador ya ha terminado")
+    def current_turn_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.repeat({"current_turn": self.turn_player().name})
+        return update
 
-        self._players_finished + 1
-        player.position = self._players_finished
+    def finish_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.repeat(
+            {
+                "finished": True,
+                "leaderboard": self._leaderboard(),
+                "playtime_mins": self._playtime_mins(),
+            }
+        )
+        return update
 
-        logger.info(f"{player.name} has finished at position {player.position}")
+    def bodies_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.add_for_each(lambda p: {"bodies": {p.name: p.body.piles}})
+        return update
+
+    def full_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+
+        update.merge_with(self.bodies_update())
+        update.merge_with(self.current_turn_update())
+        update.merge_with(self.finish_update())
+        update.merge_with(self.hands_update())
+        update.merge_with(self.players_update())
+
+        return update
 
     def finish(self) -> GameUpdate:
         """
@@ -512,12 +557,4 @@ class Game:
         if self._paused_timer is not None:
             self._paused_timer.cancel()
 
-        update = GameUpdate(self)
-        update.repeat(
-            {
-                "finished": True,
-                "leaderboard": self._leaderboard(),
-                "playtime_mins": self._playtime_mins(),
-            }
-        )
-        return update
+        return self.finish_update()

@@ -221,6 +221,15 @@ def join(game_code):
     session["user"] = User.query.get(session["user"].email)
     session["user"].sid = request.sid
 
+    # Comprobar si es una reconexión y en ese caso indicarle que empiece
+    # directamente.
+    can_rejoin, initial_update = match.check_rejoin(session["user"])
+    if can_rejoin:
+        logger.info(f"User {session['user']} reconnecting to game")
+        emit("start_game", room=session["user"].sid)
+        emit("game_update", initial_update, room=session["user"].sid)
+        return
+
     # Guardamos al jugador en la partida
     try:
         match.add_user(session["user"])

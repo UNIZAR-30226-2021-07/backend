@@ -110,7 +110,7 @@ class Match:
             self.users.remove(kicked_user)
 
             # Se notifica el abandono del usuario a todos los jugadores
-            match_update = self._match_info()
+            match_update = self._match_update()
             update.merge_with(match_update)
 
         self.send_update(update)
@@ -147,13 +147,13 @@ class Match:
         # game_update con el inicio del juego
         update = self._game.start()
         # game_update con el inicio de la partida
-        match_update = self._match_info()
+        match_update = self._match_update()
 
         # Unión de ambos game_update
         update.merge_with(match_update)
         self.send_update(update)
 
-    def _match_info(self) -> GameUpdate:
+    def _match_update(self) -> GameUpdate:
         """
         Genera un game_update con información sobre la partida para cada
         jugador.
@@ -250,6 +250,14 @@ class Match:
 
         db.session.commit()
 
+    def check_rejoin(self, user: User) -> (bool, Optional[GameUpdate]):
+        """
+        Para comprobar si un usuario se puede volver a unir a la partida.
+        """
+
+        # De normal no se puede
+        return False, None
+
     def add_user(self, user: User) -> None:
         """
         Añade un usuario a la partida.
@@ -277,6 +285,19 @@ class PrivateMatch(Match):
         super().__init__()
 
         self.owner = owner
+
+    def check_rejoin(self, user: User) -> (bool, Optional[GameUpdate]):
+        """
+        Para comprobar si un usuario se puede volver a unir a la partida.
+        """
+
+        if not self.is_started():
+            return False, None
+
+        update = GameUpdate(self._game)
+        update.merge_with(self._game.full_update())
+        update.merge_with(self._match_update())
+        return user in self.users, update.get(user.name)
 
 
 class PublicMatch(Match):

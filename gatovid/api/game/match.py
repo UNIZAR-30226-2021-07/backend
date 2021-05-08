@@ -49,7 +49,6 @@ class Match:
     def __init__(self) -> None:
         self.users: List[User] = []
         self._game: Optional[Game] = None
-        self._started_lock = threading.Lock()
 
         # Todas las partidas requieren un código identificador por las salas de
         # socketio. NOTE: se podrían usar códigos de formatos distintos para que
@@ -101,7 +100,6 @@ class Match:
         if finished:
             logger.info(f"Not enough players to continue in {self.code}")
             self.end(cancel=True)
-            MM.remove_game(self.code)
             return
 
         if kicked is not None:
@@ -133,12 +131,11 @@ class Match:
         sobre los jugadores como sus fotos debería haber ido en start_game.
         """
 
-        with self._started_lock:
-            if self.is_started():
-                return
+        if self.is_started():
+            return
 
-            enable_ai = isinstance(self, PublicMatch)
-            self._game = Game(self.users, self._turn_passed_auto, enable_ai)
+        enable_ai = isinstance(self, PublicMatch)
+        self._game = Game(self.users, self._turn_passed_auto, enable_ai)
 
         # Mensaje especial de inicio de la partida
         logger.info(f"Match {self.code} has started")
@@ -229,8 +226,11 @@ class Match:
         # Se termina manualmente el juego interno, pero al ser cancelado no
         # se actualizarán los datos de los jugadores ni se enviará el
         # game_update.
-        if self.is_started():
+        if self.is_started() and not self._game.is_finished():
             _ = self._game.finish()
+
+        # Se elimina a sí misma del gestor de partidas
+        MM.remove_match(self.code)
 
         logger.info(f"Match {self.code} has ended")
 
@@ -336,23 +336,36 @@ class PublicMatch(Match):
         self.start_timer = Timer(TIME_UNTIL_START, self.start_check)
         self.start_lock = threading.Lock()
 
+    # NOTE: se declaran de forma separada y privada los métodos `_start` y
+    # `_end`. Esto es porque para los métodos públicos `start` y `end` es
+    # necesario hacer lock para evitar problemas de concurrencia con el timer,
+    # pero el mismo timer también necesita acceso a esas funciones. Por tanto,
+    # para evitar un deadlock el timer accederá a las versiones sin lock, y las
+    # interfaces públicas sí que usarán el lock.
+
+    def _start(self):
+        logger.info(
+            f"Starting public game {self.code}" f" with {len(self.users)} users"
+        )
+
+        # Cancelamos el timer si sigue
+        self.start_timer.cancel()
+
+        super().start()
+
+    def _end(self, cancel: bool = False):
+        # Cancelamos el timer si sigue
+        self.start_timer.cancel()
+
+        super().end(cancel)
+
     def start(self):
         with self.start_lock:
-            logger.info(
-                f"Starting public game {self.code}" f" with {len(self.users)} users"
-            )
-
-            # Cancelamos el timer si sigue
-            self.start_timer.cancel()
-
-            super().start()
+            self._start()
 
     def end(self, cancel: bool = False):
         with self.start_lock:
-            # Cancelamos el timer si sigue
-            self.start_timer.cancel()
-
-            super().end(cancel)
+            self._end(cancel)
 
     def start_check(self):
         """
@@ -362,24 +375,21 @@ class PublicMatch(Match):
 
         Como esta parte se realiza de forma concurrente, es necesario usar el
         lock de inicio de turno y asegurarse que después de obtenerlo no se ha
-        iniciado o terminado la partida ya.
+        iniciado la partida ya.
         """
+
+        logger.info("Public match timer triggered")
 
         with self.start_lock:
             if self.is_started():
                 logger.info("Timer skipping check; game already started")
                 return
 
+            # Empezamos la partida únicamente si hay suficientes usuarios
             if len(self.users) >= MIN_MATCH_USERS:
-                # Empezamos la partida
-                self.start()
+                self._start()
             else:
-                # La cancelamos
-                logger.info(
-                    f"Public match {self.code} with"
-                    f" {len(self.users)} users has been cancelled"
-                )
-                self.end()
+                self._end(cancel=True)
 
 
 class MatchManager:
@@ -489,6 +499,7 @@ class MatchManager:
         return matches.get(code)
 
     def remove_match(self, code: str) -> None:
+        logger.info(f"Removing {code} from matches")
         # Eliminar con seguridad (para evitar crashes)
         matches.pop(code, None)
 

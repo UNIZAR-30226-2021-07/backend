@@ -263,8 +263,15 @@ def join(game_code):
     logger.info(f"User {session['user'].name} has joined the game {game_code}")
 
 
+# NOTE: aunque parezca contra-intuitivo, salir de una partida no hace falta
+# estar dentro de una.
+#
+# Esto es porque también se puede usar este endpoint de forma de limpieza. Por
+# ejemplo cuando una partida se cancela a sí misma porque se queda sin
+# jugadores, se habrán eliminado a los usuarios de esa partida pero igualmente
+# el cliente tendrá que llamar para limpiar la sesión y hacer `leave_room` para
+# poderse unir a otra partida.
 @socket.on("leave")
-@_requires_game()
 def leave():
     """
     Salir de la partida actual.
@@ -287,6 +294,10 @@ def leave():
         :ref:`error <errores>`.
     """
 
+    # No hay partida de la que salir ni limpieza que hacer
+    if session.get("game") is None:
+        return {"error": "No hay ninguna partida de la que salir"}
+
     game_code = session["game"]
     leave_room(game_code)
     emit(
@@ -300,11 +311,12 @@ def leave():
     del session["game"]
 
     match = MM.get_match(game_code)
+    if match is None:
+        return  # Limpieza de partidas ya canceladas, no hace falta seguir
     match.remove_user(session["user"])
     logger.info(f"User {session['user'].name} has left the game {game_code}")
     if len(match.users) == 0:
         match.end()
-        # Eliminarla del gestor de partidas
         MM.remove_match(game_code)
         return  # La partida ha acabado, no seguir
 

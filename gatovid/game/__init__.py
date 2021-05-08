@@ -278,15 +278,7 @@ class Game:
                 value={"hand": self.turn_player().hand},
             )
 
-            # Siguiente turno, y actualización del estado a todos los jugadores
-            #
-            # No se le pasará el turno a un jugador que ya ha terminado la
-            # partida.
-            while True:
-                self._advance_turn()
-                if not self.turn_player().has_finished():
-                    break
-
+            self._advance_turn()
             logger.info(f"{self.turn_player().name}'s turn has started")
 
             # Continúa pasando el turno si el jugador siguiente no tiene cartas
@@ -308,7 +300,16 @@ class Game:
         return update
 
     def _advance_turn(self):
-        self._turn = (self._turn + 1) % len(self.players)
+        """
+        Siguiente turno, y actualización del estado a todos los jugadores
+
+        No se le pasará el turno a un jugador que ya ha terminado la partida.
+        """
+
+        while True:
+            self._turn = (self._turn + 1) % len(self.players)
+            if not self.turn_player().has_finished():
+                break
 
     def _timer_end_turn(self):
         """

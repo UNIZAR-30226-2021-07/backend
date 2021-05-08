@@ -304,7 +304,10 @@ class PrivateMatch(Match):
         update = GameUpdate(self._game)
         update.merge_with(self._game.full_update())
         update.merge_with(self._match_update())
-        return user in self.users, update.get(user.name)
+        if user in self.users:
+            return True, update.get(user.name)
+        else:
+            return False, None
 
 
 class PublicMatch(Match):

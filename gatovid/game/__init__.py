@@ -283,7 +283,7 @@ class Game:
             # No se le pasará el turno a un jugador que ya ha terminado la
             # partida.
             while True:
-                self._turn = (self._turn + 1) % len(self.players)
+                self._advance_turn()
                 if not self.turn_player().has_finished():
                     break
 
@@ -306,6 +306,9 @@ class Game:
         self._start_turn_timer()
 
         return update
+
+    def _advance_turn(self):
+        self._turn = (self._turn + 1) % len(self.players)
 
     def _timer_end_turn(self):
         """
@@ -391,7 +394,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, None, False)
+            self._turn_callback(update, kicked, False)
 
     def _start_turn_timer(self):
         """
@@ -452,12 +455,18 @@ class Game:
 
         Si está activada la IA el jugador es reemplazado por un bot, y en caso
         contrario se mueven sus cartas al inicio de la baraja y se elimina.
+
+        El GameUpdate devuelto tendrá datos vacíos para el usuario que se ha
+        eliminado para simplificar el problema.
         """
+
+        update = GameUpdate(self)
+
+        if self.is_finished():
+            return update
 
         logger.info(f"Player {player_name} is being removed")
         player = self.get_player(player_name)
-
-        update = GameUpdate(self)
 
         if self._enabled_ai:
             player.is_ai = True
@@ -467,10 +476,15 @@ class Game:
                 self.deck.insert(0, card)
             self.players.remove(player)
 
+            # Si es su turno se pasa al siguiente
+            self._advance_turn()
+            update.merge_with(self.current_turn_update())
+
         # Comprobando si quedan suficientes usuarios
         remaining = len(self.players)
         if self._enabled_ai:
             remaining -= self._bots_num
+        print(remaining)
         if remaining < MIN_MATCH_USERS:
             finish_update = self.finish()
             update.merge_with(finish_update)
@@ -493,6 +507,7 @@ class Game:
 
     def players_update(self) -> GameUpdate:
         update = GameUpdate(self)
+
         players = []
         for player in self.players:
             data = {}
@@ -507,6 +522,7 @@ class Game:
                 data = {"name": player.name}
 
             players.append(data)
+
         update.repeat({"players": players})
         return update
 

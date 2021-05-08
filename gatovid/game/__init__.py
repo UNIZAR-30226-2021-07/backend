@@ -484,7 +484,6 @@ class Game:
         remaining = len(self.players)
         if self._enabled_ai:
             remaining -= self._bots_num
-        print(remaining)
         if remaining < MIN_MATCH_USERS:
             finish_update = self.finish()
             update.merge_with(finish_update)

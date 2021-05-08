@@ -120,12 +120,7 @@ class ConnTest(WsTestClient):
             received = clients[turn].get_received()
             _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
             callback_args = client.emit("leave", callback=True)
-            if args is None:
-                # Si no se ha cancelado irá con éxito
-                self.assertNotIn("error", callback_args)
-            else:
-                # En caso contrario se recibirá un error
-                self.assertIn("error", callback_args)
+            self.assertNotIn("error", callback_args)
 
             # Se continúa con el siguiente usuario a ser kickeado
             turn = (turn + 1) % len(clients)

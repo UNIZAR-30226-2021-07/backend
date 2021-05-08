@@ -216,7 +216,7 @@ class Infection(Treatment):
                 continue
 
             # Añadimos las pilas libres a la lista de candidatas
-            candidates.append(filter(lambda p: p.is_free(), player.body.piles))
+            candidates.extend(list(filter(lambda p: p.is_free(), player.body.piles)))
 
         # Aplicamos un orden aleatorio también a las pilas candidatas
         for candidate_pile in random.sample(candidates, len(candidates)):

@@ -242,6 +242,7 @@ class ConnTest(WsTestClient):
             self.assertIsNotNone(args)
             self.assertIn("hand", args)
             self.assertIn("players", args)
+            self.assertIn("paused", args)
             self.assertIn("bodies", args)
             self.assertIn("current_turn", args)
             self.assertIn("finished", args)

@@ -189,15 +189,7 @@ class Game:
 
             self._paused = paused
             self._paused_by = paused_by
-
-            update = GameUpdate(self)
-            update.repeat(
-                {
-                    "paused": paused,
-                    "paused_by": paused_by,
-                }
-            )
-            return update
+            return self.pause_update()
 
     def is_paused(self) -> bool:
         self._paused
@@ -525,6 +517,16 @@ class Game:
         )
         return update
 
+    def pause_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+        update.repeat(
+            {
+                "paused": self._paused,
+                "paused_by": self._paused_by,
+            }
+        )
+        return update
+
     def bodies_update(self) -> GameUpdate:
         update = GameUpdate(self)
         update.add_for_each(lambda p: {"bodies": {p.name: p.body.piles}})
@@ -537,6 +539,7 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
+        update.merge_with(self.pause_update())
         update.merge_with(self.players_update())
 
         return update

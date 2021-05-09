@@ -21,6 +21,8 @@ DEFAULT_TIME_TURN_END = gatovid.game.TIME_TURN_END
 DEFAULT_TIME_UNTIL_RESUME = gatovid.game.TIME_UNTIL_RESUME
 DEFAULT_TIME_UNTIL_START = gatovid.api.game.match.TIME_UNTIL_START
 
+DEFAULT_DECK = gatovid.game.DECK.copy()
+
 
 class BaseTestCase(TestCase):
     """
@@ -177,6 +179,7 @@ class WsTestClient(GatovidTestClient):
                 pass
 
         self.reset_timeouts()
+        self.restore_default_deck()
 
     def reset_timeouts(self) -> None:
         """
@@ -413,3 +416,9 @@ class WsTestClient(GatovidTestClient):
 
         for client in clients:
             client.get_received()
+
+    def set_custom_deck(self, deck):
+        gatovid.game.DECK = deck
+
+    def restore_default_deck(self):
+        gatovid.game.DECK = DEFAULT_DECK

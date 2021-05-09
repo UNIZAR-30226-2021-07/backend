@@ -64,14 +64,28 @@ class Player:
         except IndexError:
             raise GameLogicException("Slot no existente en la mano del jugador")
 
-    def remove_card(self, slot: int) -> None:
+    def remove_card(self, slot: int, return_to: Optional[List[Card]] = None) -> None:
         try:
+            card = self.hand[slot]
+            if return_to is not None:
+                return_to.insert(0, card)
             del self.hand[slot]
         except IndexError:
             raise GameLogicException("Slot no existente en la mano del jugador")
 
     def add_card(self, card: Card) -> None:
         self.hand.append(card)
+
+    def empty_hand(self, return_to: Optional[List[Card]] = None) -> None:
+        """
+        Vacía la mano del jugador. Devuelve las cartas a la baraja `return_to`
+        si no es `None`.
+        """
+        if return_to is not None:
+            for card in self.hand:
+                return_to.insert(0, card)
+
+        self.hand.clear()
 
 
 class Game:

@@ -25,7 +25,8 @@ class Color(str, Enum):
 
 @dataclass
 class Card:
-    pass
+    def is_placeable(self) -> bool:
+        return False
 
 
 @dataclass
@@ -37,6 +38,9 @@ class SimpleCard(Card):
     """
 
     color: Optional[Color]
+
+    def is_placeable(self) -> bool:
+        return True
 
     def get_action_data(self, action: "PlayCard", game: "Game") -> None:
         """
@@ -112,6 +116,9 @@ class Virus(SimpleCard):
 
         logger.info(f"{self.color}-colored virus played over {self.target.name}")
 
+        # Se infecta el órgano (se añade el virus a los modificadores)
+        self.organ_pile.add_modifier(self)
+
         # Comprobamos si hay que extirpar o destruir vacuna
         if self.organ_pile.is_infected():
             # Si está infectado -> se extirpa el órgano
@@ -119,8 +126,6 @@ class Virus(SimpleCard):
         elif self.organ_pile.is_protected():
             # Si está protegido -> se destruye la vacuna
             self.organ_pile.pop_modifiers(return_to=game.deck)
-        else:  # Se infecta el órgano (se añade el virus a los modificadores)
-            self.organ_pile.add_modifier(self)
 
         return self.piles_update(game)
 
@@ -140,13 +145,13 @@ class Medicine(SimpleCard):
 
         logger.info(f"{self.color}-colored medicine played over {self.target.name}")
 
+        # Se proteje o se inmuniza el órgano (se añade la vacuna a los
+        # modificadores)
+        self.organ_pile.add_modifier(self)
+
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():
             self.organ_pile.pop_modifiers(return_to=game.deck)
-        else:
-            # Se proteje o se inmuniza el órgano (se añade la vacuna a los
-            # modificadores)
-            self.organ_pile.add_modifier(self)
 
         return self.piles_update(game)
 
@@ -269,7 +274,7 @@ class LatexGlove(Treatment):
                 continue
 
             # Vaciamos la mano del oponente
-            player.empty_hand()
+            player.empty_hand(return_to=game.deck)
             # Añadimos la mano vacía al GameUpdate
             update.add(player.name, {"hand": []})
 
@@ -347,7 +352,7 @@ def parse_card(data: Dict) -> (object, Dict):
     raise GameLogicException(f"Couldn't parse card with data {data}")
 
 
-def parse_deck(all_cards: List[Dict]) -> [SimpleCard]:
+def parse_deck(all_cards: List[Dict]) -> [Card]:
     """
     Incializa el mazo base con la información en el JSON de cartas, cada uno con
     una instancia distinta.

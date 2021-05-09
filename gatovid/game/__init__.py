@@ -60,7 +60,7 @@ class Player:
         except IndexError:
             raise GameLogicException("Slot no existente en la mano del jugador")
 
-    def remove_card(self, slot: int, return_to: Optional[List[Card]]) -> None:
+    def remove_card(self, slot: int, return_to: Optional[List[Card]] = None) -> None:
         try:
             card = self.hand[slot]
             if return_to is not None:

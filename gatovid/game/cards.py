@@ -116,16 +116,20 @@ class Virus(SimpleCard):
 
         logger.info(f"{self.color}-colored virus played over {self.target.name}")
 
-        # Se infecta el órgano (se añade el virus a los modificadores)
-        self.organ_pile.add_modifier(self)
-
         # Comprobamos si hay que extirpar o destruir vacuna
         if self.organ_pile.is_infected():
+            # Lo añadimos para que vuelva a la baraja
+            self.organ_pile.add_modifier(self)
             # Si está infectado -> se extirpa el órgano
             self.organ_pile.remove_organ(return_to=game.deck)
         elif self.organ_pile.is_protected():
+            # Lo añadimos para que vuelva a la baraja
+            self.organ_pile.add_modifier(self)
             # Si está protegido -> se destruye la vacuna
             self.organ_pile.pop_modifiers(return_to=game.deck)
+        else:
+            # Se infecta el órgano (se añade el virus a los modificadores)
+            self.organ_pile.add_modifier(self)
 
         return self.piles_update(game)
 
@@ -145,13 +149,17 @@ class Medicine(SimpleCard):
 
         logger.info(f"{self.color}-colored medicine played over {self.target.name}")
 
-        # Se proteje o se inmuniza el órgano (se añade la vacuna a los
-        # modificadores)
-        self.organ_pile.add_modifier(self)
 
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():
+            # Lo añadimos para que vuelva a la baraja
+            self.organ_pile.add_modifier(self)
+            # Destruimos el virus
             self.organ_pile.pop_modifiers(return_to=game.deck)
+        else:
+            # Se proteje o se inmuniza el órgano (se añade la vacuna a los
+            # modificadores)
+            self.organ_pile.add_modifier(self)
 
         return self.piles_update(game)
 

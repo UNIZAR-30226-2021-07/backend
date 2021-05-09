@@ -4,6 +4,7 @@ Tests para la lógica del juego
 
 import random
 from dataclasses import asdict
+from enum import Enum
 
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
@@ -19,6 +20,20 @@ from gatovid.game.cards import (
 )
 
 from .base import WsTestClient
+
+
+def asdict_factory_enums(data):
+    """
+    Factory para obtener el valor de los Enum en lugar de <Color.Yellow:
+    'yellow'> cuando se usa asdict.
+    """
+
+    def convert_value(obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        return obj
+
+    return dict((k, convert_value(v)) for k, v in data)
 
 
 class CardsTest(WsTestClient):
@@ -589,18 +604,18 @@ class CardsTest(WsTestClient):
             },
             {
                 "have": [
-                    # Se debería colocar el multicolor
-                    organ(Color.Red),
                     # No se debería colocar en esta
                     infected_organ(Color.Green, virus_color=Color.All),
                     OrganPile(),
                     organ(Color.Blue),
+                    # Se debería colocar el multicolor
+                    organ(Color.Red),
                 ],
                 "expected": [
-                    infected_organ(Color.Red, virus_color=Color.All),
                     infected_organ(Color.Green, virus_color=Color.All),
                     OrganPile(),
                     infected_organ(Color.Blue),
+                    infected_organ(Color.Red, virus_color=Color.All),
                 ],
             },
             {
@@ -626,7 +641,9 @@ class CardsTest(WsTestClient):
             },
         ]
 
-        clients_order = map(lambda p: self.player_names.index(p.name), game.players)
+        clients_order = list(
+            map(lambda p: self.player_names.index(p.name), game.players)
+        )
 
         # Para todos los clientes, inicializamos su cuerpo al cuerpo de pruebas
         # y le damos la carta de contagio al cliente 0.
@@ -634,7 +651,6 @@ class CardsTest(WsTestClient):
             client = clients[which_client]
             player = game.players[i]
 
-            player = game.players[0]
             if which_client == 0:
                 player.hand[0] = Infection()
             player.body = Body.from_data(piles=bodies[i]["have"])
@@ -658,4 +674,134 @@ class CardsTest(WsTestClient):
 
             self.assertIn("bodies", args)
             self.assertIn(player.name, args["bodies"])
-            self.assertEqual(args["bodies"][player.name], bodies[i]["expected"])
+            expected = list(
+                map(
+                    lambda b: asdict(b, dict_factory=asdict_factory_enums),
+                    bodies[i]["expected"],
+                )
+            )
+            self.assertEqual(args["bodies"][player.name], expected)
+
+    def test_return_to_deck(self):
+        """
+        Se comprueba que las cartas se devuelven a la baraja.
+        """
+        TOTAL_CARDS = 30
+
+        # Generamos una baraja custom antes de que empiece la partida y se
+        # repartan las cartas.
+        custom_deck = [
+            Virus(color=Color.Red),
+            Virus(color=Color.Red),
+            Medicine(color=Color.Red),
+            LatexGlove(),
+        ]
+        # Rellenamos las restantes con órganos. NOTE: no hacen falta 68 cartas
+        # solo para 2 jugadores.
+        for i in range(TOTAL_CARDS - 4):
+            custom_deck.append(Organ(color=Color.Red))
+
+        self.set_custom_deck(custom_deck)
+
+        def try_use(slot, pile_cond, search_in, target) -> bool:
+            pile_slot = None
+
+            for (p_slot, pile) in enumerate(player.body.piles):
+                if pile_cond(pile):
+                    pile_slot = p_slot
+                    break
+
+            if pile_slot is not None:
+                callback_args = client.emit(
+                    "play_card",
+                    {
+                        "slot": slot,
+                        "organ_pile": pile_slot,
+                        "target": target,
+                    },
+                    callback=True,
+                )
+                self.assertNotIn("error", callback_args)
+
+            return pile_slot is not None
+
+        clients, code = self.create_game(players=2)
+        game = MM.get_match(code)._game
+        game._turn = 0
+
+        def total_cards() -> int:
+            count = len(game.deck)
+            for player in game.players:
+                count += len(player.hand)
+                for pile in player.body.piles:
+                    if pile.is_empty():
+                        continue
+                    count += 1 + len(pile.modifiers)
+            return count
+
+        # Ignoramos todos los mensajes anteriores
+        for client in clients:
+            _ = client.get_received()
+
+        clients_order = list(
+            map(lambda p: self.player_names.index(p.name), game.players)
+        )
+
+        for i in range(100):
+            # Evitamos problemas con los saltos de turno
+            p = game._turn
+
+            self.assertEqual(total_cards(), TOTAL_CARDS)
+
+            which_client = clients_order[p]
+
+            client = clients[which_client]
+            player = game.players[p]
+            other_player = game.players[(p + 1) % 2]
+
+            card_types = list(map(lambda c: c.card_type, player.hand))
+
+            if "treatment" in card_types:
+                slot = card_types.index("treatment")
+                callback_args = client.emit("play_card", {"slot": slot}, callback=True)
+                self.assertNotIn("error", callback_args)
+                continue
+
+            if "organ" in card_types:
+                slot = card_types.index("organ")
+                if player.body.organ_unique(player.hand[slot]):
+                    if try_use(
+                        slot=slot,
+                        search_in=player.body.piles,
+                        pile_cond=lambda p: p.is_empty(),
+                        target=player.name,
+                    ):
+                        continue
+
+            if "virus" in card_types:
+                slot = card_types.index("virus")
+                if try_use(
+                    slot=slot,
+                    search_in=other_player.body.piles,
+                    pile_cond=lambda p: not p.is_empty(),
+                    target=other_player.name,
+                ):
+                    continue
+
+            if "medicine" in card_types:
+                slot = card_types.index("medicine")
+                if try_use(
+                    slot=slot,
+                    search_in=player.body.piles,
+                    pile_cond=lambda p: not p.is_empty(),
+                    target=player.name,
+                ):
+                    continue
+
+            # Descartamos todas las cartas
+            for i in reversed(range(3)):
+                callback_args = client.emit("play_discard", i, callback=True)
+                self.assertNotIn("error", callback_args)
+
+            callback_args = client.emit("play_pass", callback=True)
+            self.assertNotIn("error", callback_args)

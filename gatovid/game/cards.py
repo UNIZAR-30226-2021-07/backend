@@ -25,7 +25,8 @@ class Color(str, Enum):
 
 @dataclass
 class Card:
-    pass
+    def is_placeable(self) -> bool:
+        return False
 
 
 @dataclass
@@ -37,6 +38,9 @@ class SimpleCard(Card):
     """
 
     color: Optional[Color]
+
+    def is_placeable(self) -> bool:
+        return True
 
     def get_action_data(self, action: "PlayCard", game: "Game") -> None:
         """
@@ -114,12 +118,17 @@ class Virus(SimpleCard):
 
         # Comprobamos si hay que extirpar o destruir vacuna
         if self.organ_pile.is_infected():
+            # Lo añadimos para que vuelva a la baraja
+            self.organ_pile.add_modifier(self)
             # Si está infectado -> se extirpa el órgano
-            self.organ_pile.remove_organ()
+            self.organ_pile.remove_organ(return_to=game.deck)
         elif self.organ_pile.is_protected():
+            # Lo añadimos para que vuelva a la baraja
+            self.organ_pile.add_modifier(self)
             # Si está protegido -> se destruye la vacuna
-            self.organ_pile.pop_modifiers()
-        else:  # Se infecta el órgano (se añade el virus a los modificadores)
+            self.organ_pile.pop_modifiers(return_to=game.deck)
+        else:
+            # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
         return self.piles_update(game)
@@ -142,7 +151,10 @@ class Medicine(SimpleCard):
 
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():
-            self.organ_pile.pop_modifiers()
+            # Lo añadimos para que vuelva a la baraja
+            self.organ_pile.add_modifier(self)
+            # Destruimos el virus
+            self.organ_pile.pop_modifiers(return_to=game.deck)
         else:
             # Se proteje o se inmuniza el órgano (se añade la vacuna a los
             # modificadores)
@@ -224,13 +236,16 @@ class Infection(Treatment):
 
             # Asignamos el primer virus de ese color y lo quitamos de los
             # posibles.
-            if len(virus[color]) > 0:
-                pile = virus[color].pop()
-            elif len(virus[Color.All]) > 0:
-                pile = virus[Color.All].pop()
-            else:
-                continue
 
+            if len(virus[color]) == 0:
+                # Si no hay virus de ese color -> comprobamos si hay virus
+                # multicolor
+                if len(virus[Color.All]) > 0:
+                    color = Color.All
+                else:  # No tenemos opción
+                    continue
+
+            pile = virus[color].pop()
             # Eliminamos el virus del cuerpo del caller
             pile.pop_modifiers()
             # Lo colocamos en la pila candidata
@@ -266,7 +281,7 @@ class LatexGlove(Treatment):
                 continue
 
             # Vaciamos la mano del oponente
-            player.hand = []
+            player.empty_hand(return_to=game.deck)
             # Añadimos la mano vacía al GameUpdate
             update.add(player.name, {"hand": []})
 
@@ -344,7 +359,7 @@ def parse_card(data: Dict) -> (object, Dict):
     raise GameLogicException(f"Couldn't parse card with data {data}")
 
 
-def parse_deck(all_cards: List[Dict]) -> [SimpleCard]:
+def parse_deck(all_cards: List[Dict]) -> [Card]:
     """
     Incializa el mazo base con la información en el JSON de cartas, cada uno con
     una instancia distinta.

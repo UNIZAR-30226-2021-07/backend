@@ -3,9 +3,8 @@ Tests para la lógica del juego
 """
 
 import random
-
-from enum import Enum
 from dataclasses import asdict
+from enum import Enum
 
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
@@ -22,17 +21,20 @@ from gatovid.game.cards import (
 
 from .base import WsTestClient
 
+
 def asdict_factory_enums(data):
     """
     Factory para obtener el valor de los Enum en lugar de <Color.Yellow:
     'yellow'> cuando se usa asdict.
     """
+
     def convert_value(obj):
         if isinstance(obj, Enum):
             return obj.value
         return obj
 
     return dict((k, convert_value(v)) for k, v in data)
+
 
 class CardsTest(WsTestClient):
     player_names = [GENERIC_USERS_NAME.format(i) for i in range(NUM_GENERIC_USERS)]
@@ -639,7 +641,9 @@ class CardsTest(WsTestClient):
             },
         ]
 
-        clients_order = list(map(lambda p: self.player_names.index(p.name), game.players))
+        clients_order = list(
+            map(lambda p: self.player_names.index(p.name), game.players)
+        )
 
         # Para todos los clientes, inicializamos su cuerpo al cuerpo de pruebas
         # y le damos la carta de contagio al cliente 0.
@@ -670,10 +674,12 @@ class CardsTest(WsTestClient):
 
             self.assertIn("bodies", args)
             self.assertIn(player.name, args["bodies"])
-            expected = list(map(
-                lambda b: asdict(b, dict_factory=asdict_factory_enums),
-                bodies[i]["expected"],
-            ))
+            expected = list(
+                map(
+                    lambda b: asdict(b, dict_factory=asdict_factory_enums),
+                    bodies[i]["expected"],
+                )
+            )
             self.assertEqual(args["bodies"][player.name], expected)
 
     def test_return_to_deck(self):
@@ -694,7 +700,7 @@ class CardsTest(WsTestClient):
         ]
         # Rellenamos las restantes con órganos. NOTE: no hacen falta 68 cartas
         # solo para 2 jugadores.
-        for i in range(TOTAL_CARDS-4):
+        for i in range(TOTAL_CARDS - 4):
             gatovid.game.DECK.append(Organ(color=Color.Red))
 
         def try_use(slot, pile_cond, search_in, target) -> bool:
@@ -712,8 +718,9 @@ class CardsTest(WsTestClient):
                         "slot": slot,
                         "organ_pile": pile_slot,
                         "target": target,
-
-                    }, callback=True)
+                    },
+                    callback=True,
+                )
                 self.assertNotIn("error", callback_args)
 
             return pile_slot is not None
@@ -736,7 +743,9 @@ class CardsTest(WsTestClient):
         for client in clients:
             _ = client.get_received()
 
-        clients_order = list(map(lambda p: self.player_names.index(p.name), game.players))
+        clients_order = list(
+            map(lambda p: self.player_names.index(p.name), game.players)
+        )
 
         for i in range(100):
             # Evitamos problemas con los saltos de turno

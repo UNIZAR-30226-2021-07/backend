@@ -235,7 +235,7 @@ class Infection(Treatment):
                 # multicolor
                 if len(virus[Color.All]) > 0:
                     color = Color.All
-                else: # No tenemos opción
+                else:  # No tenemos opción
                     continue
 
             pile = virus[color].pop()

@@ -676,3 +676,123 @@ class CardsTest(WsTestClient):
             ))
             self.assertEqual(args["bodies"][player.name], expected)
 
+    def test_return_to_deck(self):
+        """
+        Se comprueba que las cartas se devuelven a la baraja.
+        """
+        TOTAL_CARDS = 30
+
+        import gatovid.game
+
+        # Generamos una baraja custom antes de que empiece la partida y se
+        # repartan las cartas.
+        gatovid.game.DECK = [
+            Virus(color=Color.Red),
+            Virus(color=Color.Red),
+            Medicine(color=Color.Red),
+            LatexGlove(),
+        ]
+        # Rellenamos las restantes con órganos. NOTE: no hacen falta 68 cartas
+        # solo para 2 jugadores.
+        for i in range(TOTAL_CARDS-4):
+            gatovid.game.DECK.append(Organ(color=Color.Red))
+
+        def try_use(slot, pile_cond, search_in, target) -> bool:
+            pile_slot = None
+
+            for (p_slot, pile) in enumerate(player.body.piles):
+                if pile_cond(pile):
+                    pile_slot = p_slot
+                    break
+
+            if pile_slot is not None:
+                callback_args = client.emit(
+                    "play_card",
+                    {
+                        "slot": slot,
+                        "organ_pile": pile_slot,
+                        "target": target,
+
+                    }, callback=True)
+                self.assertNotIn("error", callback_args)
+
+            return pile_slot is not None
+
+        clients, code = self.create_game(players=2)
+        game = MM.get_match(code)._game
+        game._turn = 0
+
+        def total_cards() -> int:
+            count = len(game.deck)
+            for player in game.players:
+                count += len(player.hand)
+                for pile in player.body.piles:
+                    if pile.is_empty():
+                        continue
+                    count += 1 + len(pile.modifiers)
+            return count
+
+        # Ignoramos todos los mensajes anteriores
+        for client in clients:
+            _ = client.get_received()
+
+        clients_order = list(map(lambda p: self.player_names.index(p.name), game.players))
+
+        for i in range(100):
+            # Evitamos problemas con los saltos de turno
+            p = game._turn
+
+            self.assertEqual(total_cards(), TOTAL_CARDS)
+
+            which_client = clients_order[p]
+
+            client = clients[which_client]
+            player = game.players[p]
+            other_player = game.players[(p + 1) % 2]
+
+            card_types = list(map(lambda c: c.card_type, player.hand))
+
+            if "treatment" in card_types:
+                slot = card_types.index("treatment")
+                callback_args = client.emit("play_card", {"slot": slot}, callback=True)
+                self.assertNotIn("error", callback_args)
+                continue
+
+            if "organ" in card_types:
+                slot = card_types.index("organ")
+                if player.body.organ_unique(player.hand[slot]):
+                    if try_use(
+                        slot=slot,
+                        search_in=player.body.piles,
+                        pile_cond=lambda p: p.is_empty(),
+                        target=player.name,
+                    ):
+                        continue
+
+            if "virus" in card_types:
+                slot = card_types.index("virus")
+                if try_use(
+                    slot=slot,
+                    search_in=other_player.body.piles,
+                    pile_cond=lambda p: not p.is_empty(),
+                    target=other_player.name,
+                ):
+                    continue
+
+            if "medicine" in card_types:
+                slot = card_types.index("medicine")
+                if try_use(
+                    slot=slot,
+                    search_in=player.body.piles,
+                    pile_cond=lambda p: not p.is_empty(),
+                    target=player.name,
+                ):
+                    continue
+
+            # Descartamos todas las cartas
+            for i in reversed(range(3)):
+                callback_args = client.emit("play_discard", i, callback=True)
+                self.assertNotIn("error", callback_args)
+
+            callback_args = client.emit("play_pass", callback=True)
+            self.assertNotIn("error", callback_args)

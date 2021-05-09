@@ -149,7 +149,6 @@ class Medicine(SimpleCard):
 
         logger.info(f"{self.color}-colored medicine played over {self.target.name}")
 
-
         # Comprobamos si hay que destruir un virus
         if self.organ_pile.is_infected():
             # Lo añadimos para que vuelva a la baraja

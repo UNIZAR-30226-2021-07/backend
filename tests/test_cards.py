@@ -688,8 +688,6 @@ class CardsTest(WsTestClient):
         """
         TOTAL_CARDS = 30
 
-        import gatovid.game
-
         # Generamos una baraja custom antes de que empiece la partida y se
         # repartan las cartas.
         custom_deck = [

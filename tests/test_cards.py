@@ -692,7 +692,7 @@ class CardsTest(WsTestClient):
 
         # Generamos una baraja custom antes de que empiece la partida y se
         # repartan las cartas.
-        gatovid.game.DECK = [
+        custom_deck = [
             Virus(color=Color.Red),
             Virus(color=Color.Red),
             Medicine(color=Color.Red),
@@ -701,7 +701,9 @@ class CardsTest(WsTestClient):
         # Rellenamos las restantes con órganos. NOTE: no hacen falta 68 cartas
         # solo para 2 jugadores.
         for i in range(TOTAL_CARDS - 4):
-            gatovid.game.DECK.append(Organ(color=Color.Red))
+            custom_deck.append(Organ(color=Color.Red))
+
+        self.set_custom_deck(custom_deck)
 
         def try_use(slot, pile_cond, search_in, target) -> bool:
             pile_slot = None

@@ -25,7 +25,7 @@ logger = get_logger(__name__)
 
 
 class ConnTest(WsTestClient):
-    def active_wait_turns(self, clients, total_skips: int) -> int:
+    def active_wait_turns(self, clients, total_skips: int, turn_timeout: float) -> int:
         # Para saber el orden de los turnos
         starting_turn = self.get_current_turn_client(clients)
         turn = clients.index(starting_turn)
@@ -33,19 +33,21 @@ class ConnTest(WsTestClient):
         self.clean_messages(clients)
         for i in range(total_skips):
             while True:
-                received = clients[turn].get_received()
-                _, args = self.get_msg_in_received(
-                    received, "game_update", json=True, last=True
-                )
-                if args is not None:
-                    print(received)
+                received = clients[0].get_received()
+                if len(received) > 0:
+                    self.assertEqual(len(received), 1)
                     break
+
+                time.sleep(turn_timeout / 3)  # Para evitar saturar al servidor
 
             turn = (turn + 1) % len(clients)
             expected = GENERIC_USERS_NAME.format(turn)
-            logger.info(f">> Turn {i} skipped, {expected} now playing")
+            logger.info(f">> Turn {i + 1} skipped, {expected} now playing")
+
+            _, args = self.get_msg_in_received(
+                received, "game_update", json=True, last=True
+            )
             self.assertEqual(args.get("current_turn"), expected)
-            self.clean_messages(clients)
 
         return turn
 
@@ -111,9 +113,7 @@ class ConnTest(WsTestClient):
         # Iteración completa antes de que el primer usuario sea eliminado.
         total_skips = len(clients) * 2
         logger.info(f">> Skipping {total_skips} turns")
-        # total = timeout * len(clients) * 2 - 1
-        # time.sleep(total * 1.1)
-        turn = self.active_wait_turns(clients, total_skips)
+        turn = self.active_wait_turns(clients, total_skips, timeout)
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")

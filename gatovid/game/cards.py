@@ -98,6 +98,11 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
+        # Comprobamos si ha ganado
+        if action.caller.body.is_healthy():
+            # Si tiene un cuerpo completo sano, se considera que ha ganado.
+            game.player_finished(action.caller)
+
         return self.piles_update(game)
 
 

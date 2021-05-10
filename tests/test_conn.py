@@ -185,7 +185,7 @@ class ConnTest(WsTestClient):
         starting_turn = self.get_current_turn_client(clients)
         turn = clients.index(starting_turn)
 
-        for i in range(len(clients)):
+        for i in range(len(clients) - 1):
             logger.info(f">> Trying as usual for turn {turn}")
             # Antes de la desconexión funciona correctamente
             client = clients[turn]
@@ -198,6 +198,13 @@ class ConnTest(WsTestClient):
             self.assertIn("error", callback_args)
 
             turn = (turn + 1) % len(clients)
+
+        # El último usuario en intentarlo no podrá porque se habrá borrado la
+        # partida.
+        last_client = clients[turn]
+        received = last_client.get_received()
+        _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
+        self.assertIsNotNone(args)
 
     def test_disconnect_private(self):
         """

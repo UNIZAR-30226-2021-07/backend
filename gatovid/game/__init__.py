@@ -235,7 +235,6 @@ class Game:
                 logger.info(f"Error running action: {e}")
                 raise
 
-            # TODO: revisar fin de partida
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
                 update.merge_with(finish_update)
@@ -469,11 +468,6 @@ class Game:
         N = len(self.players)
 
         for player in self.players:
-            # No entrará en el top si si ha abandonado la partida y o si es el
-            # último jugador.
-            if not player.has_finished() or player.kicked:
-                continue
-
             leaderboard[player.name] = {
                 "position": player.position,
                 "coins": 10 * (N - player.position),
@@ -643,5 +637,10 @@ class Game:
             self._turn_timer.cancel()
         if self._paused_timer is not None:
             self._paused_timer.cancel()
+
+        # El jugador que no ha acabado tendrá la última posición
+        for player in self.players:
+            if player.position is None:
+                player.position = self._players_finished+1
 
         return self.finish_update()

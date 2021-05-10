@@ -3,6 +3,7 @@ Tests para la lógica del juego
 """
 
 import time
+import json
 
 from gatovid.create_db import GENERIC_USERS_NAME
 from gatovid.util import get_logger
@@ -445,10 +446,23 @@ class GameTest(WsTestClient):
                 self.assertIn("player_won", args)
                 self.assertEqual(args["player_won"], player.name)
 
-                if players_finished == 6:
+                if len(players_finished) == 5:
                     self.assertIn("finished", args)
                     self.assertIn("leaderboard", args)
                     self.assertIn("playtime_mins", args)
 
                     self.assertEqual(args["finished"], True)
+                    expected_leaderboard = dict()
+                    for player in game.players:
+                        if player.name not in players_finished:
+                            players_finished.append(player.name)
+                    for (pos, player) in enumerate(players_finished):
+                        pos = pos+1
+                        expected_leaderboard[player] = {
+                            "position": pos,
+                            "coins": 10 * (6 - pos),
+                        }
+
+                    self.assertEqual(args["leaderboard"], expected_leaderboard)
+                    break
                     

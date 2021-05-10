@@ -337,6 +337,7 @@ class Game:
             self._turn = (self._turn + 1) % len(self.players)
 
             if not self.turn_player().has_finished():
+                has_changed = True
                 break
 
         if not has_changed:

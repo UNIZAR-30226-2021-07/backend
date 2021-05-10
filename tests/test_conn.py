@@ -25,6 +25,30 @@ logger = get_logger(__name__)
 
 
 class ConnTest(WsTestClient):
+    def active_wait_turns(self, clients, total_skips: int) -> int:
+        # Para saber el orden de los turnos
+        starting_turn = self.get_current_turn_client(clients)
+        turn = clients.index(starting_turn)
+
+        self.clean_messages(clients)
+        for i in range(total_skips):
+            while True:
+                received = clients[turn].get_received()
+                _, args = self.get_msg_in_received(
+                    received, "game_update", json=True, last=True
+                )
+                if args is not None:
+                    print(received)
+                    break
+
+            turn = (turn + 1) % len(clients)
+            expected = GENERIC_USERS_NAME.format(turn)
+            logger.info(f">> Turn {i} skipped, {expected} now playing")
+            self.assertEqual(args.get("current_turn"), expected)
+            self.clean_messages(clients)
+
+        return turn
+
     def check_game_is_cancelled(self, client) -> None:
         received = client.get_received()
         _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
@@ -80,19 +104,16 @@ class ConnTest(WsTestClient):
         """
 
         self.set_matchmaking_time(3)
-        self.set_turn_timeout(0.1)
+        timeout = 0.1
+        self.set_turn_timeout(timeout)
         clients, code = self.create_public_game()
 
-        # Para saber el orden de los turnos
-        starting_turn = self.get_current_turn_client(clients)
-        turn = clients.index(starting_turn)
-
         # Iteración completa antes de que el primer usuario sea eliminado.
-        logger.info(">> Getting ready for players to be removed")
-        self.clean_messages(clients)
-        for i in range(2):  # Itera 2 veces
-            for i in range(len(clients) - 1):  # Por cada cliente
-                self.wait_turn_timeout()
+        total_skips = len(clients) * 2
+        logger.info(f">> Skipping {total_skips} turns")
+        # total = timeout * len(clients) * 2 - 1
+        # time.sleep(total * 1.1)
+        turn = self.active_wait_turns(clients, total_skips)
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")
@@ -146,13 +167,21 @@ class ConnTest(WsTestClient):
         # partida.
         for i in range(len(clients) - 1):
             client = clients[turn]
+            next_turn = (turn + 1) % len(clients)
+            other_client = clients[next_turn]
 
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
 
             self.check_user_has_abandoned(client, code, can_pause=True)
 
-            turn = (turn + 1) % len(clients)
+            # Comprueba que los demás usuarios hayan recibido un mensaje con los
+            # jugadores una vez abandona.
+            args = self.get_game_update(other_client, last=True)
+            self.assertIsNotNone(args)
+            self.assertIn("players", args)
+
+            turn = next_turn
 
         # El último usuario en intentarlo no podrá porque se habrá borrado la
         # partida.

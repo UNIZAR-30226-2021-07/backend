@@ -244,14 +244,15 @@ class ConnTest(WsTestClient):
         self.set_matchmaking_time(0.5)
         clients, code = self.create_public_game()
 
-        # Para saber el orden de los turnos
-        starting_turn = self.get_current_turn_client(clients)
-        turn = clients.index(starting_turn)
+        def turn_with_disconnect(turn, i, client):
+            if i == len(clients) - 1:
+                # El último usuario en intentarlo no podrá porque se habrá borrado la
+                # partida.
+                self.check_game_is_cancelled(client)
+                return
 
-        for i in range(len(clients) - 1):
             logger.info(f">> Trying as usual for turn {turn}")
             # Antes de la desconexión funciona correctamente
-            client = clients[turn]
             self.check_connection_works(client, start=True, public=True)
 
             logger.info(">> Trying after reconnect")
@@ -262,10 +263,7 @@ class ConnTest(WsTestClient):
 
             turn = (turn + 1) % len(clients)
 
-        # El último usuario en intentarlo no podrá porque se habrá borrado la
-        # partida.
-        last_client = clients[turn]
-        self.check_game_is_cancelled(last_client)
+        self.turn_iter(clients, len(clients), turn_with_disconnect)
 
     def test_disconnect_private(self):
         """
@@ -276,14 +274,9 @@ class ConnTest(WsTestClient):
         self.set_turn_timeout(0.5)
         clients, code = self.create_game()
 
-        # Para saber el orden de los turnos
-        starting_turn = self.get_current_turn_client(clients)
-        turn = clients.index(starting_turn)
-
-        for i in range(len(clients)):
+        def turn_with_disconnect(turn, i, client):
             logger.info(">> Trying as usual")
             # Antes de la desconexión funciona correctamente
-            client = clients[turn]
             self.check_connection_works(client, start=True)
 
             logger.info(">> Trying after reconnect")
@@ -329,7 +322,7 @@ class ConnTest(WsTestClient):
             callback_args = clients[next_turn].emit("pause_game", False, callback=True)
             self.assertNotIn("error", callback_args)
 
-            turn = next_turn
+        self.turn_iter(clients, len(clients), turn_with_disconnect)
 
     def test_reconnect_when_joining(self):
         """

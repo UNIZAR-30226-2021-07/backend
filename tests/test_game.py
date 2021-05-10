@@ -7,6 +7,9 @@ import time
 from gatovid.create_db import GENERIC_USERS_NAME
 from gatovid.util import get_logger
 
+from gatovid.game import Body, Card
+from gatovid.game.cards import Color, Organ
+
 from .base import WsTestClient
 
 logger = get_logger(__name__)
@@ -325,3 +328,23 @@ class GameTest(WsTestClient):
         self.wait_turn_timeout()
         end_hand = [id(card) for card in current_player.hand]
         self.assertEqual(start_hand[0], end_hand[0])
+
+    def test_player_finished(self):
+        """
+        Comprueba que si se reconoce cuando un jugador gana una partida.
+        """
+
+        b = Body()
+        b.piles[1].set_organ(Organ(color=Color.Red))
+        b.piles[2].set_organ(Organ(color=Color.Green))
+        b.piles[3].set_organ(Organ(color=Color.Blue))
+        callback_args, response, turn_player = self.place_card(
+            target_body=b,
+            card=Organ(color=Color.Yellow),
+            place_in_self=True,
+        )
+
+        self.assertNotIn("error", callback_args)
+        _, args = self.get_msg_in_received(response, "game_update", json=True)
+        self.assertIn("player_won", args)
+        self.assertEqual(args["player_won"], turn_player.name)

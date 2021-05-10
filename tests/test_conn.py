@@ -216,9 +216,7 @@ class ConnTest(WsTestClient):
         self.set_turn_timeout(0.1)
         clients, code = self.create_public_game()
 
-        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
-        # partida.
-        for client in clients:
+        def turn_abandon(turn, i, client):
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
 
@@ -233,6 +231,10 @@ class ConnTest(WsTestClient):
             # Ni volverse a unir a la partida
             callback_args = client.emit("join", code, callback=True)
             self.assertIn("error", callback_args)
+
+        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
+        # partida.
+        self.turn_iter(clients, len(clients), turn_abandon)
 
     def test_disconnect_public(self):
         """

@@ -345,8 +345,8 @@ class GameTest(WsTestClient):
 
         self.assertNotIn("error", callback_args)
         _, args = self.get_msg_in_received(response, "game_update", json=True)
-        self.assertIn("player_won", args)
-        self.assertEqual(args["player_won"], turn_player.name)
+        self.assertIn("leaderboard", args)
+        self.assertIn(turn_player.name, args["leaderboard"])
 
     def test_player_leaderboard(self):
         """
@@ -441,8 +441,8 @@ class GameTest(WsTestClient):
                 # Si ha completado un cuerpo sano, deberíamos recibir el
                 # "player_won".
                 players_finished.append(player.name)
-                self.assertIn("player_won", args)
-                self.assertEqual(args["player_won"], player.name)
+                self.assertIn("leaderboard", args)
+                self.assertIn(player.name, args["leaderboard"])
 
                 if len(players_finished) == 5:
                     self.assertIn("finished", args)

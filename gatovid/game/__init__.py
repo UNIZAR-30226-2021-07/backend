@@ -238,7 +238,7 @@ class Game:
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
                 update.merge_with(finish_update)
-                return update # No seguimos con la ejecución
+                return update  # No seguimos con la ejecución
 
             if not self.discarding and not self._finished:
                 end_update = self._end_turn()
@@ -481,12 +481,11 @@ class Game:
         N = len(self.players)
 
         for player in self.players:
-            if player.position is None:
-                player.position = self._players_finished + 1
+            position = player.position or (self._players_finished + 1)
 
             leaderboard[player.name] = {
-                "position": player.position,
-                "coins": 10 * (N - player.position),
+                "position": position,
+                "coins": 10 * (N - position),
             }
 
         return leaderboard
@@ -564,12 +563,11 @@ class Game:
         self._players_finished += 1
         player.position = self._players_finished
 
-        # Avisamos a todos los jugadores de que el jugador ha acabado.
-        update = GameUpdate(self)
-        update.repeat({"player_won": player.name})
-
         logger.info(f"{player.name} has finished at position {player.position}")
 
+        # Avisamos a todos los jugadores de que el jugador ha acabado.
+        update = GameUpdate(self)
+        update.repeat({"leaderboard": self._leaderboard()})
         return update
 
     def players_update(self) -> GameUpdate:

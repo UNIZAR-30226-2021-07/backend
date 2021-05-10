@@ -242,6 +242,9 @@ def join(game_code):
     session["user"] = User.query.get(session["user"].email)
     session["user"].sid = request.sid
 
+    # Unimos al usuario a la sesión de socketio
+    join_room(game_code)
+
     # Comprobar si es una reconexión y en ese caso indicarle que empiece
     # directamente.
     can_rejoin, initial_update = match.check_rejoin(session["user"])
@@ -256,9 +259,6 @@ def join(game_code):
         match.add_user(session["user"])
     except GameLogicException as e:
         return {"error": str(e)}
-
-    # Unimos al usuario a la sesión de socketio
-    join_room(game_code)
 
     if isinstance(match, PrivateMatch):
         # Si es una partida privada, informamos a todos los de la sala del nuevo

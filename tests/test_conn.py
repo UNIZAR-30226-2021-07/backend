@@ -241,6 +241,7 @@ class ConnTest(WsTestClient):
             # Reconexión
             client = self.client_reconnect(clients, client)
             clients[turn] = client
+            next_turn = (turn + 1) % len(clients)
 
             # Unión de nuevo a la partida
             self.clean_messages(clients)
@@ -264,7 +265,21 @@ class ConnTest(WsTestClient):
             # Comprobaciones simples
             self.check_connection_works(client, start=False)
 
-            turn = (turn + 1) % len(clients)
+            # Comprobación de que recibe mensajes de otros
+            self.clean_messages(clients)
+            callback_args = clients[next_turn].emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+            # Compara el mensaje propio con el del cliente que ha re-entrado
+            received = clients[next_turn].get_received()
+            _, expected = self.get_msg_in_received(received, "game_update", json=True)
+            received = clients[turn].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertEqual(args, expected)
+            # Restaura la pausa
+            callback_args = clients[next_turn].emit("pause_game", False, callback=True)
+            self.assertNotIn("error", callback_args)
+
+            turn = next_turn
 
     def test_reconnect_when_joining(self):
         """

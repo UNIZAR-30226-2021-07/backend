@@ -381,6 +381,12 @@ class Game:
 
         initial_turn = self._turn_number
         with self._turn_lock:
+            # Para el caso en el que la partida ha sido terminada externamente y
+            # el timer sigue llamando al callback.
+            if self.is_finished():
+                logger.info("Match finished externally, stopping timer")
+                return
+
             # El turno ha cambiado externamente al obtener el lock.
             if self._turn_number != initial_turn:
                 return

@@ -15,6 +15,7 @@ Desconexión por error o botón de reanudar más tarde pulsado:
 """
 
 import time
+from typing import Optional
 
 from gatovid.create_db import GENERIC_USERS_NAME
 from gatovid.util import get_logger
@@ -51,6 +52,24 @@ class ConnTest(WsTestClient):
 
         return turn
 
+    def turn_iter(
+        self, clients, num_turns: int, callback, initial_turn: Optional[int] = None
+    ) -> int:
+        """
+        Método para evitar boilerplate al iterar turnos de forma ordenada
+        """
+
+        turn = initial_turn
+        if turn is None:
+            starting_turn = self.get_current_turn_client(clients)
+            turn = clients.index(starting_turn)
+
+        for i in range(num_turns):
+            callback(turn, i, clients[turn])
+            turn = (turn + 1) % len(clients)
+
+        return turn
+
     def check_game_is_cancelled(self, client) -> None:
         received = client.get_received()
         _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
@@ -67,7 +86,7 @@ class ConnTest(WsTestClient):
             self.assertIn("error", callback_args)
 
         # Ya no se puede jugar
-        callback_args = client.emit("play_discard", True, callback=True)
+        callback_args = client.emit("play_discard", 0, callback=True)
         self.assertIn("error", callback_args)
 
         # Tampoco podrá volver a entrar a la partida
@@ -83,7 +102,7 @@ class ConnTest(WsTestClient):
         # Se pueden descartar cartas sin problemas
         if public or start:
             # En la primera iteración descarta
-            callback_args = client.emit("play_discard", True, callback=True)
+            callback_args = client.emit("play_discard", 0, callback=True)
             self.assertNotIn("error", callback_args)
 
         if public or not start:
@@ -146,47 +165,47 @@ class ConnTest(WsTestClient):
 
         # Iterando más de 3 turnos para asegurarse de que ninguno de ellos es
         # eliminado de la partida.
-        time.sleep(timeout * len(clients) * 4)
+        total_skips = len(clients) * 4
+        logger.info(f">> Skipping {total_skips} turns")
+        turn = self.active_wait_turns(clients, total_skips, timeout)
 
-        # Para saber el orden de los turnos
-        starting_turn = self.get_current_turn_client(clients)
-        turn = clients.index(starting_turn)
-
-        logger.info(">> Starting loop that should work")
-        for i in range(len(clients)):
-            client = clients[turn]
-
+        def turn_works(turn, i, client):
             # Descarta e intenta pausar, debería funcionar
             self.check_connection_works(client, start=True)
             # Pasa turno e intenta pausar
             self.check_connection_works(client, start=False)
 
-            turn = (turn + 1) % len(clients)
+        def turn_doesnt_work(turn, i, client):
+            # El último usuario en intentarlo no podrá porque se habrá borrado la
+            # partida.
+            if i == len(clients) - 1:
+                self.check_game_is_cancelled(client)
+                return
 
-        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
-        # partida.
-        for i in range(len(clients) - 1):
-            client = clients[turn]
-            next_turn = (turn + 1) % len(clients)
-            other_client = clients[next_turn]
-
+            self.clean_messages(clients)
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
-
             self.check_user_has_abandoned(client, code, can_pause=True)
 
             # Comprueba que los demás usuarios hayan recibido un mensaje con los
-            # jugadores una vez abandona.
-            args = self.get_game_update(other_client, last=True)
-            self.assertIsNotNone(args)
-            self.assertIn("players", args)
+            # jugadores una vez abandona (en caso de que la partida no se vaya a
+            # cancelar).
+            if i != len(clients) - 2:
+                next_turn = (turn + 1) % len(clients)
+                other_client = clients[next_turn]
 
-            turn = next_turn
+                print(f"Next: {next_turn}")
+                args = self.get_game_update(other_client)
+                self.assertIsNotNone(args)
+                self.assertIn("players", args)
 
-        # El último usuario en intentarlo no podrá porque se habrá borrado la
+        logger.info(">> Starting loop that should work")
+        turn = self.turn_iter(clients, len(clients), turn_works, initial_turn=turn)
+
+        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
         # partida.
-        last_client = clients[turn]
-        self.check_game_is_cancelled(last_client)
+        logger.info(">> Leaving match")
+        self.turn_iter(clients, len(clients), turn_doesnt_work, initial_turn=turn)
 
     def test_abandon_public(self):
         """
@@ -204,7 +223,7 @@ class ConnTest(WsTestClient):
             self.assertNotIn("error", callback_args)
 
             # Ya no se puede jugar
-            callback_args = client.emit("play_discard", True, callback=True)
+            callback_args = client.emit("play_discard", 0, callback=True)
             self.assertIn("error", callback_args)
 
             # Ya no se puede pausar

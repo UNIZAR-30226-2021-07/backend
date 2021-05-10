@@ -204,6 +204,13 @@ Desconexión por error o botón de reanudar más tarde pulsado:
   previo, y el cliente recibirá un :ref:`msg_start_game` seguido de un
   :ref:`msg_game_update` con el estado completo de la partida.
 
+.. warning::
+    Notar que una desconexión puede causar que se cancele una partida, en cuyo
+    caso se enviará un mensaje de :ref:`msg_game_cancelled` a todos los
+    participantes de esta. Es importante que el cliente salga de la partida
+    manualmente con ``leave`` una vez reciba dicho mensaje, o no podrá unirse
+    correctamente a otras partidas.
+
 Mensajes Websockets
 ###################
 

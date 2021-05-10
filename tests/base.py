@@ -96,8 +96,11 @@ class GatovidTestClient(BaseTestCase):
 
         return response
 
-    def empty_callback(*args, **kwargs):
-        pass
+    def empty_callback(self, *args, **kwargs):
+        """
+        Callback vacío que vale para cualquier variación de argumentos y no devuelve
+        nada.
+        """
 
     def auth_headers(self, token: str) -> Dict[str, str]:
         return {"Authorization": "Bearer " + token}

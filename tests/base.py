@@ -345,9 +345,11 @@ class WsTestClient(GatovidTestClient):
 
         return clients, code
 
-    def get_game_update(self, client) -> Dict:
+    def get_game_update(self, client, last: bool = False) -> Dict:
         received = client.get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
+        _, args = self.get_msg_in_received(
+            received, "game_update", json=True, last=last
+        )
         return args
 
     def discard_ok(self, client, position: int = 0) -> Dict:

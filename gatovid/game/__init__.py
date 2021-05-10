@@ -543,7 +543,7 @@ class Game:
         update.merge_with(self.players_update())
         return update
 
-    def player_finished(self, player: Player) -> None:
+    def player_finished(self, player: Player) -> GameUpdate:
         """
         Finaliza la partida para un jugador en concreto.
         """
@@ -551,10 +551,16 @@ class Game:
         if player.has_finished():
             raise GameLogicException("El jugador ya ha terminado")
 
-        self._players_finished + 1
+        self._players_finished += 1
         player.position = self._players_finished
 
+        # Avisamos a todos los jugadores de que el jugador ha acabado.
+        update = GameUpdate(self)
+        update.repeat({"player_won": player.name})
+
         logger.info(f"{player.name} has finished at position {player.position}")
+
+        return update
 
     def players_update(self) -> GameUpdate:
         update = GameUpdate(self)

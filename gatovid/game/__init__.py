@@ -567,16 +567,11 @@ class Game:
 
         players = []
         for player in self.players:
-            data = {}
+            data = {"name": player.name}
 
             if player.is_ai:
-                data = {
-                    "name": f"[BOT-{self._bots_num:02}]",
-                    "picture": BOT_PICTURE_ID,
-                    "is_ai": True,
-                }
-            else:
-                data = {"name": player.name}
+                data["picture"] = BOT_PICTURE_ID
+                data["is_ai"] = True
 
             players.append(data)
 

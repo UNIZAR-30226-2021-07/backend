@@ -444,6 +444,7 @@ class WsTestClient(GatovidTestClient):
         self.assertNotIn("error", args)
 
         from gatovid.api.game.match import MM
+
         game = MM.get_match(code)._game
 
         turn_name = args["current_turn"]

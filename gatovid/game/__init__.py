@@ -641,6 +641,6 @@ class Game:
         # El jugador que no ha acabado tendrá la última posición
         for player in self.players:
             if player.position is None:
-                player.position = self._players_finished+1
+                player.position = self._players_finished + 1
 
         return self.finish_update()

@@ -3,14 +3,12 @@ Tests para la lógica del juego
 """
 
 import time
-import json
-
-from gatovid.create_db import GENERIC_USERS_NAME
-from gatovid.util import get_logger
 
 from gatovid.api.game.match import MM
-from gatovid.game import Body, Card
+from gatovid.create_db import GENERIC_USERS_NAME
+from gatovid.game import Body
 from gatovid.game.cards import Color, Organ
+from gatovid.util import get_logger
 
 from .base import WsTestClient
 
@@ -356,12 +354,12 @@ class GameTest(WsTestClient):
         acabado.
         """
         TOTAL_CARDS = 68
-        
+
         # Generamos una baraja custom antes de que empiece la partida y se
         # repartan las cartas. Todas las cartas serán órganos para solo permitir
         # ganar la partida.
         custom_deck = []
-        for i in range(int(TOTAL_CARDS/4)):
+        for i in range(int(TOTAL_CARDS / 4)):
             custom_deck.append(Organ(color=Color.Red))
             custom_deck.append(Organ(color=Color.Green))
             custom_deck.append(Organ(color=Color.Blue))
@@ -457,7 +455,7 @@ class GameTest(WsTestClient):
                         if player.name not in players_finished:
                             players_finished.append(player.name)
                     for (pos, player) in enumerate(players_finished):
-                        pos = pos+1
+                        pos = pos + 1
                         expected_leaderboard[player] = {
                             "position": pos,
                             "coins": 10 * (6 - pos),
@@ -465,4 +463,3 @@ class GameTest(WsTestClient):
 
                     self.assertEqual(args["leaderboard"], expected_leaderboard)
                     break
-                    

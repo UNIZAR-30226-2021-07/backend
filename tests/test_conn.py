@@ -134,11 +134,12 @@ class ConnTest(WsTestClient):
         logger.info(f">> Skipping {total_skips} turns")
         turn = self.active_wait_turns(clients, total_skips, timeout)
 
-        # En la siguiente iteración los usuarios son eliminados
-        logger.info(">> Starting player removal loop")
-        for i in range(len(clients) - 1):
-            client = clients[turn]
-            self.wait_turn_timeout()
+        def turn_after_kicked(turn, i, client):
+            # El último usuario en intentarlo no podrá porque se habrá borrado
+            # la partida.
+            if i == len(clients) - 1:
+                self.check_game_is_cancelled(client)
+                return
 
             self.check_user_has_abandoned(client, code, can_pause=False)
 
@@ -146,13 +147,12 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
 
-            # Se continúa con el siguiente usuario a ser kickeado
-            turn = (turn + 1) % len(clients)
+            self.wait_turn_timeout()
 
-        # El último usuario en intentarlo no podrá porque se habrá borrado la
-        # partida.
-        last_client = clients[turn]
-        self.check_game_is_cancelled(last_client)
+        # En la siguiente iteración los usuarios son eliminados
+        logger.info(">> Starting player removal loop")
+        self.wait_turn_timeout()
+        self.turn_iter(clients, len(clients), turn_after_kicked, initial_turn=turn)
 
     def test_abandon_private(self):
         """

@@ -504,6 +504,10 @@ class Game:
 
         logger.info(f"Player {player_name} is being removed")
 
+        if self._paused and self._paused_by == player_name:
+            pause_update = self.set_paused(False, player_name, self.empty_callback)
+            update.merge_with(pause_update)
+
         if self._enabled_ai:
             player.is_ai = True
             self._bots_num += 1

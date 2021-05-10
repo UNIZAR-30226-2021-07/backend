@@ -422,3 +422,6 @@ class WsTestClient(GatovidTestClient):
 
     def restore_default_deck(self):
         gatovid.game.DECK = DEFAULT_DECK
+
+    def empty_callback(*args, **kwargs):
+        pass

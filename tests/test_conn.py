@@ -16,6 +16,7 @@ Desconexión por error o botón de reanudar más tarde pulsado:
 
 import time
 
+from gatovid.create_db import GENERIC_USERS_NAME
 from gatovid.util import get_logger
 
 from .base import WsTestClient
@@ -312,3 +313,28 @@ class ConnTest(WsTestClient):
             code = args["code"]
             callback_args = client.emit("join", code, callback=True)
             self.assertNotIn("error", callback_args)
+
+    def leave_pause(self):
+        """
+        Comprueba el caso en el que si el usuario que ha pausado la partida
+        abandona, se des-pausa la partida.
+        """
+
+        self.set_turn_timeout(0.5)
+        clients, code = self.create_game()
+        self.clean_messages(clients)
+
+        # Un usuario pausa y los demás reciben el mensaje
+        callback_args = clients[0].emit("pause_game", True, callback=True)
+        self.assertNotIn("error", callback_args)
+        args = self.get_game_update(clients[1])
+        self.assertEqual(
+            args, {"paused": True, "paused_by": GENERIC_USERS_NAME.format(0)}
+        )
+
+        # Ahora abandona la partida y debería tenerse otro mensaje
+        callback_args = clients[0].emit("leave", callback=True)
+        self.assertNotIn("error", callback_args)
+        args = self.get_game_update(clients[1])
+        self.assertEqual(args.get("paused"), False)
+        self.assertEqual(args.get("paused_by"), GENERIC_USERS_NAME.format(0))

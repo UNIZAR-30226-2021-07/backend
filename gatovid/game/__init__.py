@@ -468,6 +468,9 @@ class Game:
         N = len(self.players)
 
         for player in self.players:
+            if player.position is None:
+                player.position = self._players_finished + 1
+
             leaderboard[player.name] = {
                 "position": player.position,
                 "coins": 10 * (N - player.position),
@@ -637,10 +640,5 @@ class Game:
             self._turn_timer.cancel()
         if self._paused_timer is not None:
             self._paused_timer.cancel()
-
-        # El jugador que no ha acabado tendrá la última posición
-        for player in self.players:
-            if player.position is None:
-                player.position = self._players_finished + 1
 
         return self.finish_update()

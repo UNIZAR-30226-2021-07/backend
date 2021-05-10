@@ -7,6 +7,7 @@ import time
 from gatovid.create_db import GENERIC_USERS_NAME
 from gatovid.util import get_logger
 
+from gatovid.api.game.match import MM
 from gatovid.game import Body, Card
 from gatovid.game.cards import Color, Organ
 
@@ -294,7 +295,6 @@ class GameTest(WsTestClient):
 
         # Se tiene que acceder a la partida directamente para tener la mano del
         # jugador actual.
-        from gatovid.api.game.match import MM
 
         match = MM.get_match(code)
         game = match._game
@@ -348,3 +348,107 @@ class GameTest(WsTestClient):
         _, args = self.get_msg_in_received(response, "game_update", json=True)
         self.assertIn("player_won", args)
         self.assertEqual(args["player_won"], turn_player.name)
+
+    def test_player_leaderboard(self):
+        """
+        Se comprueba la recepción del leaderboard cuando todos los jugadores han
+        acabado.
+        """
+        TOTAL_CARDS = 68
+        
+        # Generamos una baraja custom antes de que empiece la partida y se
+        # repartan las cartas. Todas las cartas serán órganos para solo permitir
+        # ganar la partida.
+        custom_deck = []
+        for i in range(int(TOTAL_CARDS/4)):
+            custom_deck.append(Organ(color=Color.Red))
+            custom_deck.append(Organ(color=Color.Green))
+            custom_deck.append(Organ(color=Color.Blue))
+            custom_deck.append(Organ(color=Color.Yellow))
+
+        self.set_custom_deck(custom_deck)
+
+        def try_use(slot, pile_cond, search_in, target) -> bool:
+            pile_slot = None
+
+            for (p_slot, pile) in enumerate(player.body.piles):
+                if pile_cond(pile):
+                    pile_slot = p_slot
+                    break
+
+            if pile_slot is not None:
+                callback_args = client.emit(
+                    "play_card",
+                    {
+                        "slot": slot,
+                        "organ_pile": pile_slot,
+                        "target": target,
+                    },
+                    callback=True,
+                )
+                self.assertNotIn("error", callback_args)
+
+            return pile_slot is not None
+
+        clients, code = self.create_game()
+        game = MM.get_match(code)._game
+        game._turn = 0
+
+        # Ignoramos todos los mensajes anteriores
+        for client in clients:
+            _ = client.get_received()
+
+        clients_order = list(
+            map(lambda p: self.player_names.index(p.name), game.players)
+        )
+
+        players_finished = []
+
+        for i in range(100):
+            # Evitamos problemas con los saltos de turno
+            p = game._turn
+            which_client = clients_order[p]
+            client = clients[which_client]
+            player = game.players[p]
+
+            # Tratamos de colocar alguno de los órganos
+            could_place = False
+            for (slot, organ) in enumerate(player.hand):
+                if player.body.organ_unique(player.hand[slot]):
+                    if try_use(
+                        slot=slot,
+                        search_in=player.body.piles,
+                        pile_cond=lambda p: p.is_empty(),
+                        target=player.name,
+                    ):
+                        could_place = True
+                        break
+
+            # Si no hemos podido colocar un órgano, descartamos toda la mano
+            if not could_place:
+                # Descartamos todas las cartas
+                for i in reversed(range(3)):
+                    callback_args = client.emit("play_discard", i, callback=True)
+                    self.assertNotIn("error", callback_args)
+
+                callback_args = client.emit("play_pass", callback=True)
+                self.assertNotIn("error", callback_args)
+
+            # Obtenemos el game_update
+            received = clients[0].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+
+            if player.body.is_healthy():
+                # Si ha completado un cuerpo sano, deberíamos recibir el
+                # "player_won".
+                players_finished.append(player.name)
+                self.assertIn("player_won", args)
+                self.assertEqual(args["player_won"], player.name)
+
+                if players_finished == 6:
+                    self.assertIn("finished", args)
+                    self.assertIn("leaderboard", args)
+                    self.assertIn("playtime_mins", args)
+
+                    self.assertEqual(args["finished"], True)
+                    

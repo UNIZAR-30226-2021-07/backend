@@ -4,7 +4,13 @@ from flask import request, session
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_socketio import emit, join_room, leave_room
 
-from gatovid.api.game.match import MAX_MATCH_USERS, MM, GameLogicException, PrivateMatch
+from gatovid.api.game.match import (
+    MAX_MATCH_USERS,
+    MM,
+    GameLogicException,
+    PrivateMatch,
+    PublicMatch,
+)
 from gatovid.exts import socket
 from gatovid.game.actions import Discard, Pass, PlayCard
 from gatovid.models import User
@@ -70,6 +76,21 @@ def connect():
     return True
 
 
+def remove_from_public():
+    code = session.get("game")
+    if code is None:
+        return
+
+    match = MM.get_match(code)
+    if match is None:
+        return
+
+    if not isinstance(match, PublicMatch):
+        return
+
+    leave()
+
+
 @socket.on("disconnect")
 def disconnect():
     # La sesión del usuario se limpia al reconectarse, aunque existen casos que
@@ -80,9 +101,9 @@ def disconnect():
     if session["user"] in MM.users_waiting:
         MM.stop_waiting(session["user"])
 
-    # NOTE: si el usuario está metido en una partida no se hará nada, y se
-    # cuenta como una desconexión temporal. Si es una pública ya se le eliminará
-    # automáticamente.
+    # NOTE: si el usuario está en una partida privada se cuenta como una
+    # desconexión temporal y se podrá volver a unir.
+    remove_from_public()
 
 
 @socket.on("search_game")
@@ -221,6 +242,9 @@ def join(game_code):
     session["user"] = User.query.get(session["user"].email)
     session["user"].sid = request.sid
 
+    # Unimos al usuario a la sesión de socketio
+    join_room(game_code)
+
     # Comprobar si es una reconexión y en ese caso indicarle que empiece
     # directamente.
     can_rejoin, initial_update = match.check_rejoin(session["user"])
@@ -235,9 +259,6 @@ def join(game_code):
         match.add_user(session["user"])
     except GameLogicException as e:
         return {"error": str(e)}
-
-    # Unimos al usuario a la sesión de socketio
-    join_room(game_code)
 
     if isinstance(match, PrivateMatch):
         # Si es una partida privada, informamos a todos los de la sala del nuevo

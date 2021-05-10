@@ -25,32 +25,30 @@ logger = get_logger(__name__)
 
 
 class ConnTest(WsTestClient):
-    def abandon_and_check(self, clients, code: str, can_pause: bool) -> None:
+    def check_game_is_cancelled(self, client) -> None:
+        received = client.get_received()
+        _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
+        self.assertIsNotNone(args)
+
+    def check_user_has_abandoned(self, client, code: str, can_pause: bool) -> None:
         """
-        Método genérico para pruebas en las que se abandona la partida de forma
-        manual y se comprueba que el comportamiento es el esperado.
+        El cliente ha sido eliminado de la partida y por tanto no podrá
+        jugar ya; la pausa no funcionará, por ejemplo.
         """
 
-        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
-        # partida.
-        for client in clients:
-            callback_args = client.emit("leave", callback=True)
-            self.assertNotIn("error", callback_args)
-
-            # Ya no se puede jugar
-            callback_args = client.emit("play_discard", True, callback=True)
+        if can_pause:
+            callback_args = client.emit("pause_game", True, callback=True)
             self.assertIn("error", callback_args)
 
-            if can_pause:
-                # Ya no se puede pausar
-                callback_args = client.emit("pause_game", True, callback=True)
-                self.assertIn("error", callback_args)
+        # Ya no se puede jugar
+        callback_args = client.emit("play_discard", True, callback=True)
+        self.assertIn("error", callback_args)
 
-            # Ni volverse a unir a la partida
-            callback_args = client.emit("join", code, callback=True)
-            self.assertIn("error", callback_args)
+        # Tampoco podrá volver a entrar a la partida
+        callback_args = client.emit("join", code, callback=True)
+        self.assertIn("error", callback_args)
 
-    def check_connection_works(self, client, start: bool, public: bool = False):
+    def check_connection_works(self, client, start: bool, public: bool = False) -> None:
         """
         Test básico de funcionamiento. Se puede dividir en dos pasos con `start`
         y si se indica `public` se hará todo a la vez y sin pausar.
@@ -98,33 +96,23 @@ class ConnTest(WsTestClient):
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")
-        for i in range(len(clients)):
+        for i in range(len(clients) - 1):
             client = clients[turn]
             self.wait_turn_timeout()
 
-            # El cliente ha sido eliminado de la partida y por tanto no podrá
-            # jugar ya; la pausa no funcionará, por ejemplo.
-            callback_args = client.emit("pause_game", True, callback=True)
-            self.assertIn("error", callback_args)
+            self.check_user_has_abandoned(client, code, can_pause=False)
 
-            # Ya no se puede jugar
-            callback_args = client.emit("play_discard", True, callback=True)
-            self.assertIn("error", callback_args)
-
-            # Tampoco podrá volver a entrar a la partida
-            callback_args = client.emit("join", code, callback=True)
-            self.assertIn("error", callback_args)
-
-            # Si se cancela la partida no hace falta hacer más, pero en caso
-            # contrario el protocolo establece que tendrán que salir ellos
-            # manualmente.
-            received = clients[turn].get_received()
-            _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
+            # Todos salen de la partida para limpiar la sesión.
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
 
             # Se continúa con el siguiente usuario a ser kickeado
             turn = (turn + 1) % len(clients)
+
+        # El último usuario en intentarlo no podrá porque se habrá borrado la
+        # partida.
+        last_client = clients[turn]
+        self.check_game_is_cancelled(last_client)
 
     def test_abandon_private(self):
         """
@@ -147,21 +135,29 @@ class ConnTest(WsTestClient):
         for i in range(len(clients)):
             client = clients[turn]
 
-            # Se pueden descartar cartas sin problemas
-            callback_args = client.emit("play_discard", True, callback=True)
-            self.assertNotIn("error", callback_args)
-            callback_args = client.emit("play_pass", callback=True)
-            self.assertNotIn("error", callback_args)
-
-            # Se puede pausar y reanudar sin problemas
-            callback_args = client.emit("pause_game", True, callback=True)
-            self.assertNotIn("error", callback_args)
-            callback_args = client.emit("pause_game", False, callback=True)
-            self.assertNotIn("error", callback_args)
+            # Descarta e intenta pausar, debería funcionar
+            self.check_connection_works(client, start=True)
+            # Pasa turno e intenta pausar
+            self.check_connection_works(client, start=False)
 
             turn = (turn + 1) % len(clients)
 
-        self.abandon_and_check(clients, code, can_pause=True)
+        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
+        # partida.
+        for i in range(len(clients) - 1):
+            client = clients[turn]
+
+            callback_args = client.emit("leave", callback=True)
+            self.assertNotIn("error", callback_args)
+
+            self.check_user_has_abandoned(client, code, can_pause=True)
+
+            turn = (turn + 1) % len(clients)
+
+        # El último usuario en intentarlo no podrá porque se habrá borrado la
+        # partida.
+        last_client = clients[turn]
+        self.check_game_is_cancelled(last_client)
 
     def test_abandon_public(self):
         """
@@ -171,7 +167,24 @@ class ConnTest(WsTestClient):
         self.set_matchmaking_time(0.5)
         self.set_turn_timeout(0.1)
         clients, code = self.create_public_game()
-        self.abandon_and_check(clients, code, can_pause=False)
+
+        # Ahora se abandona manualmente y ya no se podrá hacer nada en la
+        # partida.
+        for client in clients:
+            callback_args = client.emit("leave", callback=True)
+            self.assertNotIn("error", callback_args)
+
+            # Ya no se puede jugar
+            callback_args = client.emit("play_discard", True, callback=True)
+            self.assertIn("error", callback_args)
+
+            # Ya no se puede pausar
+            callback_args = client.emit("pause_game", True, callback=True)
+            self.assertIn("error", callback_args)
+
+            # Ni volverse a unir a la partida
+            callback_args = client.emit("join", code, callback=True)
+            self.assertIn("error", callback_args)
 
     def test_disconnect_public(self):
         """
@@ -185,7 +198,7 @@ class ConnTest(WsTestClient):
         starting_turn = self.get_current_turn_client(clients)
         turn = clients.index(starting_turn)
 
-        for i in range(len(clients)):
+        for i in range(len(clients) - 1):
             logger.info(f">> Trying as usual for turn {turn}")
             # Antes de la desconexión funciona correctamente
             client = clients[turn]
@@ -198,6 +211,11 @@ class ConnTest(WsTestClient):
             self.assertIn("error", callback_args)
 
             turn = (turn + 1) % len(clients)
+
+        # El último usuario en intentarlo no podrá porque se habrá borrado la
+        # partida.
+        last_client = clients[turn]
+        self.check_game_is_cancelled(last_client)
 
     def test_disconnect_private(self):
         """
@@ -223,6 +241,7 @@ class ConnTest(WsTestClient):
             # Reconexión
             client = self.client_reconnect(clients, client)
             clients[turn] = client
+            next_turn = (turn + 1) % len(clients)
 
             # Unión de nuevo a la partida
             self.clean_messages(clients)
@@ -246,7 +265,21 @@ class ConnTest(WsTestClient):
             # Comprobaciones simples
             self.check_connection_works(client, start=False)
 
-            turn = (turn + 1) % len(clients)
+            # Comprobación de que recibe mensajes de otros
+            self.clean_messages(clients)
+            callback_args = clients[next_turn].emit("pause_game", True, callback=True)
+            self.assertNotIn("error", callback_args)
+            # Compara el mensaje propio con el del cliente que ha re-entrado
+            received = clients[next_turn].get_received()
+            _, expected = self.get_msg_in_received(received, "game_update", json=True)
+            received = clients[turn].get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertEqual(args, expected)
+            # Restaura la pausa
+            callback_args = clients[next_turn].emit("pause_game", False, callback=True)
+            self.assertNotIn("error", callback_args)
+
+            turn = next_turn
 
     def test_reconnect_when_joining(self):
         """

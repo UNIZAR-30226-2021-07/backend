@@ -186,14 +186,30 @@ El botón de abandonar es pulsado:
 
 - **Pública**: el jugador es eliminado y no se puede volver; el jugador es
   reemplazado por la IA.
+
+  El cliente tendrá que llamar a ``leave`` manualmente para ello.
 - **Privada**: el jugador es eliminado y no se puede volver; las cartas del
   jugador van a la baraja.
 
+  El cliente tendrá que llamar a ``leave`` manualmente para ello.
+
 Desconexión por error o botón de reanudar más tarde pulsado:
 
-- **Pública**: no se puede volver a jugar.
+- **Pública**: no se puede volver a jugar, se abandonará la partida
+  automáticamente.
 - **Privada**: se puede volver a la partida y no habrá pasado nada porque en
   partidas privadas no se eliminan jugadores AFK.
+
+  Para volver únicamente hace falta llamar a ``join`` con el código de partida
+  previo, y el cliente recibirá un :ref:`msg_start_game` seguido de un
+  :ref:`msg_game_update` con el estado completo de la partida.
+
+.. warning::
+    Notar que una desconexión puede causar que se cancele una partida, en cuyo
+    caso se enviará un mensaje de :ref:`msg_game_cancelled` a todos los
+    participantes de esta. Es importante que el cliente salga de la partida
+    manualmente con ``leave`` una vez reciba dicho mensaje, o no podrá unirse
+    correctamente a otras partidas.
 
 Mensajes Websockets
 ###################

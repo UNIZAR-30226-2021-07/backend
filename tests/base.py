@@ -98,8 +98,8 @@ class GatovidTestClient(BaseTestCase):
 
     def empty_callback(self, *args, **kwargs):
         """
-        Callback vacío que vale para cualquier variación de argumentos y no devuelve
-        nada.
+        Callback vacío que vale para cualquier variación de argumentos y no
+        devuelve nada.
         """
 
     def auth_headers(self, token: str) -> Dict[str, str]:

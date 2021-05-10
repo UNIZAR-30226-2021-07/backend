@@ -332,10 +332,15 @@ class Game:
         No se le pasará el turno a un jugador que ya ha terminado la partida.
         """
 
-        while True:
+        has_changed = False
+        for i in range(len(self.players)):
             self._turn = (self._turn + 1) % len(self.players)
+
             if not self.turn_player().has_finished():
                 break
+
+        if not has_changed:
+            raise Exception("Logic error: no users left to advance turn")
 
         logger.info(f"{self.turn_player().name}'s turn has started")
 

@@ -77,9 +77,6 @@ class SimpleCard(Card):
 class Organ(SimpleCard):
     """
     Coloca un órgano para un jugador.
-
-    TODO: es en este punto en el que se decide si un usuario ha ganado (cuando
-    tiene uno de cada). Cuando hayan más tests hechos, llamar a player_finished.
     """
 
     # Usado para la codificación JSON
@@ -98,7 +95,15 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        return self.piles_update(game)
+        update = self.piles_update(game)
+
+        # Comprobamos si ha ganado
+        if action.caller.body.is_healthy():
+            # Si tiene un cuerpo completo sano, se considera que ha ganado.
+            finished_update = game.player_finished(action.caller)
+            update.merge_with(finished_update)
+
+        return update
 
 
 @dataclass

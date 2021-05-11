@@ -208,8 +208,8 @@ class Match:
         self.send_update(update)
 
         if self._game.is_finished():
-            for user, status in zip(self._users, update):
-                self.update_stats(user, status)
+            for user in self.users:
+                self.update_stats(user, update.get(user.name))
 
     def end(self, cancel: bool = False) -> None:
         """

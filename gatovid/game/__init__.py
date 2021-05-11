@@ -235,10 +235,10 @@ class Game:
                 logger.info(f"Error running action: {e}")
                 raise
 
-            # TODO: revisar fin de partida
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
                 update.merge_with(finish_update)
+                return update  # No seguimos con la ejecución
 
             if not self.discarding and not self._finished:
                 end_update = self._end_turn()
@@ -333,10 +333,16 @@ class Game:
         No se le pasará el turno a un jugador que ya ha terminado la partida.
         """
 
-        while True:
+        has_changed = False
+        for i in range(len(self.players)):
             self._turn = (self._turn + 1) % len(self.players)
+
             if not self.turn_player().has_finished():
+                has_changed = True
                 break
+
+        if not has_changed:
+            raise Exception("Logic error: no users left to advance turn")
 
         logger.info(f"{self.turn_player().name}'s turn has started")
 
@@ -475,14 +481,11 @@ class Game:
         N = len(self.players)
 
         for player in self.players:
-            # No entrará en el top si si ha abandonado la partida y o si es el
-            # último jugador.
-            if not player.has_finished() or player.kicked:
-                continue
+            position = player.position or (self._players_finished + 1)
 
             leaderboard[player.name] = {
-                "position": player.position,
-                "coins": 10 * (N - player.position),
+                "position": position,
+                "coins": 10 * (N - position),
             }
 
         return leaderboard
@@ -549,7 +552,7 @@ class Game:
         update.merge_with(self.players_update())
         return update
 
-    def player_finished(self, player: Player) -> None:
+    def player_finished(self, player: Player) -> GameUpdate:
         """
         Finaliza la partida para un jugador en concreto.
         """
@@ -557,10 +560,15 @@ class Game:
         if player.has_finished():
             raise GameLogicException("El jugador ya ha terminado")
 
-        self._players_finished + 1
+        self._players_finished += 1
         player.position = self._players_finished
 
         logger.info(f"{player.name} has finished at position {player.position}")
+
+        # Avisamos a todos los jugadores de que el jugador ha acabado.
+        update = GameUpdate(self)
+        update.repeat({"leaderboard": self._leaderboard()})
+        return update
 
     def players_update(self) -> GameUpdate:
         update = GameUpdate(self)

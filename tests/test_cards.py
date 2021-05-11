@@ -105,48 +105,12 @@ class CardsTest(WsTestClient):
         usa la carta). El cuerpo inicial del jugador donde se va a colocar la
         carta será `target_body`.
         """
-        clients, code = self.create_game()
-
-        # Primero se tendrá el game_update inicial
-        received = clients[0].get_received()
-        _, args = self.get_msg_in_received(received, "game_update", json=True)
-        self.assertNotIn("error", args)
-
-        game = MM.get_match(code)._game
-
-        turn_name = args["current_turn"]
-        turn_client = clients[self.player_names.index(args["current_turn"])]
-        turn_player = next(filter(lambda p: p.name == turn_name, game.players))
-        if place_in_self:
-            other_player = turn_player
-        else:
-            other_player = next(filter(lambda p: p.name != turn_name, game.players))
-
-        turn_player.hand[0] = card
-        other_player.body = target_body
-
-        # Ignoramos los eventos anteriores
-        _ = turn_client.get_received()
-
-        # Intentamos colocar la carta en el jugador
-        callback_args = turn_client.emit(
-            "play_card",
-            {
-                "slot": 0,
-                "target": other_player.name,
-                "organ_pile": 0,
-            },
-            callback=True,
-        )
+        callback_args, received, _ = self.place_card(target_body, card, place_in_self)
         if can_place:
             self.assertNotIn("error", callback_args)
-        else:
-            self.assertIn("error", callback_args)
-
-        received = turn_client.get_received()
-        if can_place:
             self.assertNotEqual(received, [])
         else:
+            self.assertIn("error", callback_args)
             # No recibimos el game_update
             self.assertEqual(received, [])
 

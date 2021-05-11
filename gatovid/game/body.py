@@ -196,3 +196,10 @@ class Body:
                 return False
 
         return True
+
+    def is_healthy(self) -> bool:
+        """
+        Devuelve True si el cuerpo tiene 4 órganos sanos.
+        """
+
+        return False not in map(lambda p: p.is_healthy(), self.piles)

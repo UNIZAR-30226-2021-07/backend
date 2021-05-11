@@ -365,6 +365,11 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         // Información de los jugadores, enviada al inicio de la partida o
         // cuando alguien abandone (y posiblemente sea reemplazado por la IA).
         //
+        // Notar que el nombre de usuario no cambiará durante la partida. En el
+        // caso de que un usuario sea reemplazado por la IA el cliente le podría
+        // mostrar el nombre al usuario añadiendo "[BOT]" al final, o usar un
+        // icono indicativo, pero esto toma lugar en el frontend.
+        //
         // IMPORTANTE: es posible que el mismo usuario que recibe el mensaje no
         // aparezca en esta lista, lo que significa que ha sido eliminado de la
         // partida por estar AFK o porque ha pulsado el botón de abandono. En
@@ -407,7 +412,7 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
                         // ...
                     ]
                 },
-                    // ....
+                // ....
             ],
             // ...
         },

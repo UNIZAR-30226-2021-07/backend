@@ -71,6 +71,17 @@ class ConnTest(WsTestClient):
 
         return turn
 
+    def iter_remaining(self, clients, i, turn):
+        """
+        Método para iterar los usuarios que aún no han sido kickeados de la
+        partida.
+        """
+
+        clients_left = len(clients) - (i + 1)
+        for remaining in range(clients_left):
+            remaining_client = (turn + remaining + 1) % len(clients)
+            yield clients[remaining_client]
+
     def check_game_is_cancelled(self, client) -> None:
         received = client.get_received()
         _, args = self.get_msg_in_received(received, "game_cancelled", json=True)
@@ -135,23 +146,16 @@ class ConnTest(WsTestClient):
         logger.info(f">> Skipping {total_skips} turns")
         turn = self.active_wait_turns(clients, total_skips, timeout)
 
-        def iter_remaining(clients, i, turn):
-            clients_left = len(clients) - (i + 1)
-            for remaining in range(clients_left):
-                remaining_client = (turn + remaining + 1) % len(clients)
-                yield clients[remaining_client]
-
         def turn_after_kicked(turn, i, client):
             # Los últimos usuarios en intentarlo no podrán porque se habrá
             # borrado la partida.
             if i >= len(clients) - 2:
-                print(i)
                 self.check_game_is_cancelled(client)
                 return
 
             # El resto de clientes que queden en la partida habrán recibido un
             # mensaje indicando que ha sido reemplazado por la IA.
-            for remaining in iter_remaining(clients, i, turn):
+            for remaining in self.iter_remaining(clients, i, turn):
                 args = self.get_game_update(remaining)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)
@@ -203,9 +207,10 @@ class ConnTest(WsTestClient):
             self.check_connection_works(client, start=False)
 
         def turn_doesnt_work(turn, i, client):
-            # El último usuario en intentarlo no podrá porque se habrá borrado la
-            # partida.
             if i == len(clients) - 1:
+                # El último usuario,  habrá recibido un game_cancelled para
+                # indicarle que ha terminado la partida.
+                logger.info("Checking that game was cancelled")
                 self.check_game_is_cancelled(client)
                 return
 
@@ -214,16 +219,27 @@ class ConnTest(WsTestClient):
             self.assertNotIn("error", callback_args)
             self.check_user_has_abandoned(client, code, can_pause=True)
 
+            # El último usuario en abandonar que ha causado la cancelación no
+            # habrá recibido el mensaje de game_cancelled porque ya ha hecho
+            # leave manualmente.
+            if i == len(clients) - 2:
+                logger.info("Last player left before cancel")
+                return
+
             # Comprueba que los demás usuarios hayan recibido un mensaje con los
             # jugadores una vez abandona (en caso de que la partida no se vaya a
             # cancelar).
-            if i != len(clients) - 2:
-                next_turn = (turn + 1) % len(clients)
-                other_client = clients[next_turn]
-
-                args = self.get_game_update(other_client)
+            for remaining in self.iter_remaining(clients, i, turn):
+                args = self.get_game_update(remaining)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)
+
+                # Comprobando que no aparece el usuario que ha abandonado.
+                kicked_name = GENERIC_USERS_NAME.format(turn)
+                kicked_player = list(
+                    filter(lambda d: d["name"] == kicked_name, args["players"])
+                )
+                self.assertEqual(len(kicked_player), 0)
 
         logger.info(">> Starting loop that should work")
         turn = self.turn_iter(clients, len(clients), turn_works, initial_turn=turn)

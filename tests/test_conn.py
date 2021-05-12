@@ -94,15 +94,26 @@ class ConnTest(WsTestClient):
 
         return turn
 
-    def iter_remaining(self, clients, i, turn):
+    def iter_remaining(
+        self, clients, i: int, turn: int, include_self: Optional[bool] = False
+    ):
         """
         Método para iterar los usuarios que aún no han sido kickeados de la
         partida.
+
+        Si `include_self` es verdadero, se iterará también el mismo cliente con
+        el turno.
         """
 
-        clients_left = len(clients) - (i + 1)
+        clients_left = len(clients) - i
+        if not include_self:
+            clients_left -= 1
+
         for remaining in range(clients_left):
-            remaining_client = (turn + remaining + 1) % len(clients)
+            remaining_client = (turn + remaining) % len(clients)
+            if not include_self:
+                remaining_client = (remaining_client + 1) % len(clients)
+
             yield clients[remaining_client]
 
     def check_game_is_cancelled(self, client) -> None:
@@ -201,15 +212,20 @@ class ConnTest(WsTestClient):
                 return
 
             logger.info(f">> Skipping turn {turn} in iteration {i}")
-            next_turn = (turn + 1) % len(clients)
-            next_client = clients[next_turn]
             _, args = self.active_wait_turns(
-                clients, 1, timeout, starting_turn=turn, receiver=next_client
+                clients, 1, timeout, starting_turn=turn, receiver=client
             )
+            # El último current_turn también incluye los `players`, por lo que
+            # se copia lo del bucle posterior para el mismo cliente.
+            self.assertIsNotNone(args)
+            self.assertIn("players", args)
+            kicked_name = GENERIC_USERS_NAME.format(turn)
+            self.check_replaced_by_ai(args, kicked_name)
 
-            # El resto de clientes que queden en la partida habrán recibido un
+            # Todos los clientes que queden en la partida habrán recibido un
             # mensaje indicando que ha sido reemplazado por la IA.
             for remaining in self.iter_remaining(clients, i, turn):
+                args = self.get_game_update(remaining)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)
 
@@ -270,6 +286,10 @@ class ConnTest(WsTestClient):
                 logger.info(">> Last player left before cancel")
                 return
 
+            # El que ha abandonado no habrá recibido un game_update.
+            args = self.get_game_update(client)
+            self.assertIsNone(args)
+
             # Comprueba que los demás usuarios hayan recibido un mensaje con los
             # jugadores una vez abandona (en caso de que la partida no se vaya a
             # cancelar).
@@ -318,6 +338,10 @@ class ConnTest(WsTestClient):
             if i == len(clients) - 2:
                 logger.info(">> Last player left before cancel")
                 return
+
+            # El que ha abandonado no habrá recibido un game_update.
+            args = self.get_game_update(client)
+            self.assertIsNone(args)
 
             # Comprueba que los demás usuarios hayan recibido un mensaje con los
             # jugadores una vez abandona (en caso de que la partida no se vaya a
@@ -403,12 +427,10 @@ class ConnTest(WsTestClient):
             self.assertIn("players", args)
             self.assertEqual(len(args["players"]), len(clients))
 
-            # NOTE: paused y paused_by no deberían salir en el full_update si la
+            # `paused` y `paused_by` no deberían salir en el full_update si la
             # partida no está pausada.
-            #
-            # self.assertIn("paused", args)
-            # self.assertEqual(args["paused"], False)
-            # self.assertNotIn("paused_by", args)
+            self.assertNotIn("paused", args)
+            self.assertNotIn("paused_by", args)
 
             self.assertIn("bodies", args)
             self.assertEqual(len(args["bodies"]), len(clients))

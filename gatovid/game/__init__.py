@@ -610,11 +610,10 @@ class Game:
     def pause_update(self) -> GameUpdate:
         update = GameUpdate(self)
 
-        # Solo se envía el campo `paused_by` si la partida está pausada (no
-        # estará vacío)
-        data = {"paused": self._paused}
-        if self._paused:
-            data["paused_by"] = self._paused_by
+        data = {
+            "paused": self._paused,
+            "paused_by": self._paused_by,
+        }
 
         update.repeat(data)
         return update
@@ -636,7 +635,8 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
-        update.merge_with(self.pause_update())
+        if self._paused: # Solo se envía si la partida está pausada
+            update.merge_with(self.pause_update())
         update.merge_with(self.players_update())
 
         return update

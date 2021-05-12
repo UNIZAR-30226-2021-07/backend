@@ -333,8 +333,6 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("join", code, callback=True)
             self.assertIn("error", callback_args)
 
-            turn = (turn + 1) % len(clients)
-
         self.turn_iter(clients, len(clients), turn_with_disconnect)
 
     def test_disconnect_private(self):

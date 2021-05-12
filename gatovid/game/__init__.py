@@ -635,7 +635,7 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
-        if self._paused: # Solo se envía si la partida está pausada
+        if self._paused:  # Solo se envía si la partida está pausada
             update.merge_with(self.pause_update())
         update.merge_with(self.players_update())
 

@@ -140,9 +140,7 @@ class ConnTest(WsTestClient):
         self.assertEqual(kicked_player[0].get("picture"), BOT_PICTURE_ID)
 
     def check_removed(self, args, name: str) -> None:
-        player = list(
-            filter(lambda d: d["name"] == name, args["players"])
-        )
+        player = list(filter(lambda d: d["name"] == name, args["players"]))
         self.assertEqual(len(player), 0)
 
     def test_kicked_public(self):

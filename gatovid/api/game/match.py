@@ -102,13 +102,15 @@ class Match:
             self.end(cancel=True)
             return
 
+        self.send_update(update)
+
         if kicked is not None:
             # Se elimina al usuario de la partida. No hace falta añadirlo al
             # game_update porque ya se incluye en el `update` de este callback.
+            # Importante hacer esto después del `send_update` para que se envíe
+            # al usuario reemplazado también.
             kicked_user = self.get_user(kicked)
             self.users.remove(kicked_user)
-
-        self.send_update(update)
 
     def start(self) -> None:
         """

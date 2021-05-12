@@ -212,15 +212,20 @@ class ConnTest(WsTestClient):
                 return
 
             logger.info(f">> Skipping turn {turn} in iteration {i}")
-            next_turn = (turn + 1) % len(clients)
-            next_client = clients[next_turn]
             _, args = self.active_wait_turns(
-                clients, 1, timeout, starting_turn=turn, receiver=next_client
+                clients, 1, timeout, starting_turn=turn, receiver=client
             )
+            # El último current_turn también incluye los `players`, por lo que
+            # se copia lo del bucle posterior para el mismo cliente.
+            self.assertIsNotNone(args)
+            self.assertIn("players", args)
+            kicked_name = GENERIC_USERS_NAME.format(turn)
+            self.check_replaced_by_ai(args, kicked_name)
 
             # Todos los clientes que queden en la partida habrán recibido un
             # mensaje indicando que ha sido reemplazado por la IA.
-            for remaining in self.iter_remaining(clients, i, turn, include_self=True):
+            for remaining in self.iter_remaining(clients, i, turn):
+                args = self.get_game_update(remaining)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)
 

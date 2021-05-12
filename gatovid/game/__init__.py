@@ -600,7 +600,7 @@ class Game:
         update = GameUpdate(self)
         update.repeat(
             {
-                "finished": True,
+                "finished": self._finished,
                 "leaderboard": self._leaderboard(),
                 "playtime_mins": self._playtime_mins(),
             }

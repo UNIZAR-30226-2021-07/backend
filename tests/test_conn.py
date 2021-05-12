@@ -393,13 +393,30 @@ class ConnTest(WsTestClient):
             _, args = self.get_msg_in_received(received, "start_game", json=True)
             self.assertIsNotNone(args)
             _, args = self.get_msg_in_received(received, "game_update", json=True)
+
+            # Comprueba todos los campos devueltos y que son los esperados.
             self.assertIsNotNone(args)
+
             self.assertIn("hand", args)
+            self.assertEqual(len(args["hand"]), 2)  # Se descartó al inicio
+
             self.assertIn("players", args)
+            self.assertEqual(len(args["players"]), len(clients))
+
             self.assertIn("paused", args)
+            self.assertEqual(args["paused"], False)
+            self.assertNotIn("paused_by", args)
+
             self.assertIn("bodies", args)
+            self.assertEqual(len(args["bodies"]), len(clients))
+
             self.assertIn("current_turn", args)
+            self.assertEqual(args["current_turn"], GENERIC_USERS_NAME.format(turn))
+
             self.assertIn("finished", args)
+            self.assertNotIn("leaderboard", args)
+            self.assertNotIn("playtime_mins", args)
+            self.assertEqual(args["finished"], False)
 
             # Comprobaciones simples
             self.check_connection_works(client, start=False)

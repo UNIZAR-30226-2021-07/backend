@@ -598,28 +598,35 @@ class Game:
 
     def finish_update(self) -> GameUpdate:
         update = GameUpdate(self)
-        update.repeat(
-            {
-                "finished": self._finished,
-                "leaderboard": self._leaderboard(),
-                "playtime_mins": self._playtime_mins(),
-            }
-        )
+
+        data = {"finished": self._finished}
+        if self._finished:
+            data["leaderboard"] = self._leaderboard()
+            data["playtime_mins"] = self._playtime_mins()
+
+        update.repeat(data)
         return update
 
     def pause_update(self) -> GameUpdate:
         update = GameUpdate(self)
-        update.repeat(
-            {
-                "paused": self._paused,
-                "paused_by": self._paused_by,
-            }
-        )
+
+        # Solo se envía el campo `paused_by` si la partida está pausada (no
+        # estará vacío)
+        data = {"paused": self._paused}
+        if self._paused:
+            data["paused_by"] = self._paused_by
+
+        update.repeat(data)
         return update
 
     def bodies_update(self) -> GameUpdate:
         update = GameUpdate(self)
-        update.add_for_each(lambda p: {"bodies": {p.name: p.body.piles}})
+
+        data = {"bodies": {}}
+        for player in self.players:
+            data["bodies"][player.name] = player.body.piles
+
+        update.repeat(data)
         return update
 
     def full_update(self) -> GameUpdate:

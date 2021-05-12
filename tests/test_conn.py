@@ -94,15 +94,26 @@ class ConnTest(WsTestClient):
 
         return turn
 
-    def iter_remaining(self, clients, i, turn):
+    def iter_remaining(
+        self, clients, i: int, turn: int, include_self: Optional[bool] = False
+    ):
         """
         Método para iterar los usuarios que aún no han sido kickeados de la
         partida.
+
+        Si `include_self` es verdadero, se iterará también el mismo cliente con
+        el turno.
         """
 
-        clients_left = len(clients) - (i + 1)
+        clients_left = len(clients) - i
+        if not include_self:
+            clients_left -= 1
+
         for remaining in range(clients_left):
-            remaining_client = (turn + remaining + 1) % len(clients)
+            remaining_client = (turn + remaining) % len(clients)
+            if not include_self:
+                remaining_client = (remaining_client + 1) % len(clients)
+
             yield clients[remaining_client]
 
     def check_game_is_cancelled(self, client) -> None:
@@ -207,9 +218,9 @@ class ConnTest(WsTestClient):
                 clients, 1, timeout, starting_turn=turn, receiver=next_client
             )
 
-            # El resto de clientes que queden en la partida habrán recibido un
+            # Todos los clientes que queden en la partida habrán recibido un
             # mensaje indicando que ha sido reemplazado por la IA.
-            for remaining in self.iter_remaining(clients, i, turn):
+            for remaining in self.iter_remaining(clients, i, turn, include_self=True):
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)
 
@@ -319,10 +330,10 @@ class ConnTest(WsTestClient):
                 logger.info(">> Last player left before cancel")
                 return
 
-            # Comprueba que los demás usuarios hayan recibido un mensaje con los
+            # Comprueba que todos los usuarios hayan recibido un mensaje con los
             # jugadores una vez abandona (en caso de que la partida no se vaya a
             # cancelar).
-            for remaining in self.iter_remaining(clients, i, turn):
+            for remaining in self.iter_remaining(clients, i, turn, include_self=True):
                 args = self.get_game_update(remaining)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)

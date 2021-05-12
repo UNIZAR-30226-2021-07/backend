@@ -511,16 +511,16 @@ class Game:
         except GameLogicException:
             return update
 
-        logger.info(f"Player {player_name} is being removed")
-
         if self._paused and self._paused_by == player_name:
             pause_update = self.set_paused(False, player_name, None)
             update.merge_with(pause_update)
 
         if self._enabled_ai:
+            logger.info(f"Player {player_name} is being replaced by the AI")
             player.is_ai = True
             self._bots_num += 1
         else:
+            logger.info(f"Player {player_name} is being removed")
             # Si es su turno se pasa al siguiente
             if self.turn_player() == player:
                 self._advance_turn()
@@ -598,28 +598,34 @@ class Game:
 
     def finish_update(self) -> GameUpdate:
         update = GameUpdate(self)
-        update.repeat(
-            {
-                "finished": True,
-                "leaderboard": self._leaderboard(),
-                "playtime_mins": self._playtime_mins(),
-            }
-        )
+
+        data = {"finished": self._finished}
+        if self._finished:
+            data["leaderboard"] = self._leaderboard()
+            data["playtime_mins"] = self._playtime_mins()
+
+        update.repeat(data)
         return update
 
     def pause_update(self) -> GameUpdate:
         update = GameUpdate(self)
-        update.repeat(
-            {
-                "paused": self._paused,
-                "paused_by": self._paused_by,
-            }
-        )
+
+        data = {
+            "paused": self._paused,
+            "paused_by": self._paused_by,
+        }
+
+        update.repeat(data)
         return update
 
     def bodies_update(self) -> GameUpdate:
         update = GameUpdate(self)
-        update.add_for_each(lambda p: {"bodies": {p.name: p.body.piles}})
+
+        data = {"bodies": {}}
+        for player in self.players:
+            data["bodies"][player.name] = player.body.piles
+
+        update.repeat(data)
         return update
 
     def full_update(self) -> GameUpdate:
@@ -629,7 +635,8 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
-        update.merge_with(self.pause_update())
+        if self._paused:  # Solo se envía si la partida está pausada
+            update.merge_with(self.pause_update())
         update.merge_with(self.players_update())
 
         return update

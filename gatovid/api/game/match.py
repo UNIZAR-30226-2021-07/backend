@@ -103,13 +103,10 @@ class Match:
             return
 
         if kicked is not None:
-            # Se elimina al usuario de la partida
+            # Se elimina al usuario de la partida. No hace falta añadirlo al
+            # game_update porque ya se incluye en el `update` de este callback.
             kicked_user = self.get_user(kicked)
             self.users.remove(kicked_user)
-
-            # Se notifica el abandono del usuario a todos los jugadores
-            match_update = self._match_update()
-            update.merge_with(match_update)
 
         self.send_update(update)
 

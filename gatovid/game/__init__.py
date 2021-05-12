@@ -511,16 +511,16 @@ class Game:
         except GameLogicException:
             return update
 
-        logger.info(f"Player {player_name} is being removed")
-
         if self._paused and self._paused_by == player_name:
             pause_update = self.set_paused(False, player_name, None)
             update.merge_with(pause_update)
 
         if self._enabled_ai:
+            logger.info(f"Player {player_name} is being replaced by the AI")
             player.is_ai = True
             self._bots_num += 1
         else:
+            logger.info(f"Player {player_name} is being removed")
             # Si es su turno se pasa al siguiente
             if self.turn_player() == player:
                 self._advance_turn()

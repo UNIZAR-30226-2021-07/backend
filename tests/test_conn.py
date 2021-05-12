@@ -18,6 +18,7 @@ import time
 from typing import Optional
 
 from gatovid.create_db import GENERIC_USERS_NAME
+from gatovid.models import BOT_PICTURE_ID
 from gatovid.util import get_logger
 
 from .base import WsTestClient
@@ -134,12 +135,36 @@ class ConnTest(WsTestClient):
         logger.info(f">> Skipping {total_skips} turns")
         turn = self.active_wait_turns(clients, total_skips, timeout)
 
+        def iter_remaining(clients, i, turn):
+            clients_left = len(clients) - (i + 1)
+            for remaining in range(clients_left):
+                remaining_client = (turn + remaining + 1) % len(clients)
+                yield clients[remaining_client]
+
         def turn_after_kicked(turn, i, client):
-            # El último usuario en intentarlo no podrá porque se habrá borrado
-            # la partida.
-            if i == len(clients) - 1:
+            # Los últimos usuarios en intentarlo no podrán porque se habrá
+            # borrado la partida.
+            if i >= len(clients) - 2:
+                print(i)
                 self.check_game_is_cancelled(client)
                 return
+
+            # El resto de clientes que queden en la partida habrán recibido un
+            # mensaje indicando que ha sido reemplazado por la IA.
+            for remaining in iter_remaining(clients, i, turn):
+                args = self.get_game_update(remaining)
+                self.assertIsNotNone(args)
+                self.assertIn("players", args)
+
+                # Comprobando que la información del usuario kickeado es la
+                # esperada.
+                kicked_name = GENERIC_USERS_NAME.format(turn)
+                kicked_player = list(
+                    filter(lambda d: d["name"] == kicked_name, args["players"])
+                )
+                self.assertEqual(len(kicked_player), 1)
+                self.assertEqual(kicked_player[0].get("is_ai"), True)
+                self.assertEqual(kicked_player[0].get("picture"), BOT_PICTURE_ID)
 
             self.check_user_has_abandoned(client, code, can_pause=False)
 
@@ -147,10 +172,12 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
 
+            self.clean_messages(clients)
             self.wait_turn_timeout()
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")
+        self.clean_messages(clients)
         self.wait_turn_timeout()
         self.turn_iter(clients, len(clients), turn_after_kicked, initial_turn=turn)
 
@@ -194,7 +221,6 @@ class ConnTest(WsTestClient):
                 next_turn = (turn + 1) % len(clients)
                 other_client = clients[next_turn]
 
-                print(f"Next: {next_turn}")
                 args = self.get_game_update(other_client)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)

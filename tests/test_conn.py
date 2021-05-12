@@ -286,6 +286,10 @@ class ConnTest(WsTestClient):
                 logger.info(">> Last player left before cancel")
                 return
 
+            # El que ha abandonado no habrá recibido un game_update.
+            args = self.get_game_update(client)
+            self.assertIsNone(args)
+
             # Comprueba que los demás usuarios hayan recibido un mensaje con los
             # jugadores una vez abandona (en caso de que la partida no se vaya a
             # cancelar).
@@ -335,10 +339,14 @@ class ConnTest(WsTestClient):
                 logger.info(">> Last player left before cancel")
                 return
 
-            # Comprueba que todos los usuarios hayan recibido un mensaje con los
+            # El que ha abandonado no habrá recibido un game_update.
+            args = self.get_game_update(client)
+            self.assertIsNone(args)
+
+            # Comprueba que los demás usuarios hayan recibido un mensaje con los
             # jugadores una vez abandona (en caso de que la partida no se vaya a
             # cancelar).
-            for remaining in self.iter_remaining(clients, i, turn, include_self=True):
+            for remaining in self.iter_remaining(clients, i, turn):
                 args = self.get_game_update(remaining)
                 self.assertIsNotNone(args)
                 self.assertIn("players", args)
@@ -419,12 +427,10 @@ class ConnTest(WsTestClient):
             self.assertIn("players", args)
             self.assertEqual(len(args["players"]), len(clients))
 
-            # NOTE: paused y paused_by no deberían salir en el full_update si la
+            # `paused` y `paused_by` no deberían salir en el full_update si la
             # partida no está pausada.
-            #
-            # self.assertIn("paused", args)
-            # self.assertEqual(args["paused"], False)
-            # self.assertNotIn("paused_by", args)
+            self.assertNotIn("paused", args)
+            self.assertNotIn("paused_by", args)
 
             self.assertIn("bodies", args)
             self.assertEqual(len(args["bodies"]), len(clients))

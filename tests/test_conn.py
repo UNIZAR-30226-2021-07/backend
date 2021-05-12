@@ -403,9 +403,12 @@ class ConnTest(WsTestClient):
             self.assertIn("players", args)
             self.assertEqual(len(args["players"]), len(clients))
 
-            self.assertIn("paused", args)
-            self.assertEqual(args["paused"], False)
-            self.assertNotIn("paused_by", args)
+            # NOTE: paused y paused_by no deberían salir en el full_update si la
+            # partida no está pausada.
+            #
+            # self.assertIn("paused", args)
+            # self.assertEqual(args["paused"], False)
+            # self.assertNotIn("paused_by", args)
 
             self.assertIn("bodies", args)
             self.assertEqual(len(args["bodies"]), len(clients))

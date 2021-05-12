@@ -129,6 +129,22 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("pause_game", False, callback=True)
             self.assertNotIn("error", callback_args)
 
+    def check_replaced_by_ai(self, args, kicked_name: str) -> None:
+        # Comprobando que la información del usuario kickeado es la
+        # esperada.
+        kicked_player = list(
+            filter(lambda d: d["name"] == kicked_name, args["players"])
+        )
+        self.assertEqual(len(kicked_player), 1)
+        self.assertEqual(kicked_player[0].get("is_ai"), True)
+        self.assertEqual(kicked_player[0].get("picture"), BOT_PICTURE_ID)
+
+    def check_removed(self, args, name: str) -> None:
+        player = list(
+            filter(lambda d: d["name"] == name, args["players"])
+        )
+        self.assertEqual(len(player), 0)
+
     def test_kicked_public(self):
         """
         Comprueba el caso en el que se elimina al usuario por estar AFK, y
@@ -147,10 +163,21 @@ class ConnTest(WsTestClient):
         turn = self.active_wait_turns(clients, total_skips, timeout)
 
         def turn_after_kicked(turn, i, client):
-            # Los últimos usuarios en intentarlo no podrán porque se habrá
-            # borrado la partida.
-            if i >= len(clients) - 2:
+            if i == len(clients) - 1:
+                # El último usuario,  habrá recibido un game_cancelled para
+                # indicarle que ha terminado la partida.
+                logger.info("Checking that game was cancelled")
                 self.check_game_is_cancelled(client)
+                return
+
+            self.clean_messages(clients)
+            self.wait_turn_timeout()
+
+            # El último usuario en abandonar que ha causado la cancelación no
+            # habrá recibido el mensaje de game_cancelled porque ya ha hecho
+            # leave manualmente.
+            if i == len(clients) - 2:
+                logger.info("Last player left before cancel")
                 return
 
             # El resto de clientes que queden en la partida habrán recibido un
@@ -163,26 +190,17 @@ class ConnTest(WsTestClient):
                 # Comprobando que la información del usuario kickeado es la
                 # esperada.
                 kicked_name = GENERIC_USERS_NAME.format(turn)
-                kicked_player = list(
-                    filter(lambda d: d["name"] == kicked_name, args["players"])
-                )
-                self.assertEqual(len(kicked_player), 1)
-                self.assertEqual(kicked_player[0].get("is_ai"), True)
-                self.assertEqual(kicked_player[0].get("picture"), BOT_PICTURE_ID)
+                self.check_replaced_by_ai(args, kicked_name)
 
             self.check_user_has_abandoned(client, code, can_pause=False)
 
-            # Todos salen de la partida para limpiar la sesión.
+            # Al final se sale de la partida para limpiar la sesión.
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
-
-            self.clean_messages(clients)
-            self.wait_turn_timeout()
 
         # En la siguiente iteración los usuarios son eliminados
         logger.info(">> Starting player removal loop")
         self.clean_messages(clients)
-        self.wait_turn_timeout()
         self.turn_iter(clients, len(clients), turn_after_kicked, initial_turn=turn)
 
     def test_abandon_private(self):
@@ -235,11 +253,8 @@ class ConnTest(WsTestClient):
                 self.assertIn("players", args)
 
                 # Comprobando que no aparece el usuario que ha abandonado.
-                kicked_name = GENERIC_USERS_NAME.format(turn)
-                kicked_player = list(
-                    filter(lambda d: d["name"] == kicked_name, args["players"])
-                )
-                self.assertEqual(len(kicked_player), 0)
+                name = GENERIC_USERS_NAME.format(turn)
+                self.check_removed(args, name)
 
         logger.info(">> Starting loop that should work")
         turn = self.turn_iter(clients, len(clients), turn_works, initial_turn=turn)
@@ -259,20 +274,35 @@ class ConnTest(WsTestClient):
         clients, code = self.create_public_game()
 
         def turn_abandon(turn, i, client):
+            if i == len(clients) - 1:
+                # El último usuario,  habrá recibido un game_cancelled para
+                # indicarle que ha terminado la partida.
+                logger.info("Checking that game was cancelled")
+                self.check_game_is_cancelled(client)
+                return
+
+            self.clean_messages(clients)
             callback_args = client.emit("leave", callback=True)
             self.assertNotIn("error", callback_args)
+            self.check_user_has_abandoned(client, code, can_pause=False)
 
-            # Ya no se puede jugar
-            callback_args = client.emit("play_discard", 0, callback=True)
-            self.assertIn("error", callback_args)
+            # El último usuario en abandonar que ha causado la cancelación no
+            # habrá recibido el mensaje de game_cancelled porque ya ha hecho
+            # leave manualmente.
+            if i == len(clients) - 2:
+                logger.info("Last player left before cancel")
+                return
 
-            # Ya no se puede pausar
-            callback_args = client.emit("pause_game", True, callback=True)
-            self.assertIn("error", callback_args)
+            # Comprueba que los demás usuarios hayan recibido un mensaje con los
+            # jugadores una vez abandona (en caso de que la partida no se vaya a
+            # cancelar).
+            for remaining in self.iter_remaining(clients, i, turn):
+                args = self.get_game_update(remaining)
+                self.assertIsNotNone(args)
+                self.assertIn("players", args)
 
-            # Ni volverse a unir a la partida
-            callback_args = client.emit("join", code, callback=True)
-            self.assertIn("error", callback_args)
+                kicked_name = GENERIC_USERS_NAME.format(turn)
+                self.check_replaced_by_ai(args, kicked_name)
 
         # Ahora se abandona manualmente y ya no se podrá hacer nada en la
         # partida.

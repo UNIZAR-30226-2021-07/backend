@@ -182,11 +182,40 @@ class Treatment(Card):
 
 @dataclass
 class Transplant(Treatment):
-    """ """
+    """
+    Intercambia un órgano por otro entre dos jugadores cualesquiera.  No importa
+    si el color de estos órganos es diferente, ni si están sanos, infectados o
+    vacunados. Sencillamente el jugador cambia el órgano escogido por otro,
+    siempre y cuando ninguno de los dos jugadores tenga dos órganos del mismo
+    color ni éstos estén inmunizados.
+    """
 
     treatment_type: str = "transplant"
 
-    pass
+    def get_action_data(self, action: "PlayCard", game: "Game") -> None:
+        """ """
+        # Jugadores entre los que queremos
+        player1 = action.data.get("player1")
+        player2 = action.data.get("player2")
+
+        # Pilas de los jugadores a intercambiar
+        pile_slot1 = action.data.get("pile_slot1")
+        pile_slot2 = action.data.get("pile_slot2")
+
+        if None in (self.player1, self.player2, self.pile_slot1, self.pile_slot2):
+            raise GameLogicException("Parámetro vacío")
+
+        self.player1 = game.get_player(player1)
+        self.player2 = game.get_player(player2)
+
+        self.organ_pile1 = self.player1.body.get_pile(pile_slot1)
+        self.organ_pile2 = self.player2.body.get_pile(pile_slot2)
+
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        logger.info("transplant played")
+
+
+
 
 
 @dataclass

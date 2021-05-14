@@ -199,8 +199,8 @@ class Transplant(Treatment):
         player2 = action.data.get("player2")
 
         # Pilas de los jugadores a intercambiar
-        pile_slot1 = action.data.get("pile_slot1")
-        pile_slot2 = action.data.get("pile_slot2")
+        self.pile_slot1 = action.data.get("pile_slot1")
+        self.pile_slot2 = action.data.get("pile_slot2")
 
         if None in (self.player1, self.player2, self.pile_slot1, self.pile_slot2):
             raise GameLogicException("Parámetro vacío")
@@ -212,10 +212,42 @@ class Transplant(Treatment):
         self.organ_pile2 = self.player2.body.get_pile(pile_slot2)
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        self.get_action_data(action, game)
+
+        # Comprobamos que las dos pilas tienen órgano
+        if self.organ_pile1.is_empty() or self.organ_pile2.is_empty():
+            raise GameLogicException("No puedes intercambiar órganos inexistentes")
+
+        # Comprobamos que ninguno de los dos órganos está inmunizado
+        if self.organ_pile1.is_immune() or self.organ_pile2.is_immune():
+            raise GameLogicException("No puedes intercambiar órganos inmunes")
+
+        # Comprobamos que ninguno de los dos jugadores tienen ya un órgano del
+        # mismo color del órgano a añadir. NOTE: Ignoramos las pilas sobre las
+        # que se va a reemplazar, porque no crean conflicto.
+        if (
+                self.player1.body.organ_unique(self.organ_pile2.organ, ignored_piles=[self.pile_slot1]) or
+                self.player2.body.organ_unique(self.organ_pile1.organ, ignored_piles=[self.pile_slot2])
+        ):
+            raise GameLogicException("Ya tiene un órgano de ese color")
+
         logger.info("transplant played")
 
+        update = GameUpdate(game)
 
+        # Intercambiamos las pilas de ambos jugadores
+        action.caller.body, self.target.body = self.target.body, action.caller.body
+        # Añadimos los dos cuerpos al GameUpdate
+        update.repeat(
+            {
+                "bodies": {
+                    self.player1.name: self.player1.body.piles,
+                    self.player2.name: self.player2.body.piles,
+                },
+            }
+        )
 
+        return update
 
 
 @dataclass

@@ -181,15 +181,18 @@ class Body:
             self.piles[pile] = OrganPile()
         return self.piles[pile]
 
-    def organ_unique(self, organ: Organ) -> bool:
+    def organ_unique(self, organ: Organ, ignored_piles: List[int] = []) -> bool:
         """
-        Devuelve True si el órgano no está repetido en el cuerpo.
+        Devuelve True si el órgano no está repetido en el cuerpo. Las
+        listas con índice en `ignored_piles` serán ignoradas.
         """
         if organ.color == Color.All:
             return True
 
-        for pile in self.piles:
+        for (pile_slot, pile) in enumerate(self.piles):
             if pile.organ is None:
+                continue
+            if pile_slot in ignored_piles:
                 continue
 
             if pile.organ.color == organ.color:

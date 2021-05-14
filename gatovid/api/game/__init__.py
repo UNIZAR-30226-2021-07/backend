@@ -536,8 +536,12 @@ def play_card(data):
             * ``organ_pile`` (``int``): número de pila del jugador destino
         * Tratamientos:
             * Transplante:
-                * ``targets`` (``List[str]``): lista con los nombres de los dos
-                  jugadores.
+                * ``target1`` (``str``): nombre de uno de los dos
+                  jugadores entre los que se intercambiarán los
+                  órganos.
+                * ``target2`` (``str``): nombre del otro jugador.
+                * ``organ_pile1`` (``str``): pila del jugador 1.
+                * ``organ_pile2`` (``str``): pila del jugador 2.
             * Ladrón de Órganos:
                 * ``target`` (``str``): nombre del jugador destino
             * Error médico:

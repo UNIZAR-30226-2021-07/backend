@@ -236,7 +236,9 @@ class Transplant(Treatment):
         update = GameUpdate(game)
 
         # Intercambiamos las pilas de ambos jugadores
-        action.caller.body, self.target.body = self.target.body, action.caller.body
+        tmp = self.player1.body.piles[self.pile_slot1]
+        self.player1.body.piles[self.pile_slot1] = self.player2.body.piles[self.pile_slot2]
+        self.player2.body.piles[self.pile_slot2] = tmp
         # Añadimos los dos cuerpos al GameUpdate
         update.repeat(
             {

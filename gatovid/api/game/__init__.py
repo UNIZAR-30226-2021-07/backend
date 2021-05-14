@@ -252,7 +252,7 @@ def join(game_code):
         logger.info(f"User {session['user']} reconnecting to game")
         # Actualizamos el SID del usuario y el nombre si lo ha cambiado
         try:
-            match.update_user()
+            match.update_user(session["user"])
         except GameLogicException as e:
             # NOTE: No debería darse este error por la condición de
             # can_rejoin, pero por curarnos en salud.

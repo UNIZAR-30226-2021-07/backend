@@ -250,6 +250,13 @@ def join(game_code):
     can_rejoin, initial_update = match.check_rejoin(session["user"])
     if can_rejoin:
         logger.info(f"User {session['user']} reconnecting to game")
+        # Actualizamos el SID del usuario y el nombre si lo ha cambiado
+        try:
+            match.update_user(session["user"])
+        except GameLogicException as e:
+            # NOTE: No debería darse este error por la condición de
+            # can_rejoin, pero por curarnos en salud.
+            return {"error": str(e)}
         emit("start_game", room=session["user"].sid)
         emit("game_update", initial_update, room=session["user"].sid)
         return

@@ -288,6 +288,22 @@ class Match:
 
         self.users.append(user)
 
+    def update_user(self, user: User) -> None:
+        """
+        Actualiza la información del usuario, como el SID (cambia en
+        la reconexión) o el nombre si lo ha modificado antes de
+        reconectarse.
+
+        Puede darse una excepción el usuario no se encuentra en la partida.
+        """
+
+        for (i, u) in enumerate(self.users):
+            if u == user:
+                self.users[i] = user
+                return
+
+        raise GameLogicException("El usuario no está en la partida")
+
     def remove_user(self, user: User) -> None:
         try:
             self.users.remove(user)

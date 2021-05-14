@@ -579,10 +579,10 @@ class CardsTest(WsTestClient):
             "play_card",
             {
                 "slot": 0,
-                "player1": caller_name,
-                "pile_slot1": 2,
-                "player2": target_name,
-                "pile_slot2": 0,
+                "target1": caller_name,
+                "organ_pile1": 2,
+                "target2": target_name,
+                "organ_pile2": 0,
             },
             callback=True,
         )

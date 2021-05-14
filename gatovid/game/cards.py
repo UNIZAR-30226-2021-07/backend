@@ -195,12 +195,12 @@ class Transplant(Treatment):
     def get_action_data(self, action: "PlayCard", game: "Game") -> None:
         """ """
         # Jugadores entre los que queremos
-        player1 = action.data.get("player1")
-        player2 = action.data.get("player2")
+        player1 = action.data.get("target1")
+        player2 = action.data.get("target2")
 
         # Pilas de los jugadores a intercambiar
-        self.pile_slot1 = action.data.get("pile_slot1")
-        self.pile_slot2 = action.data.get("pile_slot2")
+        self.pile_slot1 = action.data.get("organ_pile1")
+        self.pile_slot2 = action.data.get("organ_pile2")
 
         if None in (player1, player2, self.pile_slot1, self.pile_slot2):
             raise GameLogicException("Parámetro vacío")

@@ -181,7 +181,7 @@ class Body:
             self.piles[pile] = OrganPile()
         return self.piles[pile]
 
-    def organ_unique(self, organ: Organ, ignored_piles: List[int]) -> bool:
+    def organ_unique(self, organ: Organ, ignored_piles: List[int] = []) -> bool:
         """
         Devuelve True si el órgano no está repetido en el cuerpo. Las
         listas con índice en `ignored_piles` serán ignoradas.

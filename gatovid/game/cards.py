@@ -202,14 +202,14 @@ class Transplant(Treatment):
         self.pile_slot1 = action.data.get("pile_slot1")
         self.pile_slot2 = action.data.get("pile_slot2")
 
-        if None in (self.player1, self.player2, self.pile_slot1, self.pile_slot2):
+        if None in (player1, player2, self.pile_slot1, self.pile_slot2):
             raise GameLogicException("Parámetro vacío")
 
         self.player1 = game.get_player(player1)
         self.player2 = game.get_player(player2)
 
-        self.organ_pile1 = self.player1.body.get_pile(pile_slot1)
-        self.organ_pile2 = self.player2.body.get_pile(pile_slot2)
+        self.organ_pile1 = self.player1.body.get_pile(self.pile_slot1)
+        self.organ_pile2 = self.player2.body.get_pile(self.pile_slot2)
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
@@ -225,9 +225,13 @@ class Transplant(Treatment):
         # Comprobamos que ninguno de los dos jugadores tienen ya un órgano del
         # mismo color del órgano a añadir. NOTE: Ignoramos las pilas sobre las
         # que se va a reemplazar, porque no crean conflicto.
-        if (
-                self.player1.body.organ_unique(self.organ_pile2.organ, ignored_piles=[self.pile_slot1]) or
-                self.player2.body.organ_unique(self.organ_pile1.organ, ignored_piles=[self.pile_slot2])
+        if not (
+            self.player1.body.organ_unique(
+                self.organ_pile2.organ, ignored_piles=[self.pile_slot1]
+            )
+            or self.player2.body.organ_unique(
+                self.organ_pile1.organ, ignored_piles=[self.pile_slot2]
+            )
         ):
             raise GameLogicException("Ya tiene un órgano de ese color")
 
@@ -237,7 +241,9 @@ class Transplant(Treatment):
 
         # Intercambiamos las pilas de ambos jugadores
         tmp = self.player1.body.piles[self.pile_slot1]
-        self.player1.body.piles[self.pile_slot1] = self.player2.body.piles[self.pile_slot2]
+        self.player1.body.piles[self.pile_slot1] = self.player2.body.piles[
+            self.pile_slot2
+        ]
         self.player2.body.piles[self.pile_slot2] = tmp
         # Añadimos los dos cuerpos al GameUpdate
         update.repeat(

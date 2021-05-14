@@ -16,6 +16,7 @@ from gatovid.game.cards import (
     MedicalError,
     Medicine,
     Organ,
+    Transplant,
     Virus,
 )
 
@@ -520,6 +521,84 @@ class CardsTest(WsTestClient):
             self.assertIn(target_name, args["bodies"])
             self.assertEqual(args["bodies"][caller_name], clients[1].last_body)
             self.assertEqual(args["bodies"][target_name], clients[0].last_body)
+
+    def test_treatment_transplant(self):
+        """
+        Se prueba a usar el tratamiento Transplante.
+        """
+        clients, code = self.create_game()
+
+        caller_name = GENERIC_USERS_NAME.format(0)
+        target_name = GENERIC_USERS_NAME.format(1)
+
+        game = MM.get_match(code)._game
+        # Forzamos el turno al client 0
+        game._turn = 0
+
+        caller_player = game.players[game._turn]
+        target_player = game.players[(game._turn + 1) % 2]
+
+        caller_player.hand[0] = Transplant()
+        caller_player.body = Body.from_data(
+            piles=[
+                OrganPile(),
+                OrganPile.from_data(organ=Organ(color=Color.Red)),
+                OrganPile.from_data(
+                    organ=Organ(color=Color.Blue),
+                    modifiers=[
+                        Virus(color=Color.Blue),
+                    ],
+                ),
+                OrganPile(),
+            ]
+        )
+        clients[0].last_pile = asdict(caller_player.body)["piles"][2]
+
+        target_player.body = Body.from_data(
+            piles=[
+                OrganPile.from_data(organ=Organ(color=Color.Green)),
+                OrganPile(),
+                OrganPile.from_data(
+                    organ=Organ(color=Color.Yellow),
+                    modifiers=[
+                        Virus(color=Color.Yellow),
+                    ],
+                ),
+                OrganPile(),
+            ]
+        )
+        # Guardamos en el cliente el cuerpo anterior
+        clients[1].last_pile = asdict(target_player.body)["piles"][0]
+
+        # Ignoramos los eventos anteriores con todos los clientes
+        for client in clients:
+            _ = client.get_received()
+
+        # Usamos la carta desde el cliente 0
+        callback_args = clients[0].emit(
+            "play_card",
+            {
+                "slot": 0,
+                "player1": caller_name,
+                "pile_slot1": 2,
+                "player2": target_name,
+                "pile_slot2": 0,
+            },
+            callback=True,
+        )
+        self.assertNotIn("error", callback_args)
+
+        # Comprobamos que todos los clientes reciben los cuerpos intercambiados.
+        for client in clients:
+            received = client.get_received()
+            _, args = self.get_msg_in_received(received, "game_update", json=True)
+            self.assertNotIn("error", args)
+
+            self.assertIn("bodies", args)
+            self.assertIn(caller_name, args["bodies"])
+            self.assertIn(target_name, args["bodies"])
+            self.assertEqual(args["bodies"][caller_name][2], clients[1].last_pile)
+            self.assertEqual(args["bodies"][target_name][0], clients[0].last_pile)
 
     def test_treatment_infection(self):
         """

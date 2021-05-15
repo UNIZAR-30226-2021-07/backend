@@ -273,17 +273,17 @@ class OrganThief(Treatment):
         # Jugador objetivo
         target = action.data.get("target")
         # Pilas del jugador objetivo
-        organ_pile = action.data.get("organ_pile")
+        self.organ_pile_slot = action.data.get("organ_pile")
 
-        if None in (target, organ_pile):
+        if None in (target, self.organ_pile_slot):
             raise GameLogicException("Parámetro vacío")
 
-        if not isinstance(target, str) or not isinstance(organ_pile, int):
+        if not isinstance(target, str) or not isinstance(self.organ_pile_slot, int):
             raise GameLogicException("Tipo de parámetro incorrecto")
 
         self.target = game.get_player(target)
 
-        self.organ_pile = self.target.body.get_pile(self.organ_pile)
+        self.organ_pile = self.target.body.get_pile(self.organ_pile_slot)
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
@@ -297,7 +297,7 @@ class OrganThief(Treatment):
             raise GameLogicException("No puedes robar órganos inmunes")
 
         # Comprobamos que el caller no tiene ya un órgano de ese color
-        if not action.caller.body.organ_unique(self.organ_pile2.organ):
+        if not action.caller.body.organ_unique(self.organ_pile.organ):
             raise GameLogicException("Ya tienes un órgano de ese color")
 
         # Obtenemos un espacio libre del caller
@@ -305,19 +305,23 @@ class OrganThief(Treatment):
         for (slot, pile) in enumerate(action.caller.body.piles):
             if pile.is_empty():
                 self.empty_slot = slot
+                break
         if self.empty_slot is None:
             raise GameLogicException("No tienes espacio libre")
 
         logger.info("organ-thief played")
 
         # Robamos la pila del target y la guardamos en el caller
+        empty_pile = action.caller.body.piles[self.empty_slot]
         action.caller.body.piles[self.empty_slot] = self.organ_pile
+        self.target.body.piles[self.organ_pile_slot] = empty_pile
 
         update = GameUpdate(game)
         # Añadimos el cuerpo del caller al GameUpdate
         update.repeat(
             {
                 "bodies": {
+                    self.target.name: self.target.body.piles,
                     action.caller.name: action.caller.body.piles,
                 },
             }

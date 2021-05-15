@@ -260,11 +260,70 @@ class Transplant(Treatment):
 
 @dataclass
 class OrganThief(Treatment):
-    """ """
+    """
+    Roba un órgano de otro jugador y añádelo a tu cuerpo. Puedes robar órganos
+    sanos, vacunados o infectados, pero no inmunes. Recuerda que no puedes tener
+    dos órganos del mismo color.
+    """
 
     treatment_type: str = "organ_thief"
 
-    pass
+    def get_action_data(self, action: "PlayCard", game: "Game") -> None:
+        """ """
+        # Jugador objetivo
+        target = action.data.get("target")
+        # Pilas del jugador objetivo
+        organ_pile = action.data.get("organ_pile")
+
+        if None in (target, organ_pile):
+            raise GameLogicException("Parámetro vacío")
+
+        if not isinstance(target, str) or not isinstance(organ_pile, int):
+            raise GameLogicException("Tipo de parámetro incorrecto")
+
+        self.target = game.get_player(target)
+
+        self.organ_pile = self.target.body.get_pile(self.organ_pile)
+
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+        self.get_action_data(action, game)
+
+        # Comprobamos que la pila tiene órgano
+        if self.organ_pile.is_empty():
+            raise GameLogicException("No puedes robar órganos inexistentes")
+
+        # Comprobamos que ninguno de los dos órganos está inmunizado
+        if self.organ_pile.is_immune():
+            raise GameLogicException("No puedes robar órganos inmunes")
+
+        # Comprobamos que el caller no tiene ya un órgano de ese color
+        if not action.caller.body.organ_unique(self.organ_pile2.organ):
+            raise GameLogicException("Ya tienes un órgano de ese color")
+
+        # Obtenemos un espacio libre del caller
+        self.empty_slot = None
+        for (slot, pile) in enumerate(action.caller.body.piles):
+            if pile.is_empty():
+                self.empty_slot = slot
+        if self.empty_slot is None:
+            raise GameLogicException("No tienes espacio libre")
+
+        logger.info("organ-thief played")
+
+        # Robamos la pila del target y la guardamos en el caller
+        action.caller.body.piles[self.empty_slot] = self.organ_pile
+
+        update = GameUpdate(game)
+        # Añadimos el cuerpo del caller al GameUpdate
+        update.repeat(
+            {
+                "bodies": {
+                    action.caller.name: action.caller.body.piles,
+                },
+            }
+        )
+
+        return update
 
 
 @dataclass

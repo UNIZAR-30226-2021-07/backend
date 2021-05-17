@@ -11,6 +11,7 @@ from typing import Dict, List, Optional
 from gatovid.game.actions import Action, Discard
 from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
+import gatovid.game.ia as AI
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
@@ -317,6 +318,13 @@ class Game:
             if self.turn_player().is_ai:
                 # TODO: la IA debería jugar aquí, ya que se puede pasar su turno
                 # automáticamente.
+
+                ai_actions = AI.next_action(self.turn_player(), game=self)
+                for ai_action in ai_actions:
+                    ai_update = GameUpdate(self)
+                    ai_update = ai_action.apply(self.turn_player(), game=self)
+                    update.merge_with(ai_update)
+                
                 continue
 
             break

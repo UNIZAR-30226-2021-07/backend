@@ -481,11 +481,19 @@ class Game:
         N = len(self.players)
 
         for player in self.players:
-            position = player.position or (self._players_finished + 1)
+            # Si la partida ha terminado todos los jugadores tendrán que tener
+            # asignados una posición.
+            position = player.position
+            if position is None and self.is_finished():
+                position = self._players_finished + 1
+
+            coins = None
+            if position is not None:
+                coins = 10 * (N - position)
 
             leaderboard[player.name] = {
                 "position": position,
-                "coins": 10 * (N - position),
+                "coins": coins,
             }
 
         return leaderboard

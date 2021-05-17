@@ -229,7 +229,7 @@ class Transplant(Treatment):
             self.player1.body.organ_unique(
                 self.organ_pile2.organ, ignored_piles=[self.pile_slot1]
             )
-            or self.player2.body.organ_unique(
+            and self.player2.body.organ_unique(
                 self.organ_pile1.organ, ignored_piles=[self.pile_slot2]
             )
         ):

@@ -31,6 +31,75 @@ def next_action(player: "Player", game: "Game") -> [Action]:
 
     # TODO: Descartar cartas que no se vayan a usar
     # return Discard({ "slot": medicine_idx })
+    
+def action_special_treatments(player: "Player", game: "Game") -> Optional[Action]:
+    """
+    Aplicar algunos tratamientos especiales.
+    """
+    treatments = find_card_type(player, "treatment", tretment_type="latex_glove")
+    if len(treatments) > 0:
+        return PlayCard({
+            "slot": treatments[0],
+        })
+
+
+def action_heal_self(player: "Player", game: "Game") -> Optional[Action]:
+    """
+    Tratar de curar tus propios órganos.
+    """
+    # Comprobamos si tenemos algún órgano que curar
+    to_heal = organs_to_heal()
+    if len(to_heal) == 0:
+        return None
+
+    # Comprobamos si tenemos varios órganos que curar y tenemos el tratamiento
+    # infección.
+    infection = find_card_type(player, "treatment", tretment_type="latex_glove")
+    if len(to_heal) > 1 and len(infection) > 0:
+        return PlayCard({
+            "slot": infection[0],
+        })
+
+    # Comprobamos si tenemos alguna medicina para algún órgano
+    medicines = find_card_type(player, "medicine")
+    multicolored_medicine = None
+    for organ_idx in to_heal:
+        organ: Organ = player.body.piles[organ_idx]
+
+        for medicine_idx in medicines:
+            medicine: Medicine = player.hand[medicine_idx]
+
+            # Guardamos el slot donde hay una medicina multicolor por si
+            # se usa luego.
+            if medicine.color == Color.All:
+                multicolored_medicine = medicine_idx
+
+            # Si tenemos una medicina del mismo color que el órgano, podemos
+            # curar directamente.
+            if organ.get_top_color() == medicine.color:
+                return PlayCard({
+                    "slot": medicine_idx,
+                    "target": player.name,
+                    "organ_pile": organ_idx,
+                })
+
+    # Si no hemos podido encontrar una medicina del mismo color pero
+    # tenemos una medicina multicolor
+    if multicolored_medicine is not None:
+        # Curamos el primer órgano. NOTE: se podría hacer aleatorio,
+        # pero por hacerlo consistente.
+        return PlayCard({
+            "slot": multicolored_medicine,
+            "target": player.name,
+            "organ_pile": to_heal[0],
+        })
+
+    # Comprobamos si tenemos algún tratamiento que pueda curar algún
+    # órgano.
+
+    # No se ha encontrado forma de curarlo
+    return None
+
 def organs_to_heal(player: "Player") -> [int]:
     """
     Devuelve una lista de slots de pilas que requieren curación.
@@ -42,5 +111,5 @@ def organs_to_heal(player: "Player") -> [int]:
     infected = filter(is_infected, enumerate(player.body.piles))
     return list(map(get_index, infected))
 
-def find_card_type(card_type: str, treatment_type: str = None) -> [int]:
+def find_card_type(player: "Player", card_type: str, treatment_type: str = None) -> [int]:
     """ """

@@ -170,6 +170,15 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
+    def get_playing_player(self, user_name: str) -> Player:
+        """
+        Devuelve un jugador que esté todavía jugando (que no haya ganado
+        todavía).
+        """
+        player = self.get_player(user_name)
+        if player.has_finished():
+            raise GameLogicException("El jugador ya ha acabado")
+
     def set_paused(
         self, paused: bool, paused_by: str, resume_callback
     ) -> Optional[GameUpdate]:

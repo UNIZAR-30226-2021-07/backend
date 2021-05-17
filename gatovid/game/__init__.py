@@ -245,7 +245,7 @@ class Game:
                 raise
 
             # Comprobamos si ha ganado
-            if action.caller.body.is_healthy():
+            if self.turn_player().body.is_healthy():
                 # Si tiene un cuerpo completo sano, se considera que ha ganado.
                 finished_update = self.player_finished(action.caller)
                 update.merge_with(finished_update)

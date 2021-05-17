@@ -351,6 +351,9 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
         "finished": false,
         // Lista de ganadores. Se incluye la posición de cada jugador, y las
         // monedas que ha ganado por ello.
+        //
+        // Se mandará para indicar la terminación de la partida y la de un
+        // jugador individual, en cuyo caso `position` y `coins` serán nulos.
         "leaderboard": {
             "manolo22": {
                 "position": 1,

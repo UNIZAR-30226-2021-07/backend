@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 from gatovid.game.actions import Action, Discard
 from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
-import gatovid.game.ia as AI
+import gatovid.game.ai as AI
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate

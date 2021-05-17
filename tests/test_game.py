@@ -61,6 +61,10 @@ class GameTest(WsTestClient):
         """
         clients, code = self.create_game()
 
+        # Caso incorrecto: tipo de parámetro inválido
+        callback_args = clients[0].emit("pause_game", 1234, callback=True)
+        self.assertIn("error", callback_args)
+
         for (i, client) in enumerate(clients):
             # Ignoramos los eventos anteriores
             _ = client.get_received()
@@ -243,6 +247,11 @@ class GameTest(WsTestClient):
         # Inicialmente no se puede pasar porque no está en fase de descarte.
         logger.info("Attempting pass that should fail")
         self.pass_err(client)
+
+        # Parámetros inválidos: no debería funcionar
+        for val in ("something", 1234, True):
+            callback_args = client.emit("play_discard", val, callback=True)
+            self.assertIn("error", callback_args)
 
         # Descarta una carta de forma correcta
         logger.info("Discarding in test")

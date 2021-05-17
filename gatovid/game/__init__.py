@@ -178,6 +178,7 @@ class Game:
         player = self.get_player(user_name)
         if player.has_finished():
             raise GameLogicException("El jugador ya ha acabado")
+        return player
 
     def set_paused(
         self, paused: bool, paused_by: str, resume_callback

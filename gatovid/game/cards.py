@@ -56,7 +56,7 @@ class SimpleCard(Card):
         if None in (target_name, organ_pile_slot):
             raise GameLogicException("Parámetro vacío")
 
-        self.target = game.get_player(target_name)
+        self.target = game.get_playing_player(target_name)
         self.organ_pile = self.target.body.get_pile(organ_pile_slot)
 
         # Comprobamos si podemos colocar
@@ -95,15 +95,7 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        update = self.piles_update(game)
-
-        # Comprobamos si ha ganado
-        if action.caller.body.is_healthy():
-            # Si tiene un cuerpo completo sano, se considera que ha ganado.
-            finished_update = game.player_finished(action.caller)
-            update.merge_with(finished_update)
-
-        return update
+        return self.piles_update(game)
 
 
 @dataclass
@@ -205,8 +197,8 @@ class Transplant(Treatment):
         if None in (player1, player2, self.pile_slot1, self.pile_slot2):
             raise GameLogicException("Parámetro vacío")
 
-        self.player1 = game.get_player(player1)
-        self.player2 = game.get_player(player2)
+        self.player1 = game.get_playing_player(player1)
+        self.player2 = game.get_playing_player(player2)
 
         self.organ_pile1 = self.player1.body.get_pile(self.pile_slot1)
         self.organ_pile2 = self.player2.body.get_pile(self.pile_slot2)
@@ -281,7 +273,7 @@ class OrganThief(Treatment):
         if not isinstance(target, str) or not isinstance(self.organ_pile_slot, int):
             raise GameLogicException("Tipo de parámetro incorrecto")
 
-        self.target = game.get_player(target)
+        self.target = game.get_playing_player(target)
 
         self.organ_pile = self.target.body.get_pile(self.organ_pile_slot)
 
@@ -441,7 +433,7 @@ class MedicalError(Treatment):
         if self.target_name in (None, ""):
             raise GameLogicException("Parámetro target vacío")
 
-        self.target = game.get_player(self.target_name)
+        self.target = game.get_playing_player(self.target_name)
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)

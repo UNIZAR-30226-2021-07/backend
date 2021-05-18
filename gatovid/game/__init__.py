@@ -170,6 +170,16 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
+    def get_playing_player(self, user_name: str) -> Player:
+        """
+        Devuelve un jugador que esté todavía jugando (que no haya ganado
+        todavía).
+        """
+        player = self.get_player(user_name)
+        if player.has_finished():
+            raise GameLogicException("El jugador ya ha acabado")
+        return player
+
     def set_paused(
         self, paused: bool, paused_by: str, resume_callback
     ) -> Optional[GameUpdate]:
@@ -234,6 +244,12 @@ class Game:
             except GameLogicException as e:
                 logger.info(f"Error running action: {e}")
                 raise
+
+            # Comprobamos si ha ganado
+            if self.turn_player().body.is_healthy():
+                # Si tiene un cuerpo completo sano, se considera que ha ganado.
+                finished_update = self.player_finished(action.caller)
+                update.merge_with(finished_update)
 
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()

@@ -31,7 +31,7 @@ válidos, para simplificar su funcionamiento considerablemente.
 from typing import TYPE_CHECKING, Generator, List, Optional
 
 from gatovid.game import GameLogicException
-from gatovid.game.actions import Action, PlayCard
+from gatovid.game.actions import Action, PlayCard, Pass, Discard
 from gatovid.game.body import OrganPile
 from gatovid.game.cards import (
     Card,
@@ -205,7 +205,16 @@ def _action_attack(player: "Player", game: "Game") -> ActionAttempts:
 
 
 def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
-    pass
+    """
+    La última acción que se intenta realizar, por lo que no puede ser inválida.
+    La IA simplemente descartará toda su mano.
+    """
+
+    discard_action = []
+    for i in range(len(player.hand)):
+        discard_action.append(Discard(0))
+    discard_action.append(Pass())
+    yield discard_action
 
 
 def _find_healthier_enemies(

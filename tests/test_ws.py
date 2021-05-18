@@ -144,7 +144,7 @@ class WsTest(WsTestClient):
         # Parámetro inválido: debería fallar
         for val in (True, 1234):
             callback_args = client2.emit("chat", val, callback=True)
-            self.assertNotIn("error", callback_args)
+            self.assertIn("error", callback_args)
 
         # Emitimos un mensaje de chat desde el cliente 2
         msg = "Hola buenas"

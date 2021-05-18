@@ -270,7 +270,7 @@ class OrganThief(Treatment):
         if None in (target, self.organ_pile_slot):
             raise GameLogicException("Parámetro vacío")
 
-        if not isinstance(target, str) or not isinstance(self.organ_pile_slot, int):
+        if type(target) is not str or type(self.organ_pile_slot) is not int:
             raise GameLogicException("Tipo de parámetro incorrecto")
 
         self.target = game.get_playing_player(target)

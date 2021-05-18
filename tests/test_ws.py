@@ -66,6 +66,11 @@ class WsTest(WsTestClient):
         client2 = self.create_client(users_data[1])
         self.assertIsNotNone(client2)
 
+        # Parámetros inválidos: debería fallar
+        for val in (True, 1234):
+            callback_args = client2.emit("join", val, callback=True)
+            self.assertIn("error", callback_args)
+
         # El cliente 2 se une a la partida. Probamos primero que se puede unir
         # con un código en minúsculas.
         callback_args = client2.emit("join", code.lower(), callback=True)
@@ -135,6 +140,11 @@ class WsTest(WsTestClient):
         # acumularán los mensajes de chat de unirse a partida, etc)
         received = client.get_received()
         received = client2.get_received()
+
+        # Parámetro inválido: debería fallar
+        for val in (True, 1234):
+            callback_args = client2.emit("chat", val, callback=True)
+            self.assertIn("error", callback_args)
 
         # Emitimos un mensaje de chat desde el cliente 2
         msg = "Hola buenas"

@@ -162,7 +162,7 @@ class User(db.Model):
         if picture is None:
             raise InvalidModelException("Foto de perfil vacía")
 
-        if not isinstance(picture, int):
+        if type(picture) is not int:
             try:
                 picture = int(picture)
             except ValueError:
@@ -181,7 +181,7 @@ class User(db.Model):
         if board is None:
             raise InvalidModelException("Tablero vacío")
 
-        if not isinstance(board, int):
+        if type(board) is not int:
             try:
                 board = int(board)
             except ValueError:

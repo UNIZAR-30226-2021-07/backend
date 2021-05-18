@@ -5,6 +5,7 @@ Tests para la lógica del juego
 import random
 from dataclasses import asdict
 from enum import Enum
+from itertools import permutations
 
 from gatovid.api.game.match import MM
 from gatovid.create_db import GENERIC_USERS_NAME, NUM_GENERIC_USERS
@@ -804,6 +805,9 @@ class CardsTest(WsTestClient):
     def test_return_to_deck(self):
         """
         Se comprueba que las cartas se devuelven a la baraja.
+
+        En este test también se comprueba que las cartas usadas no dan problemas
+        por tener parámetros incorrectos.
         """
         TOTAL_CARDS = 30
 
@@ -822,6 +826,26 @@ class CardsTest(WsTestClient):
 
         self.set_custom_deck(custom_deck)
 
+        def try_invalid(client, slot, pile_slot, target) -> None:
+            payload = {
+                "slot": slot,
+                "organ_pile": pile_slot,
+                "target": target,
+            }
+            items = payload.items()
+
+            # Faltan de 1 a 3 campos
+            for length in range(3):
+                for payload in permutations(items, length):
+                    callback_args = client.emit(
+                        "play_card", dict(payload), callback=True
+                    )
+                    self.assertIn("error", callback_args)
+
+            # Tipos inválidos
+            callback_args = client.emit("play_card", {"target": True}, callback=True)
+            self.assertIn("error", callback_args)
+
         def try_use(slot, pile_cond, search_in, target) -> bool:
             pile_slot = None
 
@@ -831,6 +855,9 @@ class CardsTest(WsTestClient):
                     break
 
             if pile_slot is not None:
+                # Primero intenta las opciones inválidas
+                try_invalid(client, slot, pile_slot, target)
+
                 callback_args = client.emit(
                     "play_card",
                     {

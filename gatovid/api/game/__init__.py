@@ -224,7 +224,7 @@ def join(game_code):
     if session.get("game"):
         return {"error": "Ya estás en una partida"}
 
-    if not isinstance(game_code, str):
+    if type(game_code) is not str:
         return {"error": "Tipo incorrecto para el código de partida"}
 
     # No importa si es minúsculas
@@ -429,7 +429,7 @@ def chat(msg):
         .. autoattribute:: gatovid.api.game.MAX_CHAT_MSG_LEN
     """
 
-    if not isinstance(msg, str):
+    if type(msg) is not str:
         return {"error": "Tipo incorrecto para el mensaje"}
 
     msg = msg.strip()
@@ -477,7 +477,7 @@ def play_discard(card):
         mano del jugador.
     """
 
-    if not isinstance(card, int):
+    if type(card) is not int:
         return {"error": "Tipo incorrecto para la carta"}
 
     match = MM.get_match(session["game"])

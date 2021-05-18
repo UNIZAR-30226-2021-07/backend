@@ -22,10 +22,10 @@ la siguiente estrategia con prioridades, a alto nivel:
 
 Notar, además, que para evitar tener que re-implementar la lógica de las cartas
 para la IA, cada una de las acciones podrá devolver varios "intentos". Así al
-probar cada uno de ellos, si da error por un error más complejo se puede
+probar cada uno de ellos, si da error por una condición más compleja se puede
 continuar siguiendo el mismo orden. Tener que comprobar por ejemplo que al
 lanzar una carta "Transplante" ninguno de los dos jugadores tenga dos órganos
-del mismo color ni éstos estén inmunizados sería innecesario.
+del mismo color ni éstos estén inmunizados sería innecesario en este módulo.
 """
 
 from typing import TYPE_CHECKING, Generator, List
@@ -41,7 +41,7 @@ if TYPE_CHECKING:
 ActionAttempts = Generator[List[Action], None, None]
 
 
-def next_move(player: "Player", game: "Game") -> ActionAttempts:
+def next_action(player: "Player", game: "Game") -> ActionAttempts:
     """
     Punto principal de entrada que devuelve intentos a realizar por la IA.
     """

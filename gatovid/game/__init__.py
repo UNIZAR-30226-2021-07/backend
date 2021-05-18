@@ -8,10 +8,10 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
 
+import gatovid.game.ai as AI
 from gatovid.game.actions import Action, Discard
 from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
-import gatovid.game.ai as AI
 
 # Exportamos GameLogicException
 from gatovid.game.common import GameLogicException, GameUpdate
@@ -295,9 +295,6 @@ class Game:
         self.discarding = False
 
         while True:
-            # TODO: si el usuario está kickeado se le debería pasar el turno o
-            # la IA debería jugar por él.
-
             logger.info(f"{self.turn_player().name}'s turn has ended")
             self._turn_number += 1
 
@@ -316,22 +313,18 @@ class Game:
                 continue
 
             # Se tratan también los casos en los que juega la Inteligencia
-            # Artificial.
+            # Artificial, que realmente no cuentan como un turno tampoco.
             if self.turn_player().is_ai:
-                ai_actions = AI.next_action(self.turn_player(), game=self)
-                for ai_action in ai_actions:
-                    ai_update = GameUpdate(self)
-                    ai_update = ai_action.apply(self.turn_player(), game=self)
-                    update.merge_with(ai_update)
+                logger.info(f"AI playing in place of {self.turn_player().name}")
+                ai_update = self._ai_turn()
+                update.merge_with(ai_update)
 
-                    # Se comprueba si se ha terminado la partida, en cuyo caso
-                    # no hace falta continuar.
-                    if self._players_finished == len(self.players) - 1:
-                        finish_update = self.finish()
-                        update.merge_with(finish_update)
-                        return update
+                # Posiblemente acabe la partida después de que juegue la IA, en
+                # cuyo caso ya no se sigue iterando.
+                if self.is_finished():
+                    return update
 
-                continue
+                continue  # Se salta al siguiente turno
 
             break
 
@@ -360,6 +353,51 @@ class Game:
         logger.info(f"{self.turn_player().name}'s turn has started")
 
         return self.current_turn_update()
+
+    def _ai_attempt(self, actions: List[Action]) -> (bool, Optional[GameUpdate]):
+        """
+        Ejecuta un intento de la inteligencia artificial.
+
+        Devuelve verdadero si ha tenido éxito, y será acompañado por un
+        game_update.
+        """
+
+        update = GameUpdate(self)
+
+        # Se iteran las acciones de cada intento, y si alguna de
+        # ellas falla se continúa con el siguiente intento.
+        for action in actions:
+            try:
+                action_update = action.apply(self.turn_player(), game=self)
+            except GameLogicException:
+                return False, None  # Intento fallido, no se continúa
+            update.merge_with(action_update)
+
+            # Se comprueba si se ha terminado la partida, en cuyo caso
+            # no hace falta continuar.
+            if self._players_finished == len(self.players) - 1:
+                finish_update = self.finish()
+                update.merge_with(finish_update)
+                return True, update
+
+        return True, update
+
+    def _ai_turn(self) -> GameUpdate:
+        """
+        Ejecuta un turno de la inteligencia artificial.
+        """
+
+        attempts = AI.next_action(self.turn_player(), game=self)
+
+        # Se iteran todos los intentos, cada uno con una lista de acciones a
+        # probar.
+        for actions in attempts:
+            success, update = self._ai_attempt(actions)
+            if success:
+                return update
+
+        # La IA garantiza que siempre realizará una acción.
+        raise GameLogicException("Unreachable: no attempts remaining for the IA")
 
     def _timer_end_turn(self):
         """
@@ -451,7 +489,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked, False)
+            self._turn_callback(update, kicked, self.is_finished())
 
     def _start_turn_timer(self):
         """

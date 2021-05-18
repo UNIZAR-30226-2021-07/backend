@@ -200,9 +200,16 @@ class Body:
 
         return True
 
+    def healthy_count(self) -> int:
+        """
+        Devuelve el número de órganos sanos.
+        """
+
+        return sum(map(lambda p: p.is_healthy(), self.piles))
+
     def is_healthy(self) -> bool:
         """
         Devuelve True si el cuerpo tiene 4 órganos sanos.
         """
 
-        return False not in map(lambda p: p.is_healthy(), self.piles)
+        return self.healthy_count() == 4

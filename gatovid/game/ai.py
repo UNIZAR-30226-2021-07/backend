@@ -27,9 +27,9 @@ pasará al juego intentos que le interesen a ella, pero no necesariamente
 válidos, para simplificar su funcionamiento considerablemente.
 """
 
-from typing import TYPE_CHECKING, Generator, List
+from typing import TYPE_CHECKING, Generator, List, Tuple
 
-from gatovid.game import GameLogicException
+from gatovid.game.common import GameLogicException
 from gatovid.game.actions import Action, Discard, Pass, PlayCard
 from gatovid.game.cards import (
     Color,
@@ -227,7 +227,7 @@ def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
     yield discard_action
 
 
-def _iter_enemies(player: "Player", game: "Game") -> Generator[Player, None, None]:
+def _iter_enemies(player: "Player", game: "Game") -> Generator["Player", None, None]:
     for enemy in game.players:
         if enemy == player:
             continue
@@ -237,7 +237,7 @@ def _iter_enemies(player: "Player", game: "Game") -> Generator[Player, None, Non
 
 def _find_healthier_enemies(
     player: "Player", game: "Game"
-) -> Generator[Player, None, None]:
+) -> Generator["Player", None, None]:
     player_healthy = len(player.body.healthy_piles())
 
     for enemy in _iter_enemies(player, game):
@@ -248,7 +248,7 @@ def _find_healthier_enemies(
 
 def _find_transplant_targets(
     player: "Player", game: "Game"
-) -> Generator[(Player, int), None, None]:
+) -> Generator[Tuple["Player", int], None, None]:
     for enemy in _iter_enemies(player, game):
         for i, enemy_pile in enumerate(enemy.body.piles):
             # Tiene que interesar cambiar esa pila
@@ -264,7 +264,7 @@ def _find_transplant_targets(
 
 def _find_organ_steal(
     player: "Player", game: "Game"
-) -> Generator[(Player, int), None, None]:
+) -> Generator[Tuple["Player", int], None, None]:
     for enemy in _iter_enemies(player, game):
         for i, enemy_pile in enumerate(enemy.body.piles):
             # Tiene que interesar cambiar esa pila
@@ -280,7 +280,7 @@ def _find_organ_steal(
 
 def _find_virus_targets(
     player: "Player", game: "Game", virus: Virus
-) -> Generator[(Player, int), None, None]:
+) -> Generator[Tuple["Player", int], None, None]:
     for enemy in _iter_enemies(player, game):
         for i, enemy_pile in enumerate(enemy.body.piles):
             if enemy_pile.is_empty():

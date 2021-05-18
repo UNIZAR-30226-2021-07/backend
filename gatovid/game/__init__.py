@@ -6,7 +6,7 @@ import random
 import threading
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Generator
 
 import gatovid.game.ai as AI
 from gatovid.game.actions import Action, Discard
@@ -87,6 +87,42 @@ class Player:
                 return_to.insert(0, card)
 
         self.hand.clear()
+
+    def _iter_cards(self, kind: Card) -> Generator[int, None, None]:
+        """
+        Itera las cartas de un jugador que son del tipo especificado.
+        """
+
+        for card in self.hand:
+            if isinstance(card, kind):
+                yield card
+
+    def find_cards(self, kind: Card) -> List[int]:
+        """
+        Utilidad respecto a _iter_cards que devuelve todas las que son del tipo
+        especificado.
+
+        Si no se encuentra ninguna, se devolverá una lista vacía.
+        """
+
+        cards = []
+        for card in self._iter_cards(kind):
+            cards.append(card)
+
+        return cards
+
+    def find_card(self, kind: Card) -> Optional[int]:
+        """
+        Utilidad respecto a _iter_cards que devuelve la primera carta del tipo
+        especificado.
+
+        Si no se encuentra ninguna, se devolverá None.
+        """
+
+        for card in self._iter_cards(kind):
+            return card
+
+        return None
 
 
 class Game:

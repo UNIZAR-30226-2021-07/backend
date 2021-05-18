@@ -83,7 +83,7 @@ def _action_special(player: "Player", game: "Game") -> ActionAttempts:
     Aplicar algunos tratamientos especiales.
     """
 
-    latex_glove = _find_card(player, LatexGlove)
+    latex_glove = player.find_card(LatexGlove)
     if latex_glove is not None:
         yield [PlayCard({"slot": latex_glove})]
 
@@ -100,12 +100,12 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
     # Comprobamos si tenemos varios órganos que curar y tenemos el tratamiento
     # infección.
-    infection = _find_card(player, Infection)
+    infection = player.find_card(Infection)
     if infection is not None and len(infected_piles) > 1:
         yield [PlayCard({"slot": infection})]
 
     # Comprobamos si tenemos alguna medicina para algún órgano
-    medicines = _find_cards(player, Medicine)
+    medicines = player.find_card(Medicine)
     multicolored_medicine = None
     for organ_idx in infected_piles:
         organ: Organ = player.body.piles[organ_idx]
@@ -154,6 +154,8 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
     # Tratamientos curativos: "Error Médico", que puede cambiar el cuerpo por el
     # de un enemigo en mejor estado.
+    medical_error = player.find_card(MedicalError)
+    healthier_player = _find_healthier_player(player, game)
 
 
 def _action_advance(player: "Player", game: "Game") -> ActionAttempts:
@@ -166,46 +168,3 @@ def _action_attack(player: "Player", game: "Game") -> ActionAttempts:
 
 def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
     pass
-
-
-def _iter_cards(player: "Player", kind: Card) -> Generator[int, None, None]:
-    """
-    Itera las cartas de un jugador que son del tipo especificado.
-    """
-
-    for card in player.hand:
-        if isinstance(card, kind):
-            yield card
-
-
-def _find_matching_organ():
-    pass
-
-
-def _find_cards(player: "Player", kind: Card) -> List[int]:
-    """
-    Utilidad respecto a _iter_cards que devuelve todas las que son del tipo
-    especificado.
-
-    Si no se encuentra ninguna, se devolverá una lista vacía.
-    """
-
-    cards = []
-    for card in _iter_cards(player, kind):
-        cards.append(card)
-
-    return cards
-
-
-def _find_card(player: "Player", kind: Card) -> Optional[int]:
-    """
-    Utilidad respecto a _iter_cards que devuelve la primera carta del tipo
-    especificado.
-
-    Si no se encuentra ninguna, se devolverá None.
-    """
-
-    for card in _iter_cards(player, kind):
-        return card
-
-    return None

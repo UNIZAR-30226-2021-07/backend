@@ -28,13 +28,11 @@ pasará al juego intentos que le interesen a ella, pero no necesariamente
 válidos, para simplificar su funcionamiento considerablemente.
 """
 
-from typing import TYPE_CHECKING, Generator, List, Optional
+from typing import TYPE_CHECKING, Generator, List
 
 from gatovid.game import GameLogicException
-from gatovid.game.actions import Action, PlayCard, Pass, Discard
-from gatovid.game.body import OrganPile
+from gatovid.game.actions import Action, Discard, Pass, PlayCard
 from gatovid.game.cards import (
-    Card,
     Color,
     Infection,
     LatexGlove,
@@ -43,7 +41,7 @@ from gatovid.game.cards import (
     Organ,
     OrganThief,
     Transplant,
-    Treatment,
+    Virus,
 )
 from gatovid.util import get_logger
 
@@ -106,6 +104,7 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
         yield [PlayCard({"slot": infection})]
 
     # Comprobamos si tenemos alguna medicina para algún órgano
+    # TODO: mover a función
     medicines = player.find_card(Medicine)
     multicolored_medicine = None
     for organ_idx in infected_piles:
@@ -201,7 +200,24 @@ def _action_advance(player: "Player", game: "Game") -> ActionAttempts:
 
 
 def _action_attack(player: "Player", game: "Game") -> ActionAttempts:
-    pass
+    # "Infección" es un tratamiento de ataque
+    infection = player.find_card(Infection)
+    if infection is not None:
+        yield [PlayCard({"slot": infection})]
+
+    # Uso normal de un virus sobre un rival
+    viruses = player.find_cards(Virus)
+    for virus in viruses:
+        for enemy, pile in _find_virus_targets(player, game, virus):
+            yield [
+                PlayCard(
+                    {
+                        "slot": virus,
+                        "target": enemy.name,
+                        "organ_pile": pile,
+                    }
+                )
+            ]
 
 
 def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
@@ -217,15 +233,20 @@ def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
     yield discard_action
 
 
+def _iter_enemies(player: "Player", game: "Game") -> Generator[Player, None, None]:
+    for enemy in game.players:
+        if enemy == player:
+            continue
+
+        yield enemy
+
+
 def _find_healthier_enemies(
     player: "Player", game: "Game"
 ) -> Generator[Player, None, None]:
     player_healthy = len(player.body.healthy_piles())
 
-    for enemy in game.players:
-        if enemy == player:
-            continue
-
+    for enemy in _iter_enemies(player, game):
         enemy_healthy = len(enemy.body.healthy_piles())
         if enemy_healthy > player_healthy:
             yield enemy
@@ -234,13 +255,10 @@ def _find_healthier_enemies(
 def _find_transplant_targets(
     player: "Player", game: "Game"
 ) -> Generator[(Player, int), None, None]:
-    for enemy in game.players:
-        if enemy == player:
-            continue
-
+    for enemy in _iter_enemies(player, game):
         for i, enemy_pile in enumerate(enemy.body.piles):
             # Tiene que interesar cambiar esa pila
-            if enemy_pile.organ is None:
+            if enemy_pile.is_empty():
                 continue
             if enemy_pile.is_immune():
                 continue
@@ -253,17 +271,29 @@ def _find_transplant_targets(
 def _find_organ_steal(
     player: "Player", game: "Game"
 ) -> Generator[(Player, int), None, None]:
-    for enemy in game.players:
-        if enemy == player:
-            continue
-
+    for enemy in _iter_enemies(player, game):
         for i, enemy_pile in enumerate(enemy.body.piles):
             # Tiene que interesar cambiar esa pila
-            if enemy_pile.organ is None:
+            if enemy_pile.is_empty():
                 continue
             if enemy_pile.is_immune():
                 continue
             if not enemy_pile.is_healthy():
+                continue
+
+            yield enemy, i
+
+
+def _find_virus_targets(
+    player: "Player", game: "Game", virus: Virus
+) -> Generator[(Player, int), None, None]:
+    for enemy in _iter_enemies(player, game):
+        for i, enemy_pile in enumerate(enemy.body.piles):
+            if enemy_pile.is_empty():
+                continue
+            if enemy_pile.is_immune():
+                continue
+            if not enemy_pile.can_place(virus):
                 continue
 
             yield enemy, i

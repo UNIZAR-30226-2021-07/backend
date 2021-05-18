@@ -543,7 +543,8 @@ def play_card(data):
                 * ``organ_pile1`` (``str``): pila del jugador 1.
                 * ``organ_pile2`` (``str``): pila del jugador 2.
             * Ladrón de Órganos:
-                * ``target`` (``str``): nombre del jugador destino
+                * ``target`` (``str``): nombre del jugador destino.
+                * ``organ_pile`` (``int``): pila del jugador destino.
             * Error médico:
                 * ``target`` (``str``): nombre del jugador destino
 

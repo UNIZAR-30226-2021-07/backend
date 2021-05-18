@@ -80,15 +80,22 @@ def _action_special(player: "Player", game: "Game") -> ActionAttempts:
     Aplicar algunos tratamientos especiales.
     """
 
-    latex_glove = player.find_card(LatexGlove)
+    slot, latex_glove = player.find_card(LatexGlove)
     if latex_glove is not None:
-        yield [PlayCard({"slot": latex_glove})]
+        yield [PlayCard({"slot": slot})]
 
 
 def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
     """
     Tratar de curar tus propios órganos.
     """
+
+    # Si se puede lanzar un órgano se hace; así se evitan situaciones en las que
+    # la IA no gana la partida pudiendo hacerlo.
+    organs = player.find_cards(Organ)
+    for slot, organ in organs:
+        for pile in _find_organ_targets(player, game, organ):
+            yield [PlayCard({"slot": slot, "organ_pile": pile})]
 
     # Comprobamos si tenemos algún órgano que curar
     infected_piles = player.body.infected_piles()
@@ -97,20 +104,18 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
     # Comprobamos si tenemos varios órganos que curar y tenemos el tratamiento
     # infección.
-    infection = player.find_card(Infection)
+    slot, infection = player.find_card(Infection)
     if infection is not None and len(infected_piles) > 1:
-        yield [PlayCard({"slot": infection})]
+        yield [PlayCard({"slot": slot})]
 
     # Comprobamos si tenemos alguna medicina para algún órgano
     # TODO: mover a función
-    medicines = player.find_card(Medicine)
+    medicines = player.find_cards(Medicine)
     multicolored_medicine = None
     for organ_idx in infected_piles:
         organ: Organ = player.body.piles[organ_idx]
 
-        for medicine_idx in medicines:
-            medicine: Medicine = player.hand[medicine_idx]
-
+        for medicine_idx, medicine in medicines:
             # Guardamos el slot donde hay una medicina multicolor por si se usa
             # luego.
             if medicine.color == Color.All:
@@ -146,13 +151,14 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
     # Tratamientos curativos: "Transplante", que se puede usar para intercambiar
     # un órgano infectado por uno rival sano.
-    transplant = player.find_card(Transplant)
+    slot, transplant = player.find_card(Transplant)
     if transplant is not None:
         for exchanged_organ in infected_piles:
             for enemy, organ in _find_transplant_targets(player, game):
                 yield [
                     PlayCard(
                         {
+                            "slot": slot,
                             "target1": player.name,
                             "target2": enemy.name,
                             "organ_pile1": exchanged_organ,
@@ -163,12 +169,13 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
     # Tratamientos curativos: "Ladrón de Órganos", que puede robar órganos sanos
     # de un rival.
-    organ_thief = player.find_card(OrganThief)
+    slot, organ_thief = player.find_card(OrganThief)
     if organ_thief is not None:
         for enemy, organ in _find_organ_steal(player, game):
             yield [
                 PlayCard(
                     {
+                        "slot": slot,
                         "organ_pile": organ,
                         "target": enemy.name,
                     }
@@ -180,13 +187,13 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
     #
     # Es la que menos prioridad tiene porque nunca se puede ganar con ella
     # directamente.
-    medical_error = player.find_card(MedicalError)
+    slot, medical_error = player.find_card(MedicalError)
     if medical_error is not None:
         for enemy in _find_healthier_enemies(player, game):
             yield [
                 PlayCard(
                     {
-                        "slot": medical_error,
+                        "slot": slot,
                         "target": enemy.name,
                     }
                 )
@@ -195,18 +202,18 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
 def _action_attack(player: "Player", game: "Game") -> ActionAttempts:
     # "Infección" es un tratamiento de ataque
-    infection = player.find_card(Infection)
+    slot, infection = player.find_card(Infection)
     if infection is not None:
-        yield [PlayCard({"slot": infection})]
+        yield [PlayCard({"slot": slot})]
 
     # Uso normal de un virus sobre un rival
     viruses = player.find_cards(Virus)
-    for virus in viruses:
+    for slot, virus in viruses:
         for enemy, pile in _find_virus_targets(player, game, virus):
             yield [
                 PlayCard(
                     {
-                        "slot": virus,
+                        "slot": slot,
                         "target": enemy.name,
                         "organ_pile": pile,
                     }
@@ -291,3 +298,11 @@ def _find_virus_targets(
                 continue
 
             yield enemy, i
+
+
+def _find_organ_targets(
+    player: "Player", game: "Game", organ: Organ
+) -> Generator[Tuple["Player", int], None, None]:
+    for i, pile in enumerate(player.body.piles):
+        if pile.can_place(organ):
+            yield i

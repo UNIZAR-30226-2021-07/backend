@@ -482,4 +482,5 @@ class GameTest(WsTestClient):
         for player in game.players:
             player.is_ai = True
 
-        self.wait_turn_timeout()
+        # Ejecución de varios turnos
+        time.sleep(5)

@@ -16,9 +16,8 @@ la siguiente estrategia con prioridades, a alto nivel:
 
 1. Acciones especiales que se deben hacer siempre que sea posible
 2. Superviviencia, para evitar perder en corto plazo
-3. Avance, para evitar perder en largo plazo
-4. Ataque a enemigos, para evitar que otros ganen
-5. En caso de no poderse hacer nada, descartar y pasar turno
+3. Ataque a enemigos, para evitar que otros ganen y evitar perder en largo plazo
+4. En caso de no poderse hacer nada, descartar y pasar turno
 
 Notar, además, que para evitar tener que re-implementar la lógica de las cartas
 para la IA, cada una de las acciones podrá devolver varios "intentos". Así al
@@ -62,7 +61,6 @@ def next_action(player: "Player", game: "Game") -> ActionAttempts:
     actions_priority = [
         _action_special,
         _action_survive,
-        _action_advance,
         _action_attack,
         _action_pass,
     ]
@@ -193,10 +191,6 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
                     }
                 )
             ]
-
-
-def _action_advance(player: "Player", game: "Game") -> ActionAttempts:
-    pass
 
 
 def _action_attack(player: "Player", game: "Game") -> ActionAttempts:

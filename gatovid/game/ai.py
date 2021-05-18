@@ -32,12 +32,25 @@ from typing import TYPE_CHECKING, Generator, List, Optional
 
 from gatovid.game import GameLogicException
 from gatovid.game.actions import Action, PlayCard
-from gatovid.game.cards import Color, Medicine, Organ, Card, Treatment
+from gatovid.game.cards import (
+    Card,
+    Color,
+    Infection,
+    LatexGlove,
+    MedicalError,
+    Medicine,
+    Organ,
+    OrganThief,
+    Treatment,
+    Transplant,
+)
+from gatovid.util import get_logger
 
 if TYPE_CHECKING:
     from gatovid.game import Game, Player
 
 
+logger = get_logger(__name__)
 ActionAttempts = Generator[List[Action], None, None]
 
 
@@ -70,9 +83,9 @@ def _action_special(player: "Player", game: "Game") -> ActionAttempts:
     Aplicar algunos tratamientos especiales.
     """
 
-    treatments = _find_cards(player, "treatment", treatment_type="latex_glove")
-    if len(treatments) > 0:
-        yield [PlayCard({"slot": treatments[0]})]
+    latex_glove = _find_card(player, LatexGlove)
+    if latex_glove is not None:
+        yield [PlayCard({"slot": latex_glove})]
 
 
 def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
@@ -81,63 +94,66 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
     """
 
     # Comprobamos si tenemos algún órgano que curar
-    to_heal = _organs_to_heal()
-    if len(to_heal) == 0:
+    infected_piles = player.body.infected_piles()
+    if len(infected_piles) == 0:
         return
 
     # Comprobamos si tenemos varios órganos que curar y tenemos el tratamiento
     # infección.
-    infection = _find_cards(player, "treatment", treatment_type="latex_glove")
-    if len(to_heal) > 1 and len(infection) > 0:
-        return PlayCard(
-            {
-                "slot": infection[0],
-            }
-        )
+    infection = _find_card(player, Infection)
+    if infection is not None and len(infected_piles) > 1:
+        yield [PlayCard({"slot": infection})]
 
     # Comprobamos si tenemos alguna medicina para algún órgano
-    medicines = _find_cards(player, "medicine")
+    medicines = _find_cards(player, Medicine)
     multicolored_medicine = None
-    for organ_idx in to_heal:
+    for organ_idx in infected_piles:
         organ: Organ = player.body.piles[organ_idx]
 
         for medicine_idx in medicines:
             medicine: Medicine = player.hand[medicine_idx]
 
-            # Guardamos el slot donde hay una medicina multicolor por si
-            # se usa luego.
+            # Guardamos el slot donde hay una medicina multicolor por si se usa
+            # luego.
             if medicine.color == Color.All:
                 multicolored_medicine = medicine_idx
 
             # Si tenemos una medicina del mismo color que el órgano, podemos
             # curar directamente.
             if organ.get_top_color() == medicine.color:
-                return PlayCard(
-                    {
-                        "slot": medicine_idx,
-                        "target": player.name,
-                        "organ_pile": organ_idx,
-                    }
-                )
+                yield [
+                    PlayCard(
+                        {
+                            "slot": medicine_idx,
+                            "target": player.name,
+                            "organ_pile": organ_idx,
+                        }
+                    )
+                ]
 
-    # Si no hemos podido encontrar una medicina del mismo color pero
-    # tenemos una medicina multicolor
+    # Si no hemos podido encontrar una medicina del mismo color pero tenemos una
+    # medicina multicolor
     if multicolored_medicine is not None:
-        # Curamos el primer órgano. NOTE: se podría hacer aleatorio,
-        # pero por hacerlo consistente.
-        return PlayCard(
-            {
-                "slot": multicolored_medicine,
-                "target": player.name,
-                "organ_pile": to_heal[0],
-            }
-        )
+        # Curamos el primer órgano.
+        # NOTE: se podría hacer aleatorio, pero por hacerlo consistente.
+        yield [
+            PlayCard(
+                {
+                    "slot": multicolored_medicine,
+                    "target": player.name,
+                    "organ_pile": infected_piles[0],
+                }
+            )
+        ]
 
-    # Comprobamos si tenemos algún tratamiento que pueda curar algún
-    # órgano.
+    # Tratamientos curativos: "Transplante", que se puede usar para intercambiar
+    # un órgano infectado por uno rival sano.
 
-    # No se ha encontrado forma de curarlo
-    return None
+    # Tratamientos curativos: "Ladrón de Órganos", que puede robar órganos sanos
+    # de un rival.
+
+    # Tratamientos curativos: "Error Médico", que puede cambiar el cuerpo por el
+    # de un enemigo en mejor estado.
 
 
 def _action_advance(player: "Player", game: "Game") -> ActionAttempts:
@@ -152,18 +168,6 @@ def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
     pass
 
 
-def _organs_to_heal(player: "Player") -> List[int]:
-    """
-    Devuelve una lista de slots de pilas que requieren curación.
-    """
-
-    is_infected = lambda i, p: p.is_infected()
-    get_index = lambda i, p: i
-
-    infected = filter(is_infected, enumerate(player.body.piles))
-    return list(map(get_index, infected))
-
-
 def _iter_cards(player: "Player", kind: Card) -> Generator[int, None, None]:
     """
     Itera las cartas de un jugador que son del tipo especificado.
@@ -172,6 +176,10 @@ def _iter_cards(player: "Player", kind: Card) -> Generator[int, None, None]:
     for card in player.hand:
         if isinstance(card, kind):
             yield card
+
+
+def _find_matching_organ():
+    pass
 
 
 def _find_cards(player: "Player", kind: Card) -> List[int]:

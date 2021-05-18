@@ -387,6 +387,7 @@ class Game:
         Ejecuta un turno de la inteligencia artificial.
         """
 
+        logger.info("AI turn starts")
         attempts = AI.next_action(self.turn_player(), game=self)
 
         # Se iteran todos los intentos, cada uno con una lista de acciones a
@@ -467,7 +468,7 @@ class Game:
                 update.merge_with(kick_update)
 
                 # Si no quedan suficientes jugadores se acaba la partida.
-                if self._finished:
+                if self.is_finished():
                     self._turn_callback(None, None, True)
                     return
             else:

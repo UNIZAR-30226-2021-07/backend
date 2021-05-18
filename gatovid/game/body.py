@@ -200,16 +200,35 @@ class Body:
 
         return True
 
-    def healthy_count(self) -> int:
-        """
-        Devuelve el número de órganos sanos.
-        """
+    def matching_piles(self, func) -> List[int]:
+        piles = []
+        for i, pile in enumerate(self.piles):
+            if func(pile):
+                piles.append(i)
 
-        return sum(map(lambda p: p.is_healthy(), self.piles))
+        return piles
+
+    def healthy_piles(self) -> List[int]:
+        return self.matching_piles(OrganPile.is_healthy)
+
+    def empty_piles(self) -> List[int]:
+        return self.matching_piles(OrganPile.is_empty)
+
+    def free_piles(self) -> List[int]:
+        return self.matching_piles(OrganPile.is_free)
+
+    def immune_piles(self) -> List[int]:
+        return self.matching_piles(OrganPile.is_immune)
+
+    def infected_piles(self) -> List[int]:
+        return self.matching_piles(OrganPile.is_infected)
+
+    def protected_piles(self) -> List[int]:
+        return self.matching_piles(OrganPile.is_protected)
 
     def is_healthy(self) -> bool:
         """
         Devuelve True si el cuerpo tiene 4 órganos sanos.
         """
 
-        return self.healthy_count() == 4
+        return len(self.healthy_piles()) == 4

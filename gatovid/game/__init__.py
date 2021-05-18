@@ -315,21 +315,26 @@ class Game:
                 logger.info(f"{self.turn_player().name} skipped (no cards)")
                 continue
 
+            # Se tratan también los casos en los que juega la Inteligencia
+            # Artificial.
             if self.turn_player().is_ai:
-                # TODO: la IA debería jugar aquí, ya que se puede pasar su turno
-                # automáticamente.
-
                 ai_actions = AI.next_action(self.turn_player(), game=self)
                 for ai_action in ai_actions:
                     ai_update = GameUpdate(self)
                     ai_update = ai_action.apply(self.turn_player(), game=self)
                     update.merge_with(ai_update)
-                
+
+                    # Se comprueba si se ha terminado la partida, en cuyo caso
+                    # no hace falta continuar.
+                    if self._players_finished == len(self.players) - 1:
+                        finish_update = self.finish()
+                        update.merge_with(finish_update)
+                        return update
+
                 continue
 
             break
 
-        update.merge_with(self.current_turn_update())
         self._start_turn_timer()
 
         return update

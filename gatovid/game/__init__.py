@@ -405,7 +405,8 @@ class Game:
         for action in actions:
             try:
                 action_update = action.apply(self.turn_player(), game=self)
-            except GameLogicException:
+            except GameLogicException as e:
+                logger.info(f"Skipping error in IA action: {e}")
                 return False, None  # Intento fallido, no se continúa
             update.merge_with(action_update)
 

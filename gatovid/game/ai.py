@@ -29,7 +29,6 @@ válidos, para simplificar su funcionamiento considerablemente.
 
 from typing import TYPE_CHECKING, Generator, List, Tuple
 
-from gatovid.game.common import GameLogicException
 from gatovid.game.actions import Action, Discard, Pass, PlayCard
 from gatovid.game.cards import (
     Color,
@@ -42,6 +41,7 @@ from gatovid.game.cards import (
     Transplant,
     Virus,
 )
+from gatovid.game.common import GameLogicException
 from gatovid.util import get_logger
 
 if TYPE_CHECKING:
@@ -95,7 +95,15 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
     organs = player.find_cards(Organ)
     for slot, organ in organs:
         for pile in _find_organ_targets(player, game, organ):
-            yield [PlayCard({"slot": slot, "organ_pile": pile})]
+            yield [
+                PlayCard(
+                    {
+                        "slot": slot,
+                        "organ_pile": pile,
+                        "target": player.name,
+                    }
+                )
+            ]
 
     # Comprobamos si tenemos algún órgano que curar
     infected_piles = player.body.infected_piles()
@@ -304,5 +312,7 @@ def _find_organ_targets(
     player: "Player", game: "Game", organ: Organ
 ) -> Generator[Tuple["Player", int], None, None]:
     for i, pile in enumerate(player.body.piles):
+        if not player.body.organ_unique(organ):
+            continue
         if pile.can_place(organ):
             yield i

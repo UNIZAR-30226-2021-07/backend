@@ -200,7 +200,7 @@ class Body:
 
         return True
 
-    def matching_piles(self, func) -> List[int]:
+    def _matching_piles(self, func) -> List[int]:
         piles = []
         for i, pile in enumerate(self.piles):
             if func(pile):
@@ -209,22 +209,22 @@ class Body:
         return piles
 
     def healthy_piles(self) -> List[int]:
-        return self.matching_piles(OrganPile.is_healthy)
+        return self._matching_piles(OrganPile.is_healthy)
 
     def empty_piles(self) -> List[int]:
-        return self.matching_piles(OrganPile.is_empty)
+        return self._matching_piles(OrganPile.is_empty)
 
     def free_piles(self) -> List[int]:
-        return self.matching_piles(OrganPile.is_free)
+        return self._matching_piles(OrganPile.is_free)
 
     def immune_piles(self) -> List[int]:
-        return self.matching_piles(OrganPile.is_immune)
+        return self._matching_piles(OrganPile.is_immune)
 
     def infected_piles(self) -> List[int]:
-        return self.matching_piles(OrganPile.is_infected)
+        return self._matching_piles(OrganPile.is_infected)
 
     def protected_piles(self) -> List[int]:
-        return self.matching_piles(OrganPile.is_protected)
+        return self._matching_piles(OrganPile.is_protected)
 
     def is_healthy(self) -> bool:
         """
@@ -232,3 +232,13 @@ class Body:
         """
 
         return len(self.healthy_piles()) == 4
+
+    def has_colored_organ(self, color: Color) -> bool:
+        for pile in self.piles:
+            if pile.organ is None:
+                continue
+
+            if pile.organ.color == color:
+                return True
+
+        return False

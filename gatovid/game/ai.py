@@ -22,16 +22,17 @@ la siguiente estrategia con prioridades, a alto nivel:
 
 Notar, además, que para evitar tener que re-implementar la lógica de las cartas
 para la IA, cada una de las acciones podrá devolver varios "intentos". Así al
-probar cada uno de ellos, si da error por una condición más compleja se puede
-continuar siguiendo el mismo orden. Tener que comprobar por ejemplo que al
-lanzar una carta "Transplante" ninguno de los dos jugadores tenga dos órganos
-del mismo color ni éstos estén inmunizados sería innecesario en este módulo.
+probar cada uno de ellos, si da error por una condición más compleja o
+inesperada se puede continuar siguiendo el mismo orden. En resumen, la IA le
+pasará al juego intentos que le interesen a ella, pero no necesariamente
+válidos, para simplificar su funcionamiento considerablemente.
 """
 
 from typing import TYPE_CHECKING, Generator, List, Optional
 
 from gatovid.game import GameLogicException
 from gatovid.game.actions import Action, PlayCard
+from gatovid.game.body import OrganPile
 from gatovid.game.cards import (
     Card,
     Color,
@@ -41,8 +42,8 @@ from gatovid.game.cards import (
     Medicine,
     Organ,
     OrganThief,
-    Treatment,
     Transplant,
+    Treatment,
 )
 from gatovid.util import get_logger
 
@@ -148,14 +149,51 @@ def _action_survive(player: "Player", game: "Game") -> ActionAttempts:
 
     # Tratamientos curativos: "Transplante", que se puede usar para intercambiar
     # un órgano infectado por uno rival sano.
+    transplant = player.find_card(Transplant)
+    if transplant is not None:
+        for exchanged_organ in infected_piles:
+            for enemy, organ in _find_transplant_targets(player, game):
+                yield [
+                    PlayCard(
+                        {
+                            "target1": player.name,
+                            "target2": enemy.name,
+                            "organ_pile1": exchanged_organ,
+                            "organ_pile2": organ,
+                        }
+                    )
+                ]
 
     # Tratamientos curativos: "Ladrón de Órganos", que puede robar órganos sanos
     # de un rival.
+    organ_thief = player.find_card(OrganThief)
+    if organ_thief is not None:
+        for enemy, organ in _find_organ_steal(player, game):
+            yield [
+                PlayCard(
+                    {
+                        "organ_pile": organ,
+                        "target": enemy.name,
+                    }
+                )
+            ]
 
     # Tratamientos curativos: "Error Médico", que puede cambiar el cuerpo por el
     # de un enemigo en mejor estado.
+    #
+    # Es la que menos prioridad tiene porque nunca se puede ganar con ella
+    # directamente.
     medical_error = player.find_card(MedicalError)
-    healthier_player = _find_healthier_player(player, game)
+    if medical_error is not None:
+        for enemy in _find_healthier_enemies(player, game):
+            yield [
+                PlayCard(
+                    {
+                        "slot": medical_error,
+                        "target": enemy.name,
+                    }
+                )
+            ]
 
 
 def _action_advance(player: "Player", game: "Game") -> ActionAttempts:
@@ -168,3 +206,55 @@ def _action_attack(player: "Player", game: "Game") -> ActionAttempts:
 
 def _action_pass(player: "Player", game: "Game") -> ActionAttempts:
     pass
+
+
+def _find_healthier_enemies(
+    player: "Player", game: "Game"
+) -> Generator[Player, None, None]:
+    player_healthy = len(player.body.healthy_piles())
+
+    for enemy in game.players:
+        if enemy == player:
+            continue
+
+        enemy_healthy = len(enemy.body.healthy_piles())
+        if enemy_healthy > player_healthy:
+            yield enemy
+
+
+def _find_transplant_targets(
+    player: "Player", game: "Game"
+) -> Generator[(Player, int), None, None]:
+    for enemy in game.players:
+        if enemy == player:
+            continue
+
+        for i, enemy_pile in enumerate(enemy.body.piles):
+            # Tiene que interesar cambiar esa pila
+            if enemy_pile.organ is None:
+                continue
+            if enemy_pile.is_immune():
+                continue
+            if not enemy_pile.is_healthy():
+                continue
+
+            yield enemy, i
+
+
+def _find_organ_steal(
+    player: "Player", game: "Game"
+) -> Generator[(Player, int), None, None]:
+    for enemy in game.players:
+        if enemy == player:
+            continue
+
+        for i, enemy_pile in enumerate(enemy.body.piles):
+            # Tiene que interesar cambiar esa pila
+            if enemy_pile.organ is None:
+                continue
+            if enemy_pile.is_immune():
+                continue
+            if not enemy_pile.is_healthy():
+                continue
+
+            yield enemy, i

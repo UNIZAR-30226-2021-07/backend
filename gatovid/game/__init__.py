@@ -6,7 +6,7 @@ import random
 import threading
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional, Generator
+from typing import Dict, Generator, List, Optional
 
 import gatovid.game.ai as AI
 from gatovid.game.actions import Action, Discard

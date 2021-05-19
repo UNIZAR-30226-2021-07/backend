@@ -318,6 +318,7 @@ class Match:
                 self.send_update(update)
 
     def cancel(self) -> None:
+        logger.info(f"Match {self.code} is being cancelled")
         socket.emit("game_cancelled", room=self.code)
 
 

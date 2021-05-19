@@ -6,8 +6,9 @@ import random
 import threading
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, Generator, List, Optional, Tuple
 
+import gatovid.game.ai as AI
 from gatovid.game.actions import Action, Discard
 from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card
@@ -86,6 +87,42 @@ class Player:
                 return_to.insert(0, card)
 
         self.hand.clear()
+
+    def _iter_cards(self, kind: Card) -> Generator[Tuple[Card, int], None, None]:
+        """
+        Itera las cartas de un jugador que son del tipo especificado.
+        """
+
+        for i, card in enumerate(self.hand):
+            if isinstance(card, kind):
+                yield i, card
+
+    def find_cards(self, kind: Card) -> List[Tuple[int, Card]]:
+        """
+        Utilidad respecto a _iter_cards que devuelve todas las que son del tipo
+        especificado.
+
+        Si no se encuentra ninguna, se devolverá una lista vacía.
+        """
+
+        cards = []
+        for card in self._iter_cards(kind):
+            cards.append(card)
+
+        return cards
+
+    def find_card(self, kind: Card) -> Optional[Tuple[int, Card]]:
+        """
+        Utilidad respecto a _iter_cards que devuelve la primera carta del tipo
+        especificado.
+
+        Si no se encuentra ninguna, se devolverá None.
+        """
+
+        for card in self._iter_cards(kind):
+            return card
+
+        return -1, None
 
 
 class Game:
@@ -310,9 +347,6 @@ class Game:
         self.discarding = False
 
         while True:
-            # TODO: si el usuario está kickeado se le debería pasar el turno o
-            # la IA debería jugar por él.
-
             logger.info(f"{self.turn_player().name}'s turn has ended")
             self._turn_number += 1
 
@@ -330,14 +364,22 @@ class Game:
                 logger.info(f"{self.turn_player().name} skipped (no cards)")
                 continue
 
+            # Se tratan también los casos en los que juega la Inteligencia
+            # Artificial, que realmente no cuentan como un turno tampoco.
             if self.turn_player().is_ai:
-                # TODO: la IA debería jugar aquí, ya que se puede pasar su turno
-                # automáticamente.
-                continue
+                logger.info(f"AI playing in place of {self.turn_player().name}")
+                ai_update = self._ai_turn()
+                update.merge_with(ai_update)
+
+                # Posiblemente acabe la partida después de que juegue la IA, en
+                # cuyo caso ya no se sigue iterando.
+                if self.is_finished():
+                    return update
+
+                continue  # Se salta al siguiente turno
 
             break
 
-        update.merge_with(self.current_turn_update())
         self._start_turn_timer()
 
         return update
@@ -363,6 +405,53 @@ class Game:
         logger.info(f"{self.turn_player().name}'s turn has started")
 
         return self.current_turn_update()
+
+    def _ai_attempt(self, actions: List[Action]) -> (bool, Optional[GameUpdate]):
+        """
+        Ejecuta un intento de la inteligencia artificial.
+
+        Devuelve verdadero si ha tenido éxito, y será acompañado por un
+        game_update.
+        """
+
+        update = GameUpdate(self)
+
+        # Se iteran las acciones de cada intento, y si alguna de
+        # ellas falla se continúa con el siguiente intento.
+        for action in actions:
+            try:
+                action_update = action.apply(self.turn_player(), game=self)
+            except GameLogicException as e:
+                logger.info(f"Skipping error in IA action: {e}")
+                return False, None  # Intento fallido, no se continúa
+            update.merge_with(action_update)
+
+            # Se comprueba si se ha terminado la partida, en cuyo caso
+            # no hace falta continuar.
+            if self._players_finished == len(self.players) - 1:
+                finish_update = self.finish()
+                update.merge_with(finish_update)
+                return True, update
+
+        return True, update
+
+    def _ai_turn(self) -> GameUpdate:
+        """
+        Ejecuta un turno de la inteligencia artificial.
+        """
+
+        logger.info("AI turn starts")
+        attempts = AI.next_action(self.turn_player(), game=self)
+
+        # Se iteran todos los intentos, cada uno con una lista de acciones a
+        # probar.
+        for actions in attempts:
+            success, update = self._ai_attempt(actions)
+            if success:
+                return update
+
+        # La IA garantiza que siempre realizará una acción.
+        raise GameLogicException("Unreachable: no attempts remaining for the IA")
 
     def _timer_end_turn(self):
         """
@@ -432,7 +521,7 @@ class Game:
                 update.merge_with(kick_update)
 
                 # Si no quedan suficientes jugadores se acaba la partida.
-                if self._finished:
+                if self.is_finished():
                     self._turn_callback(None, None, True)
                     return
             else:
@@ -454,7 +543,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked, False)
+            self._turn_callback(update, kicked, self.is_finished())
 
     def _start_turn_timer(self):
         """

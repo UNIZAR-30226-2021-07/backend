@@ -472,3 +472,24 @@ class GameTest(WsTestClient):
 
                     self.assertEqual(args["leaderboard"], expected_leaderboard)
                     break
+
+    def test_fuzzy_ai(self):
+        """
+        Fuzzy Test que prueba varios segundos en los que se usa Inteligencia
+        Artificial en la partida para asegurar su correcto funcionamiento por lo
+        general.
+
+        Esto se puede conseguir de forma más eficiente si se consigue modificar
+        el juego de forma que se pueda componer únicamente de IA.
+        """
+
+        self.set_turn_timeout(0.5)
+        clients, code = self.create_game()
+
+        match = MM.get_match(code)
+        game = match._game
+        for player in game.players:
+            player.is_ai = True
+
+        # Ejecución de varios turnos
+        time.sleep(5)

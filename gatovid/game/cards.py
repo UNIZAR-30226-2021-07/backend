@@ -347,6 +347,9 @@ class Infection(Treatment):
                 color = pile.get_top_color()
                 virus[color].append(pile)
 
+        if all(map(lambda x: len(x) == 0, virus.values())):
+            raise GameLogicException("No tienes virus disponibles")
+
         # Lista de pilas libres de todos los jugadores
         candidates = []
 
@@ -358,6 +361,9 @@ class Infection(Treatment):
 
             # Añadimos las pilas libres a la lista de candidatas
             candidates.extend(list(filter(lambda p: p.is_free(), player.body.piles)))
+
+        if len(candidates) == 0:
+            raise GameLogicException("No hay nadie que pueda recibir tus virus")
 
         # Aplicamos un orden aleatorio también a las pilas candidatas
         for candidate_pile in random.sample(candidates, len(candidates)):

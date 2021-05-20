@@ -149,7 +149,7 @@ def remove_user(data):
     """
 
     email = get_jwt_identity()
-    user = User.query.get(email)
+    user = db.session.query(User).get(email)
 
     if not _revoke_token():
         return msg_err("No se pudo cerrar sesión")
@@ -190,7 +190,7 @@ def modify_user(data):
     """
 
     email = get_jwt_identity()
-    user = User.query.get(email)
+    user = db.session.query(User).get(email)
 
     modified = False
     for field in ("name", "password", "board", "picture"):
@@ -238,7 +238,7 @@ def login(data):
     password = data.get("password")
 
     # Comprobamos si existe un usuario con ese email
-    user = User.query.get(email)
+    user = db.session.query(User).get(email)
     if user is None:
         return msg_err("El usuario no existe")
 
@@ -285,7 +285,7 @@ def user_data(data):
     """
 
     email = get_jwt_identity()
-    user = User.query.get(email)
+    user = db.session.query(User).get(email)
 
     return {
         "email": email,
@@ -310,7 +310,7 @@ def user_stats(data):
     """
 
     name = data.get("name")
-    user = User.query.filter_by(name=name).first()
+    user = db.session.query(User).filter_by(name=name).first()
     if user is None:
         return msg_err("El usuario no existe")
 
@@ -341,7 +341,7 @@ def shop_buy(data):
     """
 
     email = get_jwt_identity()
-    user = User.query.get(email)
+    user = db.session.query(User).get(email)
 
     item_id = data.get("id")
     item_type = data.get("type")

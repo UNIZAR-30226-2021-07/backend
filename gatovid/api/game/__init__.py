@@ -11,7 +11,7 @@ from gatovid.api.game.match import (
     PrivateMatch,
     PublicMatch,
 )
-from gatovid.exts import socket
+from gatovid.exts import db, socket
 from gatovid.game.actions import Discard, Pass, PlayCard
 from gatovid.models import User
 from gatovid.util import get_logger
@@ -69,7 +69,7 @@ def connect():
     # Inicializamos la sesión del usuario
     email = get_jwt_identity()
 
-    session["user"] = User.query.get(email)
+    session["user"] = db.session.query(User).get(email)
     session["user"].sid = request.sid
 
     logger.info(f"New session with user {session['user'].name}")
@@ -239,7 +239,7 @@ def join(game_code):
     session["game"] = game_code
     # Actualizamos los datos del usuario. NOTE: estos ya serán los
     # definitivos, no los puede modificar a mitad de partida.
-    session["user"] = User.query.get(session["user"].email)
+    session["user"] = db.session.query(User).get(session["user"].email)
     session["user"].sid = request.sid
 
     # Unimos al usuario a la sesión de socketio

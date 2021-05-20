@@ -347,7 +347,7 @@ class Infection(Treatment):
                 color = pile.get_top_color()
                 virus[color].append(pile)
 
-        if len(virus) == 0:
+        if all(map(lambda x: len(x) == 0, virus.values())):
             raise GameLogicException("No tienes virus disponibles")
 
         # Lista de pilas libres de todos los jugadores

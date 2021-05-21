@@ -11,7 +11,9 @@ from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 
 # Base de datos
-db = SQLAlchemy()
+db = SQLAlchemy(session_options={
+    "expire_on_commit": True,
+})
 # Para el encriptado de datos
 bcrypt = Bcrypt()
 # Manager de sesiones con JWT

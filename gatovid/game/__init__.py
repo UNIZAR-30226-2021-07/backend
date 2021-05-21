@@ -767,6 +767,19 @@ class Game:
         update.repeat(data)
         return update
 
+    def time_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+
+        # No se envía si no hay timer o si no ha empezado
+        if self._turn_timer is None:
+            return update
+        remaining = self._turn_timer.remaining_secs()
+        if remaining is None:
+            return update
+
+        update.repeat({"remaining_turn_secs": remaining})
+        return update
+
     def full_update(self) -> GameUpdate:
         update = GameUpdate(self)
 
@@ -774,6 +787,7 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
+        update.merge_with(self.time_update())
         if self.is_paused():  # Solo se envía si la partida está pausada
             update.merge_with(self.pause_update())
         update.merge_with(self.players_update())

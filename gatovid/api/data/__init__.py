@@ -150,11 +150,10 @@ def remove_user(data):
     """
 
     email = get_jwt_identity()
-    user = db.session.query(User).get(email)
-
     if not _revoke_token():
         return msg_err("No se pudo cerrar sesión")
 
+    user = db.session.query(User).get(email)
     db.session.delete(user)
     db.session.commit()
 

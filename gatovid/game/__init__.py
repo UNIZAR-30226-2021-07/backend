@@ -234,7 +234,7 @@ class Game:
         self, paused: bool, paused_by: str, resume_callback
     ) -> Optional[GameUpdate]:
         with self._paused_lock:
-            if self._paused == paused:
+            if self.is_paused() == paused:
                 return None
 
             # Solo el jugador que ha pausado la partida puede volver a reanudarla.
@@ -266,7 +266,7 @@ class Game:
             return self.pause_update()
 
     def is_paused(self) -> bool:
-        self._paused
+        return self._paused
 
     def run_action(self, caller: str, action: Action) -> [Dict]:
         """

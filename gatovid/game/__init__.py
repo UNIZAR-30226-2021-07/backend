@@ -9,6 +9,7 @@ from datetime import datetime
 from typing import Dict, Generator, List, Optional, Tuple
 
 import gatovid.game.ai as AI
+from gatovid.exts import db
 from gatovid.game.actions import Action, Discard
 from gatovid.game.body import Body
 from gatovid.game.cards import DECK, Card

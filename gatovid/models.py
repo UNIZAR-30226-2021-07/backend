@@ -168,9 +168,14 @@ class User(db.Model):
             except ValueError:
                 raise InvalidModelException("Foto de perfil debería ser un entero")
 
-        purchase = Purchase.query.filter_by(
-            item_id=picture, user_id=self.email, type=PurchasableType.PROFILE_PIC
-        ).first()
+        purchase = (
+            db.session.query(Purchase)
+            .filter_by(
+                item_id=picture, user_id=self.email, type=PurchasableType.PROFILE_PIC
+            )
+            .first()
+        )
+        db.session.commit()
         if purchase is None:
             raise InvalidModelException("Foto de perfil no comprada")
 
@@ -187,9 +192,12 @@ class User(db.Model):
             except ValueError:
                 raise InvalidModelException("Tablero debería ser un entero")
 
-        purchase = Purchase.query.filter_by(
-            item_id=board, user_id=self.email, type=PurchasableType.BOARD
-        ).first()
+        purchase = (
+            db.session.query(Purchase)
+            .filter_by(item_id=board, user_id=self.email, type=PurchasableType.BOARD)
+            .first()
+        )
+        db.session.commit()
         if purchase is None:
             raise InvalidModelException("Tablero no comprado")
 
@@ -214,7 +222,8 @@ class TokenBlacklist(db.Model):
 
     @staticmethod
     def check_blacklist(auth_token):
-        res = TokenBlacklist.query.filter_by(token=str(auth_token)).first()
+        res = db.session.query(TokenBlacklist).filter_by(token=str(auth_token)).first()
+        db.session.commit()
         return res is not None
 
 

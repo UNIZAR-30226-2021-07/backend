@@ -261,7 +261,7 @@ class Match:
 
         # Los objetos están lazy-loaded, necesitamos recuperar una versión
         # modificable de user para poder editar su atributo stats.
-        user = User.query.get(user.email)
+        user = db.session.query(User).get(user.email)
         user.stats.playtime_mins += status["playtime_mins"]
 
         leaderboard = status["leaderboard"][user.name]

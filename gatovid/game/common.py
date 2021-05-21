@@ -99,12 +99,10 @@ class GameUpdate:
         if not other.is_repeated:
             self.is_repeated = False
 
-        if self.msg is not None:
-            if other.msg is not None:
-                raise ValueError("Mensajes incompatibles")
-            else:
-                self.msg = other.msg
-        else:
-            other.msg = self.msg
+        if self.msg is not None and other.msg is not None:
+            raise ValueError("Mensajes incompatibles")
+
+        if other.msg is not None:
+            self.msg = self.msg
 
         merge_dict(self.as_dict(), other.as_dict())

@@ -512,6 +512,7 @@ class Game:
                 return
 
             update = GameUpdate(self)
+            caller = self.turn_player().name
 
             self.turn_player().afk_turns += 1
             logger.info(
@@ -530,7 +531,7 @@ class Game:
 
                 # Si no quedan suficientes jugadores se acaba la partida.
                 if self.is_finished():
-                    self._turn_callback(None, None, True)
+                    self._turn_callback(None, None, True, caller)
                     return
             else:
                 # Al terminar un turno de forma automática se le tendrá que
@@ -542,7 +543,7 @@ class Game:
                 if not self.discarding and len(self.turn_player().hand) > 0:
                     discarded = random.randint(0, len(self.turn_player().hand) - 1)
                     action = Discard(discarded)
-                    discard_update, _ = action.apply(self.turn_player(), game=self)
+                    discard_update = action.apply(self.turn_player(), game=self)
                     update.merge_with(discard_update)
 
             # Terminación automática del turno
@@ -551,7 +552,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked, self.is_finished())
+            self._turn_callback(update, kicked, self.is_finished(), caller)
 
     def _start_turn_timer(self):
         """

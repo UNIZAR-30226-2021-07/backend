@@ -285,7 +285,7 @@ class Transplant(Treatment):
             }
         )
 
-        update.msg = f"un Transplante entre {self.player1} y {self.player2}"
+        update.msg = f"un Transplante entre {self.player1.name} y {self.player2.name}"
         return update
 
 
@@ -502,7 +502,7 @@ class MedicalError(Treatment):
             }
         )
 
-        update.msg = "un Guante de Látex"
+        update.msg = f"un Error Médico sobre {self.target.name}"
         return update
 
 

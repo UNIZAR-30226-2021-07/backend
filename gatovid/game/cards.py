@@ -218,7 +218,9 @@ class Transplant(Treatment):
 
         # Comprobamos que no se haga un transplante a sí mismo.
         if self.player1 == self.player2:
-            raise GameLogicException("No puedes intercambiar óganos entre el mismo jugador")
+            raise GameLogicException(
+                "No puedes intercambiar óganos entre el mismo jugador"
+            )
 
         # Comprobamos que ninguno de los dos jugadores tienen ya un órgano del
         # mismo color del órgano a añadir. NOTE: Ignoramos las pilas sobre las

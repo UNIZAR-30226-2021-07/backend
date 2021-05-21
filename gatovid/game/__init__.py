@@ -255,7 +255,7 @@ class Game:
     def is_paused(self) -> bool:
         self._paused
 
-    def run_action(self, caller: str, action: Action) -> [Dict]:
+    def run_action(self, caller: str, action: Action) -> List[GameUpdate]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
         nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
@@ -277,6 +277,7 @@ class Game:
 
             player = self.get_player(caller)
             try:
+                # Importante el orden para que se inicialice
                 update = action.apply(player, game=self)
             except GameLogicException as e:
                 logger.info(f"Error running action: {e}")
@@ -291,7 +292,7 @@ class Game:
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
                 update.merge_with(finish_update)
-                return update  # No seguimos con la ejecución
+                return update, msg  # No seguimos con la ejecución
 
             if not self.discarding and not self._finished:
                 end_update = self._end_turn()
@@ -301,7 +302,13 @@ class Game:
             # correctamente la partida.
             player.afk_turns = 0
 
-            return update
+            return update, msg
+
+    def fmt_action_msg(self, caller: str, action_msg: str) -> str:
+        if action_msg is None:
+            return None
+
+        return f"{caller} ha jugado {action_msg}"
 
     def draw_card(self, player: Player) -> None:
         """
@@ -420,10 +427,11 @@ class Game:
         # ellas falla se continúa con el siguiente intento.
         for action in actions:
             try:
-                action_update = action.apply(self.turn_player(), game=self)
+                action_update, action_msg = action.apply(self.turn_player(), game=self)
             except GameLogicException as e:
                 logger.info(f"Skipping error in IA action: {e}")
                 return False, None  # Intento fallido, no se continúa
+
             update.merge_with(action_update)
 
             # Se comprueba si se ha terminado la partida, en cuyo caso
@@ -534,7 +542,7 @@ class Game:
                 if not self.discarding and len(self.turn_player().hand) > 0:
                     discarded = random.randint(0, len(self.turn_player().hand) - 1)
                     action = Discard(discarded)
-                    discard_update = action.apply(self.turn_player(), game=self)
+                    discard_update, _ = action.apply(self.turn_player(), game=self)
                     update.merge_with(discard_update)
 
             # Terminación automática del turno

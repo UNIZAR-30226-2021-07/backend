@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING, Dict, Optional
 
 if TYPE_CHECKING:
     from gatovid.game import Game
@@ -35,13 +35,15 @@ class GameUpdate:
     game: "Game"
     _data: Dict
 
-    def __init__(self, game: "Game") -> None:
+    def __init__(self, game: "Game", msg: str = None) -> None:
         self.game = game
         # Los datos consisten en un diccionario con el nombre del jugador como
         # clave y su información en el valor.
         self._data = {}
         # Para saber si todos los valores son los mismos
         self.is_repeated = True
+        # Mensaje adicional, opcionalmente
+        self.msg = msg
 
         for player in self.game.players:
             self._data[player.name] = {}
@@ -52,6 +54,12 @@ class GameUpdate:
 
     def as_dict(self) -> Dict:
         return self._data
+
+    def fmt_msg(self, caller: str) -> Optional[str]:
+        if self.msg is None:
+            return None
+
+        return f"{caller} ha jugado {self.msg}"
 
     def get_any(self) -> Dict:
         """
@@ -90,5 +98,13 @@ class GameUpdate:
 
         if not other.is_repeated:
             self.is_repeated = False
+
+        if self.msg is not None:
+            if other.msg is not None:
+                raise ValueError("Mensajes incompatibles")
+            else:
+                self.msg = other.msg
+        else:
+            other.msg = self.msg
 
         merge_dict(self.as_dict(), other.as_dict())

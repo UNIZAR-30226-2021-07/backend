@@ -4,7 +4,7 @@ pilas de cartas dentro de los cuerpos.
 """
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from gatovid.game.common import GameLogicException, GameUpdate
 from gatovid.util import get_logger
@@ -26,7 +26,7 @@ class Action(ABC):
     """
 
     @abstractmethod
-    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
+    def apply(self, caller: "Player", game: "Game") -> (GameUpdate, Optional[str]):
         pass
 
 
@@ -39,7 +39,7 @@ class Pass(Action):
     pasará el turno automáticamente en el juego.
     """
 
-    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
+    def apply(self, caller: "Player", game: "Game") -> (GameUpdate, Optional[str]):
         if not game.discarding:
             raise GameLogicException("El jugador no está en la fase de descarte")
 
@@ -47,7 +47,7 @@ class Pass(Action):
 
         game.discarding = False
 
-        return GameUpdate(game)
+        return GameUpdate(game), "un descarte"
 
 
 class Discard(Action):
@@ -58,7 +58,7 @@ class Discard(Action):
     def __init__(self, position: int) -> None:
         self.position = position
 
-    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
+    def apply(self, caller: "Player", game: "Game") -> (GameUpdate, Optional[str]):
         logger.info(f"{caller.name} discards their card at position {self.position}")
 
         # Activa la fase de descarte
@@ -73,7 +73,8 @@ class Discard(Action):
 
         update = GameUpdate(game)
         update.add(caller.name, {"hand": caller.hand})
-        return update
+        # Ya se mostrará el mensaje al pasar de turno de forma condensada.
+        return update, None
 
 
 class PlayCard(Action):
@@ -94,7 +95,7 @@ class PlayCard(Action):
         if self.slot is None:
             raise GameLogicException("Slot vacío")
 
-    def apply(self, caller: "Player", game: "Game") -> GameUpdate:
+    def apply(self, caller: "Player", game: "Game") -> (GameUpdate, Optional[str]):
         logger.info(f"{caller.name} plays a card")
 
         # No podrá jugar una carta si el mismo jugador está en proceso de
@@ -115,7 +116,7 @@ class PlayCard(Action):
         # problemas) y, en caso de fallo, restaurarla.
 
         # Usa la carta
-        update = card.apply(self, game)
+        update, msg = card.apply(self, game)
 
         # Solo si hemos podido "aplicar" el comportamiento de la carta, la
         # quitaremos de la mano.
@@ -124,4 +125,4 @@ class PlayCard(Action):
             caller.remove_card(self.slot)
         else:
             caller.remove_card(self.slot, return_to=game.deck)
-        return update
+        return update, msg

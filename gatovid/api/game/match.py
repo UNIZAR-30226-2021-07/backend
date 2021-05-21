@@ -176,7 +176,12 @@ class Match:
 
         return update
 
-    def send_update(self, update: GameUpdate) -> None:
+    def send_chat_update(self, caller: str, update: GameUpdate) -> None:
+        msg = update.fmt_msg(caller)
+        if msg is not None:
+            socket.emit("chat", {"msg": msg, "owner": "[GATOVID]"}, room=self.code)
+
+    def send_update(self, caller: str, update: GameUpdate) -> None:
         """
         Envía un game_update a cada uno de los participantes de la partida.
         """
@@ -188,7 +193,7 @@ class Match:
 
             socket.emit("game_update", status, room=user.sid)
 
-    def broadcast_update(self, update: GameUpdate) -> None:
+    def broadcast_update(self, caller: str, update: GameUpdate) -> None:
         """
         Envía un mismo game_update a todos los participantes de la partida.
         """

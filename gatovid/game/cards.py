@@ -22,6 +22,36 @@ class Color(str, Enum):
     Yellow = "yellow"
     All = "all"
 
+    def translate(self) -> str:
+        """
+        Traduce el color al español, con diferentes variaciones.
+        """
+
+        txts = {
+            "Red": {
+                "male": "rojo",
+                "female": "roja",
+            },
+            "Blue": {
+                "male": "azul",
+                "female": "azul",
+            },
+            "Green": {
+                "male": "verde",
+                "female": "verde",
+            },
+            "Yellow": {
+                "male": "amarillo",
+                "female": "amarilla",
+            },
+            "All": {
+                "male": "multicolor",
+                "female": "multicolor",
+            }
+        }
+
+        return txts[self.name]
+
 
 @dataclass
 class Card:
@@ -82,7 +112,7 @@ class Organ(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "organ"
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         self.get_action_data(action, game)
 
         if self.target.name != action.caller.name:
@@ -95,7 +125,8 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        return self.piles_update(game)
+        msg = f"un órgano {self.color.translate()['male']}"
+        return self.piles_update(game), msg
 
 
 @dataclass
@@ -105,7 +136,7 @@ class Virus(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "virus"
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         self.get_action_data(action, game)
 
         if self.target.name == action.caller.name:
@@ -128,7 +159,8 @@ class Virus(SimpleCard):
             # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
-        return self.piles_update(game)
+        msg = f"un virus {self.color.translate()['male']} sobre {self.target.name}"
+        return self.piles_update(game), msg
 
 
 @dataclass
@@ -138,7 +170,7 @@ class Medicine(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "medicine"
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         self.get_action_data(action, game)
 
         if self.target.name != action.caller.name:
@@ -157,7 +189,8 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
-        return self.piles_update(game)
+        msg = f"una medicina {self.color.translate()['female']}"
+        return self.piles_update(game), msg
 
 
 @dataclass
@@ -203,7 +236,7 @@ class Transplant(Treatment):
         self.organ_pile1 = self.player1.body.get_pile(self.pile_slot1)
         self.organ_pile2 = self.player2.body.get_pile(self.pile_slot2)
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         self.get_action_data(action, game)
 
         # Comprobamos que las dos pilas tienen órgano
@@ -247,7 +280,8 @@ class Transplant(Treatment):
             }
         )
 
-        return update
+        msg = f"un Transplante entre {self.player1} y {self.player2}"
+        return update, msg
 
 
 @dataclass
@@ -277,7 +311,7 @@ class OrganThief(Treatment):
 
         self.organ_pile = self.target.body.get_pile(self.organ_pile_slot)
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         self.get_action_data(action, game)
 
         # Comprobamos que la pila tiene órgano
@@ -319,7 +353,8 @@ class OrganThief(Treatment):
             }
         )
 
-        return update
+        msg = f"un Ladrón de Órganos sobre {self.target.name}"
+        return update, msg
 
 
 @dataclass
@@ -332,7 +367,7 @@ class Infection(Treatment):
 
     treatment_type: str = "infection"
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         logger.info("infection played")
 
         # Diccionario: color -> lista de pilas con virus de ese color
@@ -393,7 +428,7 @@ class Infection(Treatment):
             body_update.repeat({"bodies": {player.name: player.body.piles}})
             update.merge_with(body_update)
 
-        return update
+        return update, "un Contagio"
 
 
 @dataclass
@@ -406,7 +441,7 @@ class LatexGlove(Treatment):
 
     treatment_type: str = "latex_glove"
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         logger.info("latex-glove played")
 
         update = GameUpdate(game)
@@ -420,7 +455,7 @@ class LatexGlove(Treatment):
             # Añadimos la mano vacía al GameUpdate
             update.add(player.name, {"hand": []})
 
-        return update
+        return update, "un Guante de Látex"
 
 
 @dataclass
@@ -441,7 +476,7 @@ class MedicalError(Treatment):
 
         self.target = game.get_playing_player(self.target_name)
 
-    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
+    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
         self.get_action_data(action, game)
 
         logger.info("medical-error played")
@@ -460,7 +495,7 @@ class MedicalError(Treatment):
             }
         )
 
-        return update
+        return update, "un Guante de Látex"
 
 
 def parse_card(data: Dict) -> (object, Dict):
@@ -476,8 +511,12 @@ def parse_card(data: Dict) -> (object, Dict):
         "virus": Virus,
     }
     cls = simple_cards.get(data["type"])
+    try:
+        col = Color(data["color"])
+    except ValueError:
+        col = None  # Fallará con los tratamientos
     if cls is not None:
-        return cls, {"color": data["color"]}
+        return cls, {"color": col}
 
     # Si no es una carta simple es un tratamiento, que no tiene color
     treatment_cards = {

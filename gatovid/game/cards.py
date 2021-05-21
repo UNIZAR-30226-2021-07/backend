@@ -47,7 +47,7 @@ class Color(str, Enum):
             "All": {
                 "male": "multicolor",
                 "female": "multicolor",
-            }
+            },
         }
 
         return txts[self.name]
@@ -112,7 +112,7 @@ class Organ(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "organ"
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         if self.target.name != action.caller.name:
@@ -125,8 +125,9 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        msg = f"un órgano {self.color.translate()['male']}"
-        return self.piles_update(game), msg
+        update = self.piles_update(game)
+        update.msg = f"un órgano {self.color.translate()['male']}"
+        return update
 
 
 @dataclass
@@ -136,7 +137,7 @@ class Virus(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "virus"
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         if self.target.name == action.caller.name:
@@ -159,8 +160,11 @@ class Virus(SimpleCard):
             # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
-        msg = f"un virus {self.color.translate()['male']} sobre {self.target.name}"
-        return self.piles_update(game), msg
+        update = self.piles_update(game)
+        update.msg = (
+            f"un virus {self.color.translate()['male']} sobre {self.target.name}"
+        )
+        return update
 
 
 @dataclass
@@ -170,7 +174,7 @@ class Medicine(SimpleCard):
     # Usado para la codificación JSON
     card_type: str = "medicine"
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         if self.target.name != action.caller.name:
@@ -189,8 +193,9 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
-        msg = f"una medicina {self.color.translate()['female']}"
-        return self.piles_update(game), msg
+        update = self.piles_update(game)
+        update.msg = f"una medicina {self.color.translate()['female']}"
+        return update
 
 
 @dataclass
@@ -236,7 +241,7 @@ class Transplant(Treatment):
         self.organ_pile1 = self.player1.body.get_pile(self.pile_slot1)
         self.organ_pile2 = self.player2.body.get_pile(self.pile_slot2)
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         # Comprobamos que las dos pilas tienen órgano
@@ -280,8 +285,8 @@ class Transplant(Treatment):
             }
         )
 
-        msg = f"un Transplante entre {self.player1} y {self.player2}"
-        return update, msg
+        update.msg = f"un Transplante entre {self.player1} y {self.player2}"
+        return update
 
 
 @dataclass
@@ -311,7 +316,7 @@ class OrganThief(Treatment):
 
         self.organ_pile = self.target.body.get_pile(self.organ_pile_slot)
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         # Comprobamos que la pila tiene órgano
@@ -353,8 +358,8 @@ class OrganThief(Treatment):
             }
         )
 
-        msg = f"un Ladrón de Órganos sobre {self.target.name}"
-        return update, msg
+        update.msg = f"un Ladrón de Órganos sobre {self.target.name}"
+        return update
 
 
 @dataclass
@@ -367,7 +372,7 @@ class Infection(Treatment):
 
     treatment_type: str = "infection"
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         logger.info("infection played")
 
         # Diccionario: color -> lista de pilas con virus de ese color
@@ -428,7 +433,8 @@ class Infection(Treatment):
             body_update.repeat({"bodies": {player.name: player.body.piles}})
             update.merge_with(body_update)
 
-        return update, "un Contagio"
+        update.msg = "un Contagio"
+        return update
 
 
 @dataclass
@@ -441,7 +447,7 @@ class LatexGlove(Treatment):
 
     treatment_type: str = "latex_glove"
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         logger.info("latex-glove played")
 
         update = GameUpdate(game)
@@ -455,7 +461,8 @@ class LatexGlove(Treatment):
             # Añadimos la mano vacía al GameUpdate
             update.add(player.name, {"hand": []})
 
-        return update, "un Guante de Látex"
+        update.msg = "un Guante de Látex"
+        return update
 
 
 @dataclass
@@ -476,7 +483,7 @@ class MedicalError(Treatment):
 
         self.target = game.get_playing_player(self.target_name)
 
-    def apply(self, action: "PlayCard", game: "Game") -> (GameUpdate, Optional[str]):
+    def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
 
         logger.info("medical-error played")
@@ -495,7 +502,8 @@ class MedicalError(Treatment):
             }
         )
 
-        return update, "un Guante de Látex"
+        update.msg = "un Guante de Látex"
+        return update
 
 
 def parse_card(data: Dict) -> (object, Dict):

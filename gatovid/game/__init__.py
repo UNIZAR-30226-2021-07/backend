@@ -292,7 +292,7 @@ class Game:
             if self._players_finished == len(self.players) - 1:
                 finish_update = self.finish()
                 update.merge_with(finish_update)
-                return update, msg  # No seguimos con la ejecución
+                return update
 
             if not self.discarding and not self._finished:
                 end_update = self._end_turn()
@@ -302,7 +302,7 @@ class Game:
             # correctamente la partida.
             player.afk_turns = 0
 
-            return update, msg
+            return update
 
     def fmt_action_msg(self, caller: str, action_msg: str) -> str:
         if action_msg is None:

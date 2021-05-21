@@ -13,7 +13,7 @@ from flask_sqlalchemy import SQLAlchemy
 # Base de datos
 db = SQLAlchemy(
     session_options={
-        "expire_on_commit": True,
+        "expire_on_commit": False,
     }
 )
 # Para el encriptado de datos

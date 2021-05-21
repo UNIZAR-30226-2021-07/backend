@@ -432,6 +432,8 @@ class ConnTest(WsTestClient):
             self.assertNotIn("paused", args)
             self.assertNotIn("paused_by", args)
 
+            self.assertIn("remaining_turn_secs", args)
+
             self.assertIn("bodies", args)
             self.assertEqual(len(args["bodies"]), len(clients))
 

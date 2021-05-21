@@ -47,7 +47,7 @@ class Pass(Action):
 
         game.discarding = False
 
-        return GameUpdate(game)
+        return GameUpdate(game, msg="un descarte")
 
 
 class Discard(Action):
@@ -71,6 +71,7 @@ class Discard(Action):
         # mazo, como indican las reglas del juego.
         caller.remove_card(self.position, return_to=game.deck)
 
+        # No hay mensaje: ya se mostrará al pasar de turno de forma condensada.
         update = GameUpdate(game)
         update.add(caller.name, {"hand": caller.hand})
         return update

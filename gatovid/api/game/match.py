@@ -73,7 +73,7 @@ class Match:
             val, paused_by, resume_callback=self._resume_paused
         )
         if update is not None:
-            self.broadcast_update(update)
+            self.broadcast_update(None, update)
 
     def is_paused(self) -> bool:
         self._game.is_paused()
@@ -85,7 +85,11 @@ class Match:
             return None
 
     def _turn_passed_auto(
-        self, update: Optional[GameUpdate], kicked: Optional[str], finished: bool
+        self,
+        update: Optional[GameUpdate],
+        kicked: Optional[str],
+        finished: bool,
+        caller: str,
     ) -> None:
         """
         Callback invocado cuando la partida pasa de turno automáticamente por el
@@ -102,7 +106,7 @@ class Match:
             self.end(cancel=True)
             return
 
-        self.send_update(update)
+        self.send_update(caller, update)
 
         if kicked is not None:
             # Se elimina al usuario de la partida. No hace falta añadirlo al
@@ -147,7 +151,7 @@ class Match:
 
         # Unión de ambos game_update
         update.merge_with(match_update)
-        self.send_update(update)
+        self.send_update(None, update)
 
     def _match_update(self) -> GameUpdate:
         """
@@ -176,11 +180,26 @@ class Match:
 
         return update
 
-    def send_update(self, update: GameUpdate) -> None:
+    def send_chat_update(self, caller: Optional[str], update: GameUpdate) -> None:
+        """
+        Envía un mensaje de chat con el resumen de un turno.
+        """
+
+        if caller is None:
+            return
+
+        msg = update.fmt_msg(caller)
+        if msg is None:
+            return
+
+        socket.emit("chat", {"msg": msg, "owner": "[GATOVID]"}, room=self.code)
+
+    def send_update(self, caller: Optional[str], update: GameUpdate) -> None:
         """
         Envía un game_update a cada uno de los participantes de la partida.
         """
 
+        self.send_chat_update(caller, update)
         for user in self.users:
             status = update.get(user.name)
             if status == {}:
@@ -188,11 +207,12 @@ class Match:
 
             socket.emit("game_update", status, room=user.sid)
 
-    def broadcast_update(self, update: GameUpdate) -> None:
+    def broadcast_update(self, caller: Optional[str], update: GameUpdate) -> None:
         """
         Envía un mismo game_update a todos los participantes de la partida.
         """
 
+        self.send_chat_update(caller, update)
         socket.emit("game_update", update.get_any(), room=self.code)
 
     def run_action(self, caller: str, action: Action) -> None:
@@ -204,7 +224,7 @@ class Match:
             raise GameLogicException("El juego no ha comenzado")
 
         update = self._game.run_action(caller, action)
-        self.send_update(update)
+        self.send_update(caller, update)
 
         if self._game.is_finished():
             for user in self.users:
@@ -315,7 +335,7 @@ class Match:
             if self._game.is_finished():
                 self.end(cancel=True)
             else:
-                self.send_update(update)
+                self.send_update(None, update)
 
     def cancel(self) -> None:
         logger.info(f"Match {self.code} is being cancelled")

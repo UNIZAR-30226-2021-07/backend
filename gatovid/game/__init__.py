@@ -268,7 +268,7 @@ class Game:
     def is_paused(self) -> bool:
         return self._paused
 
-    def run_action(self, caller: str, action: Action) -> [Dict]:
+    def run_action(self, caller: str, action: Action) -> List[GameUpdate]:
         """
         Llamado ante cualquier acción de un jugador en la partida. Devolverá el
         nuevo estado de la partida por cada jugador, o en caso de que ya hubiera
@@ -290,6 +290,7 @@ class Game:
 
             player = self.get_unfinished_player(caller)
             try:
+                # Importante el orden para que se inicialice
                 update = action.apply(player, game=self)
             except GameLogicException as e:
                 logger.info(f"Error running action: {e}")
@@ -304,6 +305,12 @@ class Game:
             player.afk_turns = 0
 
             return update
+
+    def fmt_action_msg(self, caller: str, action_msg: str) -> str:
+        if action_msg is None:
+            return None
+
+        return f"{caller} ha jugado {action_msg}"
 
     def draw_card(self, player: Player) -> None:
         """
@@ -436,10 +443,11 @@ class Game:
         # ellas falla se continúa con el siguiente intento.
         for action in actions:
             try:
-                action_update = action.apply(self.turn_player(), game=self)
+                action_update, action_msg = action.apply(self.turn_player(), game=self)
             except GameLogicException as e:
                 logger.info(f"Skipping error in IA action: {e}")
                 return False, None  # Intento fallido, no se continúa
+
             update.merge_with(action_update)
 
             # Se comprueba si se ha terminado la partida, en cuyo caso
@@ -520,6 +528,7 @@ class Game:
                 return
 
             update = GameUpdate(self)
+            caller = self.turn_player().name
 
             self.turn_player().afk_turns += 1
             logger.info(
@@ -538,7 +547,7 @@ class Game:
 
                 # Si no quedan suficientes jugadores se acaba la partida.
                 if self.is_finished():
-                    self._turn_callback(None, None, True)
+                    self._turn_callback(None, None, True, caller)
                     return
             else:
                 # Al terminar un turno de forma automática se le tendrá que
@@ -559,7 +568,7 @@ class Game:
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
-            self._turn_callback(update, kicked, self.is_finished())
+            self._turn_callback(update, kicked, self.is_finished(), caller)
 
     def _start_turn_timer(self):
         """

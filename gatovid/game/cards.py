@@ -56,7 +56,7 @@ class SimpleCard(Card):
         if None in (target_name, organ_pile_slot):
             raise GameLogicException("Parámetro vacío")
 
-        self.target = game.get_playing_player(target_name)
+        self.target = game.get_unfinished_player(target_name)
         self.organ_pile = self.target.body.get_pile(organ_pile_slot)
 
         # Comprobamos si podemos colocar
@@ -100,7 +100,9 @@ class Organ(SimpleCard):
 
 @dataclass
 class Virus(SimpleCard):
-    """ """
+    """
+    Coloca un virus sobre otro jugador.
+    """
 
     # Usado para la codificación JSON
     card_type: str = "virus"
@@ -197,8 +199,8 @@ class Transplant(Treatment):
         if None in (player1, player2, self.pile_slot1, self.pile_slot2):
             raise GameLogicException("Parámetro vacío")
 
-        self.player1 = game.get_playing_player(player1)
-        self.player2 = game.get_playing_player(player2)
+        self.player1 = game.get_unfinished_player(player1)
+        self.player2 = game.get_unfinished_player(player2)
 
         self.organ_pile1 = self.player1.body.get_pile(self.pile_slot1)
         self.organ_pile2 = self.player2.body.get_pile(self.pile_slot2)
@@ -213,6 +215,12 @@ class Transplant(Treatment):
         # Comprobamos que ninguno de los dos órganos está inmunizado
         if self.organ_pile1.is_immune() or self.organ_pile2.is_immune():
             raise GameLogicException("No puedes intercambiar órganos inmunes")
+
+        # Comprobamos que no se haga un transplante a sí mismo.
+        if self.player1 == self.player2:
+            raise GameLogicException(
+                "No puedes intercambiar óganos entre el mismo jugador"
+            )
 
         # Comprobamos que ninguno de los dos jugadores tienen ya un órgano del
         # mismo color del órgano a añadir. NOTE: Ignoramos las pilas sobre las
@@ -273,7 +281,7 @@ class OrganThief(Treatment):
         if type(target) is not str or type(self.organ_pile_slot) is not int:
             raise GameLogicException("Tipo de parámetro incorrecto")
 
-        self.target = game.get_playing_player(target)
+        self.target = game.get_unfinished_player(target)
 
         self.organ_pile = self.target.body.get_pile(self.organ_pile_slot)
 
@@ -291,6 +299,10 @@ class OrganThief(Treatment):
         # Comprobamos que el caller no tiene ya un órgano de ese color
         if not action.caller.body.organ_unique(self.organ_pile.organ):
             raise GameLogicException("Ya tienes un órgano de ese color")
+
+        # Comprobamos que no se va a robar un órgano a sí mismo
+        if action.caller == self.target:
+            raise GameLogicException("No puedes robarte un órgano a ti mismo")
 
         # Obtenemos un espacio libre del caller
         self.empty_slot = None
@@ -354,8 +366,10 @@ class Infection(Treatment):
         candidates = []
 
         # Accederemos a los jugadores en orden aleatorio
-        for player in random.sample(game.players, len(game.players)):
-            # Eliminamos al caller de la iteracion
+        unfinished = game.get_unfinished_players()
+        random.shuffle(unfinished)
+        for player in unfinished:
+            # Eliminamos al caller de la iteración
             if player == action.caller:
                 continue
 
@@ -411,7 +425,7 @@ class LatexGlove(Treatment):
 
         update = GameUpdate(game)
 
-        for player in game.players:
+        for player in game.get_unfinished_players():
             if player == action.caller:
                 continue
 
@@ -439,10 +453,13 @@ class MedicalError(Treatment):
         if self.target_name in (None, ""):
             raise GameLogicException("Parámetro target vacío")
 
-        self.target = game.get_playing_player(self.target_name)
+        self.target = game.get_unfinished_player(self.target_name)
 
     def apply(self, action: "PlayCard", game: "Game") -> GameUpdate:
         self.get_action_data(action, game)
+
+        if action.caller == self.target:
+            raise GameLogicException("No puedes intercambiar tu cuerpo contigo mismo")
 
         logger.info("medical-error played")
 

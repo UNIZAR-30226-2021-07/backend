@@ -166,7 +166,7 @@ class Game:
         Destructor que termina la partida si no se ha hecho ya anteriormente.
         """
 
-        if not self._finished:
+        if not self.is_finished():
             self.finish()
 
     def start(self) -> GameUpdate:
@@ -207,7 +207,7 @@ class Game:
 
         raise GameLogicException("El jugador no está en la partida")
 
-    def get_playing_player(self, user_name: str) -> Player:
+    def get_unfinished_player(self, user_name: str) -> Player:
         """
         Devuelve un jugador que esté todavía jugando (que no haya ganado
         todavía).
@@ -217,11 +217,24 @@ class Game:
             raise GameLogicException("El jugador ya ha acabado")
         return player
 
+    def get_unfinished_players(self) -> List[Player]:
+        """
+        Devuelve los jugadores que estén todavía jugando (que no hayan ganado
+        todavía).
+        """
+
+        players = []
+        for player in self.players:
+            if not player.has_finished():
+                players.append(player)
+
+        return players
+
     def set_paused(
         self, paused: bool, paused_by: str, resume_callback
     ) -> Optional[GameUpdate]:
         with self._paused_lock:
-            if self._paused == paused:
+            if self.is_paused() == paused:
                 return None
 
             # Solo el jugador que ha pausado la partida puede volver a reanudarla.
@@ -253,7 +266,7 @@ class Game:
             return self.pause_update()
 
     def is_paused(self) -> bool:
-        self._paused
+        return self._paused
 
     def run_action(self, caller: str, action: Action) -> [Dict]:
         """
@@ -266,16 +279,16 @@ class Game:
         """
 
         with self._turn_lock:
-            if self._finished:
+            if self.is_finished():
                 raise GameLogicException("El juego ya ha terminado")
 
-            if self._paused:
+            if self.is_paused():
                 raise GameLogicException("El juego está pausado")
 
             if self.players[self._turn].name != caller:
                 raise GameLogicException("No es tu turno")
 
-            player = self.get_player(caller)
+            player = self.get_unfinished_player(caller)
             try:
                 update = action.apply(player, game=self)
             except GameLogicException as e:
@@ -293,7 +306,7 @@ class Game:
                 update.merge_with(finish_update)
                 return update  # No seguimos con la ejecución
 
-            if not self.discarding and not self._finished:
+            if not self.discarding and not self.is_finished():
                 end_update = self._end_turn()
                 update.merge_with(end_update)
 
@@ -624,7 +637,7 @@ class Game:
         except GameLogicException:
             return update
 
-        if self._paused and self._paused_by == player_name:
+        if self.is_paused() and self._paused_by == player_name:
             pause_update = self.set_paused(False, player_name, None)
             update.merge_with(pause_update)
 
@@ -712,8 +725,8 @@ class Game:
     def finish_update(self) -> GameUpdate:
         update = GameUpdate(self)
 
-        data = {"finished": self._finished}
-        if self._finished:
+        data = {"finished": self.is_finished()}
+        if self.is_finished():
             data["leaderboard"] = self._leaderboard()
             data["playtime_mins"] = self._playtime_mins()
 
@@ -724,7 +737,7 @@ class Game:
         update = GameUpdate(self)
 
         data = {
-            "paused": self._paused,
+            "paused": self.is_paused(),
             "paused_by": self._paused_by,
         }
 
@@ -748,7 +761,7 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
-        if self._paused:  # Solo se envía si la partida está pausada
+        if self.is_paused():  # Solo se envía si la partida está pausada
             update.merge_with(self.pause_update())
         update.merge_with(self.players_update())
 

@@ -127,9 +127,10 @@ class GameTest(WsTestClient):
 
     def test_auto_resume(self):
         """
-        TODO: Si la pausa supera un tiempo límite, la partida se reanuda
+        Si la pausa supera un tiempo límite, la partida se reanuda
         automáticamente.
         """
+
         clients, code = self.create_game()
 
         # Establecemos el tiempo para que se cancele la pausa a 1 segundo para

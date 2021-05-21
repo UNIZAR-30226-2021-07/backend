@@ -175,6 +175,7 @@ class User(db.Model):
             )
             .first()
         )
+        db.session.commit()
         if purchase is None:
             raise InvalidModelException("Foto de perfil no comprada")
 
@@ -196,6 +197,7 @@ class User(db.Model):
             .filter_by(item_id=board, user_id=self.email, type=PurchasableType.BOARD)
             .first()
         )
+        db.session.commit()
         if purchase is None:
             raise InvalidModelException("Tablero no comprado")
 
@@ -221,6 +223,7 @@ class TokenBlacklist(db.Model):
     @staticmethod
     def check_blacklist(auth_token):
         res = db.session.query(TokenBlacklist).filter_by(token=str(auth_token)).first()
+        db.session.commit()
         return res is not None
 
 

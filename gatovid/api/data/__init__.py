@@ -50,6 +50,7 @@ def test(data):
     """
 
     user = db.session.query(User).first()
+    db.session.commit()
 
     return {
         "POST Payload": request.form,
@@ -239,6 +240,7 @@ def login(data):
 
     # Comprobamos si existe un usuario con ese email
     user = db.session.query(User).get(email)
+    db.session.commit()
     if user is None:
         return msg_err("El usuario no existe")
 
@@ -286,6 +288,7 @@ def user_data(data):
 
     email = get_jwt_identity()
     user = db.session.query(User).get(email)
+    db.session.commit()
 
     return {
         "email": email,
@@ -311,6 +314,7 @@ def user_stats(data):
 
     name = data.get("name")
     user = db.session.query(User).filter_by(name=name).first()
+    db.session.commit()
     if user is None:
         return msg_err("El usuario no existe")
 

@@ -70,6 +70,7 @@ def connect():
     email = get_jwt_identity()
 
     session["user"] = db.session.query(User).get(email)
+    db.session.commit()
     session["user"].sid = request.sid
 
     logger.info(f"New session with user {session['user'].name}")
@@ -240,6 +241,7 @@ def join(game_code):
     # Actualizamos los datos del usuario. NOTE: estos ya serán los
     # definitivos, no los puede modificar a mitad de partida.
     session["user"] = db.session.query(User).get(session["user"].email)
+    db.session.commit()
     session["user"].sid = request.sid
 
     # Unimos al usuario a la sesión de socketio

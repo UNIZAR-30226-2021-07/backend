@@ -371,6 +371,16 @@ class Game:
                 ai_update = self._ai_turn()
                 update.merge_with(ai_update)
 
+                # Comprobamos si ha ganado
+                if self.turn_player().body.is_healthy():
+                    # Si tiene un cuerpo completo sano, se considera que ha ganado.
+                    finished_update = self.player_finished(self.turn_player())
+                    update.merge_with(finished_update)
+
+                if self._players_finished == len(self.players) - 1:
+                    finish_update = self.finish()
+                    update.merge_with(finish_update)
+
                 # Posiblemente acabe la partida después de que juegue la IA, en
                 # cuyo caso ya no se sigue iterando.
                 if self.is_finished():

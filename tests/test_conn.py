@@ -530,7 +530,7 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("join", code, callback=True)
             self.assertNotIn("error", callback_args)
 
-    def leave_pause(self):
+    def test_leave_pause(self):
         """
         Comprueba el caso en el que si el usuario que ha pausado la partida
         abandona, se des-pausa la partida.

@@ -22,6 +22,36 @@ class Color(str, Enum):
     Yellow = "yellow"
     All = "all"
 
+    def translate(self) -> str:
+        """
+        Traduce el color al español, con diferentes variaciones.
+        """
+
+        txts = {
+            "Red": {
+                "male": "rojo",
+                "female": "roja",
+            },
+            "Blue": {
+                "male": "azul",
+                "female": "azul",
+            },
+            "Green": {
+                "male": "verde",
+                "female": "verde",
+            },
+            "Yellow": {
+                "male": "amarillo",
+                "female": "amarilla",
+            },
+            "All": {
+                "male": "multicolor",
+                "female": "multicolor",
+            },
+        }
+
+        return txts[self.name]
+
 
 @dataclass
 class Card:
@@ -95,7 +125,9 @@ class Organ(SimpleCard):
 
         self.organ_pile.set_organ(self)
 
-        return self.piles_update(game)
+        update = self.piles_update(game)
+        update.msg = f"un órgano {self.color.translate()['male']}"
+        return update
 
 
 @dataclass
@@ -130,7 +162,11 @@ class Virus(SimpleCard):
             # Se infecta el órgano (se añade el virus a los modificadores)
             self.organ_pile.add_modifier(self)
 
-        return self.piles_update(game)
+        update = self.piles_update(game)
+        update.msg = (
+            f"un virus {self.color.translate()['male']} sobre {self.target.name}"
+        )
+        return update
 
 
 @dataclass
@@ -159,7 +195,9 @@ class Medicine(SimpleCard):
             # modificadores)
             self.organ_pile.add_modifier(self)
 
-        return self.piles_update(game)
+        update = self.piles_update(game)
+        update.msg = f"una medicina {self.color.translate()['female']}"
+        return update
 
 
 @dataclass
@@ -255,6 +293,7 @@ class Transplant(Treatment):
             }
         )
 
+        update.msg = f"un Transplante entre {self.player1.name} y {self.player2.name}"
         return update
 
 
@@ -331,6 +370,7 @@ class OrganThief(Treatment):
             }
         )
 
+        update.msg = f"un Ladrón de Órganos sobre {self.target.name}"
         return update
 
 
@@ -407,6 +447,7 @@ class Infection(Treatment):
             body_update.repeat({"bodies": {player.name: player.body.piles}})
             update.merge_with(body_update)
 
+        update.msg = "un Contagio"
         return update
 
 
@@ -434,6 +475,7 @@ class LatexGlove(Treatment):
             # Añadimos la mano vacía al GameUpdate
             update.add(player.name, {"hand": []})
 
+        update.msg = "un Guante de Látex"
         return update
 
 
@@ -477,6 +519,7 @@ class MedicalError(Treatment):
             }
         )
 
+        update.msg = f"un Error Médico sobre {self.target.name}"
         return update
 
 
@@ -493,8 +536,12 @@ def parse_card(data: Dict) -> (object, Dict):
         "virus": Virus,
     }
     cls = simple_cards.get(data["type"])
+    try:
+        col = Color(data["color"])
+    except ValueError:
+        col = None  # Fallará con los tratamientos
     if cls is not None:
-        return cls, {"color": data["color"]}
+        return cls, {"color": col}
 
     # Si no es una carta simple es un tratamiento, que no tiene color
     treatment_cards = {

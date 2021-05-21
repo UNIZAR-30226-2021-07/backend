@@ -389,8 +389,11 @@ class Game:
             if self.is_finished():
                 return update
 
+            # Si era una IA, saltamos al siguiente turno
+            if self.turn_player().is_ai:
                 continue  # Se salta al siguiente turno
 
+            # Sino, dejamos de buscar jugador
             break
 
         self._start_turn_timer()

@@ -667,14 +667,15 @@ class Game:
             player.is_ai = True
             self._bots_num += 1
 
-            # Descartamos automáticamente si no lo ha hecho ya
-            discard_update = self._auto_discard()
-            if discard_update is not None:
-                update.merge_with(discard_update)
+            if self.turn_player() == player:
+                # Descartamos automáticamente si no lo ha hecho ya
+                discard_update = self._auto_discard()
+                if discard_update is not None:
+                    update.merge_with(discard_update)
 
-            # Terminación automática del turno
-            end_update = self._end_turn()
-            update.merge_with(end_update)
+                # Terminación automática del turno
+                end_update = self._end_turn()
+                update.merge_with(end_update)
         else:
             logger.info(f"Player {player_name} is being removed")
             # Si es su turno se pasa al siguiente

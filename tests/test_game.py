@@ -412,6 +412,7 @@ class GameTest(WsTestClient):
         )
 
         players_finished = []
+        leaderboards_received = 0
 
         for i in range(100):
             # Evitamos problemas con los saltos de turno
@@ -447,16 +448,18 @@ class GameTest(WsTestClient):
             received = clients[0].get_received()
             _, args = self.get_msg_in_received(received, "game_update", json=True)
 
-            if player.body.is_healthy():
-                # Si ha completado un cuerpo sano, deberíamos recibir el
-                # "player_won".
+            if args.get("leaderboard") is not None:
+                # Si hemos recibido el leaderboard, es porque el jugador actual
+                # ha acabado.
                 players_finished.append(player.name)
-                self.assertIn("leaderboard", args)
+                leaderboards_received += 1
+                # Debería estar su nombre en la clasificación. 
                 self.assertIn(player.name, args["leaderboard"])
 
+                # Si hemos contado 5 jugadores finalizados, deberíamos haber
+                # recibido también el finished y el playtime_mins.
                 if len(players_finished) == 5:
                     self.assertIn("finished", args)
-                    self.assertIn("leaderboard", args)
                     self.assertIn("playtime_mins", args)
 
                     self.assertEqual(args["finished"], True)
@@ -473,6 +476,11 @@ class GameTest(WsTestClient):
 
                     self.assertEqual(args["leaderboard"], expected_leaderboard)
                     break
+
+        # Comprobamos que realmente ha acabado la partida
+        self.assertEqual(len(players_finished), 6)
+        # Y que se han recibido todos los leaderboards esperados
+        self.assertEqual(leaderboards_received, 5)
 
     def test_fuzzy_ai(self):
         """

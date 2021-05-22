@@ -697,8 +697,8 @@ class Game:
             removed_index = self.players.index(player)
 
             # Se añaden sus cartas al mazo y se elimina de la partida
-            for card in player.hand:
-                self.deck.insert(0, card)
+            player.empty_hand(return_to=self.deck)
+            player.empty_body(return_to=self.deck)
             self.players.remove(player)
 
             # Si por ejemplo se elimina el primer usuario y tiene el turno el

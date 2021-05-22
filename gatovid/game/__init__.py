@@ -737,9 +737,19 @@ class Game:
         # Vaciamos el cuerpo del jugador
         player.empty_body(return_to=self.deck)
 
-        # Avisamos a todos los jugadores de que el jugador ha acabado.
+        # Generamos un GameUpdate donde:
+        # 1. Avisamos a todos los jugadores de que el jugador ha acabado.
         update = GameUpdate(self)
         update.repeat({"leaderboard": self._leaderboard()})
+        # 2. Mostramos las pilas vacías
+        empty_piles = GameUpdate(self)
+        empty_piles.repeat({"bodies": {player.name: player.body.piles}})
+        update.merge_with(empty_piles)
+        # 3. Le enviamos al jugador la mano vacía
+        empty_hand = GameUpdate(self)
+        empty_hand.add(player.name, {"hand": player.hand})
+        update.merge_with(empty_hand)
+
         return update
 
     def players_update(self) -> GameUpdate:

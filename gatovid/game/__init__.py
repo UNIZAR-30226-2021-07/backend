@@ -89,6 +89,16 @@ class Player:
 
         self.hand.clear()
 
+    def empty_body(self, return_to: Optional[List[Card]] = None) -> None:
+        """
+        Vacía el cuerpo del jugador. Devuelve las cartas a la baraja `return_to`
+        si no es `None`.
+        """
+
+        for pile in self.body.piles:
+            pile.pop_modifiers(return_to=return_to)
+            pile.remove_organ(return_to=return_to)
+
     def _iter_cards(self, kind: Card) -> Generator[Tuple[Card, int], None, None]:
         """
         Itera las cartas de un jugador que son del tipo especificado.
@@ -687,8 +697,8 @@ class Game:
             removed_index = self.players.index(player)
 
             # Se añaden sus cartas al mazo y se elimina de la partida
-            for card in player.hand:
-                self.deck.insert(0, card)
+            player.empty_hand(return_to=self.deck)
+            player.empty_body(return_to=self.deck)
             self.players.remove(player)
 
             # Si por ejemplo se elimina el primer usuario y tiene el turno el
@@ -722,9 +732,24 @@ class Game:
 
         logger.info(f"{player.name} has finished at position {player.position}")
 
-        # Avisamos a todos los jugadores de que el jugador ha acabado.
+        # Vaciamos la mano del jugador y devolvemos las cartas a la baraja
+        player.empty_hand(return_to=self.deck)
+        # Vaciamos el cuerpo del jugador
+        player.empty_body(return_to=self.deck)
+
+        # Generamos un GameUpdate donde:
+        # 1. Avisamos a todos los jugadores de que el jugador ha acabado.
         update = GameUpdate(self)
         update.repeat({"leaderboard": self._leaderboard()})
+        # 2. Mostramos las pilas vacías
+        empty_piles = GameUpdate(self)
+        empty_piles.repeat({"bodies": {player.name: player.body.piles}})
+        update.merge_with(empty_piles)
+        # 3. Le enviamos al jugador la mano vacía
+        empty_hand = GameUpdate(self)
+        empty_hand.add(player.name, {"hand": player.hand})
+        update.merge_with(empty_hand)
+
         return update
 
     def players_update(self) -> GameUpdate:

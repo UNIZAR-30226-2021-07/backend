@@ -139,29 +139,33 @@ class ConnTest(WsTestClient):
         callback_args = client.emit("join", code, callback=True)
         self.assertIn("error", callback_args)
 
-    def check_connection_works(self, client, start: bool, public: bool = False) -> None:
+    def check_public_connection_works(self, client) -> None:
+        callback_args = client.emit("play_discard", 0, callback=True)
+        self.assertNotIn("error", callback_args)
+        callback_args = client.emit("play_pass", callback=True)
+        self.assertNotIn("error", callback_args)
+
+    def check_private_connection_works(self, client, start: bool) -> None:
         """
-        Test básico de funcionamiento. Se puede dividir en dos pasos con `start`
-        y si se indica `public` se hará todo a la vez y sin pausar.
+        Test básico de funcionamiento. Se puede dividir en dos pasos con
+        `start`.
         """
 
         # Se pueden descartar cartas sin problemas
-        if public or start:
+        if start:
             # En la primera iteración descarta
             callback_args = client.emit("play_discard", 0, callback=True)
             self.assertNotIn("error", callback_args)
-
-        if public or not start:
+        else:
             # Y en la segunda iteración pasa el turno
             callback_args = client.emit("play_pass", callback=True)
             self.assertNotIn("error", callback_args)
 
-        if not public:
-            # Se puede pausar y reanudar sin problemas
-            callback_args = client.emit("pause_game", True, callback=True)
-            self.assertNotIn("error", callback_args)
-            callback_args = client.emit("pause_game", False, callback=True)
-            self.assertNotIn("error", callback_args)
+        # Se puede pausar y reanudar sin problemas
+        callback_args = client.emit("pause_game", True, callback=True)
+        self.assertNotIn("error", callback_args)
+        callback_args = client.emit("pause_game", False, callback=True)
+        self.assertNotIn("error", callback_args)
 
     def check_replaced_by_ai(self, args, kicked_name: str) -> None:
         # Comprobando que la información del usuario kickeado es la
@@ -262,9 +266,9 @@ class ConnTest(WsTestClient):
 
         def turn_works(turn, i, client):
             # Descarta e intenta pausar, debería funcionar
-            self.check_connection_works(client, start=True)
+            self.check_private_connection_works(client, start=True)
             # Pasa turno e intenta pausar
-            self.check_connection_works(client, start=False)
+            self.check_private_connection_works(client, start=False)
 
         def turn_doesnt_work(turn, i, client):
             if i == len(clients) - 1:
@@ -375,7 +379,7 @@ class ConnTest(WsTestClient):
 
             logger.info(f">> Trying as usual for turn {turn}")
             # Antes de la desconexión funciona correctamente
-            self.check_connection_works(client, start=True, public=True)
+            self.check_public_connection_works(client)
 
             logger.info(">> Trying after reconnect")
             # Reconexión, no debería funcionar
@@ -397,7 +401,7 @@ class ConnTest(WsTestClient):
         def turn_with_disconnect(turn, i, client):
             logger.info(">> Trying as usual")
             # Antes de la desconexión funciona correctamente
-            self.check_connection_works(client, start=True)
+            self.check_private_connection_works(client, start=True)
 
             logger.info(">> Trying after reconnect")
 
@@ -432,6 +436,8 @@ class ConnTest(WsTestClient):
             self.assertNotIn("paused", args)
             self.assertNotIn("paused_by", args)
 
+            self.assertIn("remaining_turn_secs", args)
+
             self.assertIn("bodies", args)
             self.assertEqual(len(args["bodies"]), len(clients))
 
@@ -444,7 +450,7 @@ class ConnTest(WsTestClient):
             self.assertEqual(args["finished"], False)
 
             # Comprobaciones simples
-            self.check_connection_works(client, start=False)
+            self.check_private_connection_works(client, start=False)
 
             # Comprobación de que recibe mensajes de otros
             self.clean_messages(clients)
@@ -528,7 +534,7 @@ class ConnTest(WsTestClient):
             callback_args = client.emit("join", code, callback=True)
             self.assertNotIn("error", callback_args)
 
-    def leave_pause(self):
+    def test_leave_pause(self):
         """
         Comprueba el caso en el que si el usuario que ha pausado la partida
         abandona, se des-pausa la partida.

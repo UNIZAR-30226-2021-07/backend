@@ -419,6 +419,10 @@ los campos; solo se actualizará al frontend con lo que sea necesario.
             ],
             // ...
         },
+        // Tiempo restante del timer del turno en segundos, para sincronizarlo
+        // con el cliente. Generalmente se enviará solo cuando se reconecte un
+        // jugador a la partida.
+        "remaining_turn_secs": 12.34,
     }
 
 .. _game_reference:

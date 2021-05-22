@@ -103,6 +103,22 @@ class Timer:
     def cancel(self) -> None:
         self._timer.cancel()
 
+    def remaining_secs(self) -> Optional[int]:
+        """
+        Devuelve el tiempo restante del temporizador desde su primer inicio, si
+        es que ha iniciado.
+        """
+
+        if None in (self._started_at, self._elapsed):
+            return None
+
+        if self.is_paused():
+            remaining = self._elapsed
+        else:
+            remaining = datetime.now() - self._started_at + self._elapsed
+
+        return (self._interval - remaining).total_seconds()
+
     def pause(self) -> None:
         if not self.is_started():
             raise ValueError("Timer not started")

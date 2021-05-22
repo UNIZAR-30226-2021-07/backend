@@ -297,17 +297,6 @@ class Game:
                 logger.info(f"Error running action: {e}")
                 raise
 
-            # Comprobamos si ha ganado
-            if self.turn_player().body.is_healthy():
-                # Si tiene un cuerpo completo sano, se considera que ha ganado.
-                finished_update = self.player_finished(action.caller)
-                update.merge_with(finished_update)
-
-            if self._players_finished == len(self.players) - 1:
-                finish_update = self.finish()
-                update.merge_with(finish_update)
-                return update
-
             if not self.discarding and not self.is_finished():
                 end_update = self._end_turn()
                 update.merge_with(end_update)
@@ -392,13 +381,27 @@ class Game:
                 ai_update = self._ai_turn()
                 update.merge_with(ai_update)
 
-                # Posiblemente acabe la partida después de que juegue la IA, en
-                # cuyo caso ya no se sigue iterando.
-                if self.is_finished():
-                    return update
+            # Comprobamos si ha ganado algún jugador
+            for unfinished_player in self.get_unfinished_players():
+                if unfinished_player.body.is_healthy():
+                    # Si tiene un cuerpo completo sano, se considera que ha ganado.
+                    finished_update = self.player_finished(unfinished_player)
+                    update.merge_with(finished_update)
 
+            if self._players_finished == len(self.players) - 1:
+                finish_update = self.finish()
+                update.merge_with(finish_update)
+
+            # Posiblemente acabe la partida después de que juegue la IA, en
+            # cuyo caso ya no se sigue iterando.
+            if self.is_finished():
+                return update
+
+            # Si era una IA, saltamos al siguiente turno
+            if self.turn_player().is_ai:
                 continue  # Se salta al siguiente turno
 
+            # Sino, dejamos de buscar jugador
             break
 
         self._start_turn_timer()
@@ -781,6 +784,19 @@ class Game:
         update.repeat(data)
         return update
 
+    def time_update(self) -> GameUpdate:
+        update = GameUpdate(self)
+
+        # No se envía si no hay timer o si no ha empezado
+        if self._turn_timer is None:
+            return update
+        remaining = self._turn_timer.remaining_secs()
+        if remaining is None:
+            return update
+
+        update.repeat({"remaining_turn_secs": remaining})
+        return update
+
     def full_update(self) -> GameUpdate:
         update = GameUpdate(self)
 
@@ -788,6 +804,7 @@ class Game:
         update.merge_with(self.current_turn_update())
         update.merge_with(self.finish_update())
         update.merge_with(self.hands_update())
+        update.merge_with(self.time_update())
         if self.is_paused():  # Solo se envía si la partida está pausada
             update.merge_with(self.pause_update())
         update.merge_with(self.players_update())

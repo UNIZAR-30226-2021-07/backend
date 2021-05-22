@@ -444,7 +444,7 @@ class Game:
         # ellas falla se continúa con el siguiente intento.
         for action in actions:
             try:
-                action_update, action_msg = action.apply(self.turn_player(), game=self)
+                action_update = action.apply(self.turn_player(), game=self)
             except GameLogicException as e:
                 logger.info(f"Skipping error in IA action: {e}")
                 return False, None  # Intento fallido, no se continúa
@@ -477,6 +477,15 @@ class Game:
 
         # La IA garantiza que siempre realizará una acción.
         raise GameLogicException("Unreachable: no attempts remaining for the IA")
+
+    def _auto_discard(self) -> Optional[GameUpdate]:
+        if not self.discarding and len(self.turn_player().hand) > 0:
+            logger.info(f"Player {self.turn_player().name} auto discarded")
+            discarded = random.randint(0, len(self.turn_player().hand) - 1)
+            action = Discard(discarded)
+            return action.apply(self.turn_player(), game=self)
+
+        return None
 
     def _timer_end_turn(self):
         """
@@ -557,15 +566,14 @@ class Game:
                 #
                 # La carta ya se le robará de forma automática al terminar el
                 # turno.
-                if not self.discarding and len(self.turn_player().hand) > 0:
-                    discarded = random.randint(0, len(self.turn_player().hand) - 1)
-                    action = Discard(discarded)
-                    discard_update = action.apply(self.turn_player(), game=self)
+                discard_update = self._auto_discard()
+                if discard_update is not None:
                     update.merge_with(discard_update)
 
-            # Terminación automática del turno
-            end_update = self._end_turn()
-            update.merge_with(end_update)
+                # Terminación automática del turno
+                logger.info(f"Player turn {kicked} automatically ended")
+                end_update = self._end_turn()
+                update.merge_with(end_update)
 
             # Notificación de que ha terminado el turno automáticamente,
             # posiblemente con un usuario nuevo expulsado.
@@ -658,6 +666,16 @@ class Game:
             logger.info(f"Player {player_name} is being replaced by the AI")
             player.is_ai = True
             self._bots_num += 1
+
+            if self.turn_player() == player:
+                # Descartamos automáticamente si no lo ha hecho ya
+                discard_update = self._auto_discard()
+                if discard_update is not None:
+                    update.merge_with(discard_update)
+
+                # Terminación automática del turno
+                end_update = self._end_turn()
+                update.merge_with(end_update)
         else:
             logger.info(f"Player {player_name} is being removed")
             # Si es su turno se pasa al siguiente

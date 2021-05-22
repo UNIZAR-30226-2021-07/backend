@@ -453,7 +453,7 @@ class GameTest(WsTestClient):
                 # ha acabado.
                 players_finished.append(player.name)
                 leaderboards_received += 1
-                # Debería estar su nombre en la clasificación. 
+                # Debería estar su nombre en la clasificación.
                 self.assertIn(player.name, args["leaderboard"])
 
                 # Si hemos contado 5 jugadores finalizados, deberíamos haber

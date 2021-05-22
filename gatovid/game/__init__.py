@@ -89,6 +89,16 @@ class Player:
 
         self.hand.clear()
 
+    def empty_body(self, return_to: Optional[List[Card]] = None) -> None:
+        """
+        Vacía el cuerpo del jugador. Devuelve las cartas a la baraja `return_to`
+        si no es `None`.
+        """
+
+        for pile in self.body.piles:
+            pile.pop_modifiers(return_to=return_to)
+            pile.remove_organ(return_to=return_to)
+
     def _iter_cards(self, kind: Card) -> Generator[Tuple[Card, int], None, None]:
         """
         Itera las cartas de un jugador que son del tipo especificado.
@@ -721,6 +731,11 @@ class Game:
         player.position = self._players_finished
 
         logger.info(f"{player.name} has finished at position {player.position}")
+
+        # Vaciamos la mano del jugador y devolvemos las cartas a la baraja
+        player.empty_hand(return_to=self.deck)
+        # Vaciamos el cuerpo del jugador
+        player.empty_body(return_to=self.deck)
 
         # Avisamos a todos los jugadores de que el jugador ha acabado.
         update = GameUpdate(self)

@@ -28,9 +28,9 @@ from gatovid.util import Timer, get_logger
 logger = get_logger(__name__)
 
 # Tiempo de espera hasta que se reanuda la partida si está pausada.
-TIME_UNTIL_RESUME = 15
+TIME_UNTIL_RESUME = 5 * 60 # 5 minutos
 # Tiempo máximo del turno
-TIME_TURN_END = 30
+TIME_TURN_END = 30 # segundos
 
 
 @dataclass(init=False)

@@ -15,7 +15,7 @@ from gatovid.util import Timer, get_logger
 logger = get_logger(__name__)
 matches = dict()
 # Tiempo de espera hasta que se intenta empezar la partida
-TIME_UNTIL_START = 10 # segundos
+TIME_UNTIL_START = 10  # segundos
 # Caracteres permitidos para los códigos de las partidas.
 CODE_ALLOWED_CHARS = "ACDEFGHJKLMNPQRSTUVWXY345679"
 
